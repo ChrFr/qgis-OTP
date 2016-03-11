@@ -29,11 +29,17 @@ from smooth_layer_dialog import SmoothLayerDialog
 from qgis._core import QgsRasterLayer
 from qgis.core import QgsRasterPipe, QgsRasterFileWriter
 import os.path
+import tempfile
+import subprocess
 
 MIN_KERNEL_SIZE = 1
-MAX_KERNEL_SIZE = 4
-MIN_KERNEL_BETA = 1
-MAX_KERNEL_BETA = 100
+MAX_KERNEL_SIZE = 8
+DEFAULT_KERNEL_SIZE = 4
+
+MIN_KERNEL_BETA = -3
+MAX_KERNEL_BETA = -0.001
+DEFAULT_KERNEL_BETA= -2
+FACTOR_KERNEL_BETA = 1000. # sliders work with int, for double ranges you have to convert to int with a factor
 
 class SmoothLayer:
     """QGIS Plugin Implementation."""
@@ -201,19 +207,29 @@ class SmoothLayer:
                 layer_list.append(layer)
                 self.dlg.layer_combo.addItem(layer.name())     
                 i += 1
-                            
+                
+        # select active layer in combobox                    
         self.dlg.layer_combo.setCurrentIndex(idx)     
         
-        # set the min/max of the sliders
+        # set the the sliders
         self.dlg.kernel_size_slider.setRange(MIN_KERNEL_SIZE, MAX_KERNEL_SIZE)
-        self.dlg.kernel_size_slider.setValue(MIN_KERNEL_SIZE)
+        self.dlg.kernel_size_slider.setValue(DEFAULT_KERNEL_SIZE)
+        self.dlg.kernel_size_label.setNum(DEFAULT_KERNEL_SIZE)
         self.dlg.kernel_size_min_label.setText(str(MIN_KERNEL_SIZE))
         self.dlg.kernel_size_max_label.setText(str(MAX_KERNEL_SIZE))
+        self.dlg.kernel_size_slider.valueChanged.connect(self.dlg.kernel_size_label.setNum)
         
-        self.dlg.kernel_beta_slider.setRange(MIN_KERNEL_BETA, MAX_KERNEL_BETA)  
-        self.dlg.kernel_beta_slider.setValue(MIN_KERNEL_BETA)
+        self.dlg.kernel_beta_slider.setRange(MIN_KERNEL_BETA * FACTOR_KERNEL_BETA, 
+                                             MAX_KERNEL_BETA * FACTOR_KERNEL_BETA)  
+        self.dlg.kernel_beta_slider.setValue(DEFAULT_KERNEL_BETA * FACTOR_KERNEL_BETA)
+        self.dlg.kernel_beta_label.setText(str(DEFAULT_KERNEL_BETA))
+        self.dlg.kernel_beta_slider.setTickInterval(100)
         self.dlg.kernel_beta_min_label.setText(str(MIN_KERNEL_BETA))
         self.dlg.kernel_beta_max_label.setText(str(MAX_KERNEL_BETA))
+        
+        self.dlg.kernel_beta_slider.valueChanged.connect(
+            lambda: self.dlg.kernel_beta_label.setText(
+                str(self.dlg.kernel_beta_slider.value() / FACTOR_KERNEL_BETA)))
         
         # show the dialog
         self.dlg.show()
@@ -223,11 +239,23 @@ class SmoothLayer:
         if result:
             idx = self.dlg.layer_combo.currentIndex()
             selected_layer = layer_list[idx]
-            filename = '/home/cfr/Desktop/tmp/{}.tif'.format(selected_layer.name())
-            print self.dlg.kernel_size_slider.value
-            print self.dlg.kernel_beta_slider.value
+            kernel_size = self.dlg.kernel_size_slider.value()
+            kernel_beta = (self.dlg.kernel_beta_slider.value() / FACTOR_KERNEL_BETA)
             
-            #self.raster_to_file(selected_layer, filename)
+            #tmp_dir = tempfile.mkdtemp()
+            tmp_dir = '/home/cfr/Desktop/tmp/'
+            tmp_filename = os.path.join(tmp_dir, '{}.tif'.format(selected_layer.name()))     
+            
+            self.raster_to_file(selected_layer, tmp_filename)
+            
+            self.call_smooth_process(tmp_filename, tmp_dir, kernel_size, kernel_beta)
+            
+            #smoothed_layer = self.iface.addRasterLayer(tmp_filename, selected_layer.name() + '_smoothed')   
+            # transfer the style from the original layer to the smoothed layer
+            #renderer = selected_layer.renderer().clone()
+            #smoothed_layer.setRenderer(renderer)
+            
+            #shutil.rmtree(tmp_dir)
         
         # remove the items (they are always added again, when run() is called from QGis-UI)
         self.dlg.layer_combo.clear()
@@ -238,13 +266,15 @@ class SmoothLayer:
         '''
         extent = layer.extent()
         width, height = layer.width(), layer.height()
-        renderer = layer.renderer()
-        provider = layer.dataProvider()
-        crs = layer.crs().toWkt()
         
-        pipe = QgsRasterPipe()
-        pipe.set(provider.clone())
-        pipe.set(renderer.clone())
+        # this kind of generating a pipe doesn't set the nodatavalue -> commented out, use provided pipe instead
+        #pipe = QgsRasterPipe()
+        #renderer = layer.renderer()
+        #provider = layer.dataProvider()
+        #pipe.set(provider.clone())
+        #pipe.set(renderer.clone())
+        
+        pipe = layer.pipe()
         
         file_writer = QgsRasterFileWriter(filename)
         
@@ -252,49 +282,23 @@ class SmoothLayer:
                                 width,
                                 height,
                                 extent,
-                                layer.crs())        
+                                layer.crs())           
         
-    
-
-        #usage: smooth.py [-h] [-n DESTINATION_DB] [--host HOST] [-p PORT] [-U USER]
-            #[--subfolder SUBFOLDER] [--schema SCHEMA]
-            #[--tablename TABLENAME] [--infile IN_FILE]
-            #[--outfolder OUT_FOLDER] [--kernelsize KERNELSIZE]
-            #[--kernel_beta BETA]
+    def call_smooth_process(self, filename, working_folder, kernel_size, kernel_beta):
+        commands = '''
+        activate elan        
+        python -m dichte_berlin.smooth --infile {in_file} --subfolder {out_folder} --kernelsize {kernel_size} --kernel_beta {kernel_beta}
+        '''
         
-        #Create Raster with Berlin Density Data
-        
-        #optional arguments:
-            #-h, --help            show this help message and exit
-            #-n DESTINATION_DB, --name DESTINATION_DB
-                #Name of destination database
-            #--subfolder SUBFOLDER
-                #subfolder to store the tiffs
-            #--outfolder OUT_FOLDER
-                #folder to store the smoothed raster
-        
-        #DB_Config:
-            #Database connection arguments
-        
-            #--host HOST           host
-            #-p PORT, --port PORT  port
-            #-U USER, --user USER  user
-        
-        #PostgisRaster:
-            #Postgis Raster to smooth
-        
-            #--schema SCHEMA       schema of raster to smooth
-            #--tablename TABLENAME
-                #tablename of raster to smooth
-        
-        #Tiff:
-            #Tiff to Smooth
-        
-            #--infile IN_FILE      path to geotiff-raster
-        
-        #KernelParams:
-            #Kernel Parameters
-        
-            #--kernelsize KERNELSIZE
-                #size of the kernel in pixel from the center
-            #--kernel_beta BETA    distance decay parameter of the kernel
+        process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        out, err = process.communicate(commands.format(in_file=filename, 
+                                                       out_folder = working_folder,
+                                                       kernel_size=kernel_size, 
+                                                       kernel_beta=kernel_beta))
+        print commands.format(in_file=filename, 
+                              out_folder = working_folder,
+                              kernel_size=kernel_size, 
+                              kernel_beta=kernel_beta)
+        print out
+        print err
+        print process.returncode

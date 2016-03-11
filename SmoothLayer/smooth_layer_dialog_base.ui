@@ -262,37 +262,5 @@
     </hint>
    </hints>
   </connection>
-  <connection>
-   <sender>kernel_beta_slider</sender>
-   <signal>valueChanged(int)</signal>
-   <receiver>kernel_beta_label</receiver>
-   <slot>setNum(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>65</x>
-     <y>172</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>42</x>
-     <y>147</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>kernel_size_slider</sender>
-   <signal>valueChanged(int)</signal>
-   <receiver>kernel_size_label</receiver>
-   <slot>setNum(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>71</x>
-     <y>111</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>118</x>
-     <y>85</y>
-    </hint>
-   </hints>
-  </connection>
  </connections>
 </ui>
