@@ -30,7 +30,11 @@ from qgis._core import QgsRasterLayer
 from qgis.core import QgsRasterPipe, QgsRasterFileWriter
 import os.path
 import tempfile
+import shutil
 import subprocess
+
+ENVIRONMENT_PATH = '/opt/miniconda/envs/elan/bin'
+SMOOTHED_SUFFIX = '_smoothed.tiff'
 
 MIN_KERNEL_SIZE = 1
 MAX_KERNEL_SIZE = 8
@@ -242,19 +246,20 @@ class SmoothLayer:
             kernel_size = self.dlg.kernel_size_slider.value()
             kernel_beta = (self.dlg.kernel_beta_slider.value() / FACTOR_KERNEL_BETA)
             
-            #tmp_dir = tempfile.mkdtemp()
-            tmp_dir = '/home/cfr/Desktop/tmp/'
-            tmp_filename = os.path.join(tmp_dir, '{}.tif'.format(selected_layer.name()))     
+            tmp_dir = tempfile.mkdtemp()
+            name = selected_layer.name()
+            tmp_filename = os.path.join(tmp_dir, '{}.tif'.format(name))     
             
             self.raster_to_file(selected_layer, tmp_filename)
             
             self.call_smooth_process(tmp_filename, tmp_dir, kernel_size, kernel_beta)
             
-            #smoothed_layer = self.iface.addRasterLayer(tmp_filename, selected_layer.name() + '_smoothed')   
+            smoothed_layer = self.iface.addRasterLayer(os.path.join(tmp_dir, name + '_smoothed.tiff'), name + '_smoothed')   
             # transfer the style from the original layer to the smoothed layer
-            #renderer = selected_layer.renderer().clone()
-            #smoothed_layer.setRenderer(renderer)
+            renderer = selected_layer.renderer().clone()
+            smoothed_layer.setRenderer(renderer)
             
+            # TODO: remove temporary directory somehow/somewhere else (doesn't load layer correctly, if done here)
             #shutil.rmtree(tmp_dir)
         
         # remove the items (they are always added again, when run() is called from QGis-UI)
@@ -267,14 +272,18 @@ class SmoothLayer:
         extent = layer.extent()
         width, height = layer.width(), layer.height()
         
-        # this kind of generating a pipe doesn't set the nodatavalue -> commented out, use provided pipe instead
-        #pipe = QgsRasterPipe()
+        pipe = QgsRasterPipe()
+        # setting renderer leads to export as rendered image (strange: causes conversion from grayscale to multicolor with 4 bands)
+        # else raw data is written (in grayscale)
         #renderer = layer.renderer()
-        #provider = layer.dataProvider()
-        #pipe.set(provider.clone())
-        #pipe.set(renderer.clone())
+        provider = layer.dataProvider()
         
-        pipe = layer.pipe()
+        #pipe.set(renderer.clone())
+        pipe.set(provider.clone())
+        
+        # another possible way to pipe (take the referenced one), references the renderer as well 
+        # -> causes wrong color bands while exporting (see some lines above)
+        #pipe = layer.pipe()
         
         file_writer = QgsRasterFileWriter(filename)
         
@@ -284,21 +293,21 @@ class SmoothLayer:
                                 extent,
                                 layer.crs())           
         
-    def call_smooth_process(self, filename, working_folder, kernel_size, kernel_beta):
-        commands = '''
-        activate elan        
-        python -m dichte_berlin.smooth --infile {in_file} --subfolder {out_folder} --kernelsize {kernel_size} --kernel_beta {kernel_beta}
+    def call_smooth_process(self, filename, working_folder, kernel_size, kernel_beta): 
         '''
-        
-        process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        out, err = process.communicate(commands.format(in_file=filename, 
-                                                       out_folder = working_folder,
-                                                       kernel_size=kernel_size, 
-                                                       kernel_beta=kernel_beta))
-        print commands.format(in_file=filename, 
-                              out_folder = working_folder,
-                              kernel_size=kernel_size, 
-                              kernel_beta=kernel_beta)
+        call the smooth - module with python from bash (elan - environment needed)
+        '''
+        cmd = "python -m dichte_berlin.smooth --infile '{in_file}' --subfolder '{out_folder}' --outfolder '{out_folder}' --kernelsize {kernel_size} --kernel_beta {kernel_beta}"
+        env = os.environ.copy()
+        env['PATH'] = ENVIRONMENT_PATH + ':' + env['PATH']
+        process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env)
+        out, err = process.communicate(cmd.format(in_file=filename, 
+                                                  out_folder=working_folder,
+                                                  kernel_size=kernel_size, 
+                                                  kernel_beta=kernel_beta))
+        print cmd.format(in_file=filename, 
+                                                  out_folder=working_folder,
+                                                  kernel_size=kernel_size, 
+                                                  kernel_beta=kernel_beta)
         print out
         print err
-        print process.returncode
