@@ -21,13 +21,13 @@
  ***************************************************************************/
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QProcess
-from PyQt4.QtGui import QAction, QIcon
+from PyQt4.QtGui import QAction, QIcon, QStandardItem, QStandardItemModel
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
 from OTP_dialog import OTPDialog
 import os
-from config import OTP_JAR
+from config import OTP_JAR, GRAPH_PATH, AVAILABLE_MODES
 
 
 class OTP:
@@ -181,6 +181,18 @@ class OTP:
 
 
     def run(self):
+        # subdirectories in graph-dir are treated as routers by OTP
+        for subdir in os.listdir(GRAPH_PATH):
+            self.dlg.router_combo.addItem(subdir) 
+            
+        for mode in AVAILABLE_MODES:
+            model = QStandardItemModel()
+            item = QStandardItem()
+            item.setCheckable(True)
+            item.setText(mode)        
+            model.setItem(0, item)
+            self.dlg.mode_list_view.addItem(item)
+            
         process = QProcess(self.dlg)
         
         def progress():
