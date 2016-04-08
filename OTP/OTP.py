@@ -20,13 +20,14 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
+from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QProcess
 from PyQt4.QtGui import QAction, QIcon
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
 from OTP_dialog import OTPDialog
-import os.path
+import os
+from config import OTP_JAR
 
 
 class OTP:
@@ -180,13 +181,30 @@ class OTP:
 
 
     def run(self):
-        """Run method that performs all the real work"""
+        process = QProcess(self.dlg)
+        
+        def progress():
+            out_message = str(process.readAllStandardOutput())
+            if out_message:
+                print out_message
+            err_message = str(process.readAllStandardError())
+            if err_message:
+                print err_message
+            
+        process.readyReadStandardOutput.connect(progress)
+        process.readyReadStandardError.connect(progress)
+        
+        working_dir = os.path.dirname(__file__)        
+        
         # show the dialog
         self.dlg.show()
+        
         # Run the dialog event loop
         result = self.dlg.exec_()
-        # See if OK was pressed
-        if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-            pass
+        # if OK was pressed
+        if result:            
+            print 'Start script...'
+            
+            cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}"'.format(
+                jar=OTP_JAR, wd=working_dir, router='portland', origins='/home/cfr/otp/graphs/portland/origins.csv', destinations='/home/cfr/otp/graphs/portland/schools.csv')            
+            process.start(cmd)
