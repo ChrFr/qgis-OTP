@@ -21,7 +21,7 @@
  ***************************************************************************/
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QProcess
-from PyQt4.QtGui import QAction, QIcon, QStandardItem, QStandardItemModel
+from PyQt4.QtGui import QAction, QIcon, QListWidgetItem, QCheckBox
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
@@ -186,12 +186,9 @@ class OTP:
             self.dlg.router_combo.addItem(subdir) 
             
         for mode in AVAILABLE_MODES:
-            model = QStandardItemModel()
-            item = QStandardItem()
-            item.setCheckable(True)
-            item.setText(mode)        
-            model.setItem(0, item)
-            self.dlg.mode_list_view.addItem(item)
+            item = QListWidgetItem(self.dlg.mode_list_view)
+            checkbox = QCheckBox(mode)
+            self.dlg.mode_list_view.setItemWidget(item, checkbox)
             
         process = QProcess(self.dlg)
         
