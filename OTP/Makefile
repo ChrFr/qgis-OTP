@@ -44,13 +44,16 @@ PLUGINNAME = OTP
 
 PY_FILES = \
 	__init__.py \
-	OTP.py OTP_dialog.py
+	OTP.py OTP_dialog.py \
+	config.py dialogs.py
 
-UI_FILES = OTP_dialog_base.ui
+UI_FILES = OTP_dialog_base.ui 
 
 EXTRAS = metadata.txt icon.png
 
-COMPILED_RESOURCE_FILES = resources.py
+COMPILED_UI_FILES = ui_progress.py
+
+COMPILED_RESOURCE_FILES = resources.py 
 
 PEP8EXCLUDE=pydev,resources.py,conf.py,third_party,ui
 
@@ -69,13 +72,16 @@ QGISDIR=.qgis2
 
 default: compile
 
-compile: $(COMPILED_RESOURCE_FILES)
+compile: $(COMPILED_RESOURCE_FILES) $(COMPILED_UI_FILES)
 
 %.py : %.qrc $(RESOURCES_SRC)
 	pyrcc4 -o $*.py  $<
 
 %.qm : %.ts
 	$(LRELEASE) $<
+	
+ui_%.py: %.ui
+	pyuic4 -o $@ $<
 
 test: compile transcompile
 	@echo
