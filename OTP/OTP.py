@@ -28,6 +28,7 @@ import resources
 from OTP_dialog import OTPDialog
 import os
 from config import OTP_JAR, GRAPH_PATH, AVAILABLE_MODES
+from dialogs import ExecCommandDialog
 
 
 class OTP:
@@ -189,19 +190,6 @@ class OTP:
             item = QListWidgetItem(self.dlg.mode_list_view)
             checkbox = QCheckBox(mode)
             self.dlg.mode_list_view.setItemWidget(item, checkbox)
-            
-        process = QProcess(self.dlg)
-        
-        def progress():
-            out_message = str(process.readAllStandardOutput())
-            if out_message:
-                print out_message
-            err_message = str(process.readAllStandardError())
-            if err_message:
-                print err_message
-            
-        process.readyReadStandardOutput.connect(progress)
-        process.readyReadStandardError.connect(progress)
         
         working_dir = os.path.dirname(__file__)        
         
@@ -209,11 +197,18 @@ class OTP:
         self.dlg.show()
         
         # Run the dialog event loop
-        result = self.dlg.exec_()
+        result = self.dlg.exec_()        
+                
         # if OK was pressed
         if result:            
-            print 'Start script...'
+            
+            selected_modes = []
+            for index in xrange(self.dlg.mode_list_view.count()):
+                checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
+                if checkbox.checkState():
+                    selected_modes.append(str(checkbox.text()))   
             
             cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}"'.format(
                 jar=OTP_JAR, wd=working_dir, router='portland', origins='/home/cfr/otp/graphs/portland/origins.csv', destinations='/home/cfr/otp/graphs/portland/schools.csv')            
-            process.start(cmd)
+            diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True)
+            diag.exec_()
