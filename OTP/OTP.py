@@ -29,6 +29,10 @@ from OTP_dialog import OTPDialog
 import os
 from config import OTP_JAR, GRAPH_PATH, AVAILABLE_MODES
 from dialogs import ExecCommandDialog
+from qgis._core import QgsVectorLayer
+from qgis.core import QgsVectorFileWriter
+import tempfile
+import shutil
 
 
 class OTP:
@@ -182,6 +186,25 @@ class OTP:
 
 
     def run(self):
+        layers = self.iface.legendInterface().layers()
+        
+        layer_list = []
+        active_layer = self.iface.activeLayer()
+        i = 0
+        idx = 0
+        for layer in layers:            
+            if isinstance(layer, QgsVectorLayer):
+                if layer == active_layer:
+                    idx = i
+                layer_list.append(layer)
+                self.dlg.origins_combo.addItem(layer.name())   
+                self.dlg.destinations_combo.addItem(layer.name())     
+                i += 1        
+                
+        # select active layer in comboboxes                    
+        self.dlg.origins_combo.setCurrentIndex(idx)          
+        self.dlg.destinations_combo.setCurrentIndex(idx)   
+        
         # subdirectories in graph-dir are treated as routers by OTP
         for subdir in os.listdir(GRAPH_PATH):
             self.dlg.router_combo.addItem(subdir) 
@@ -202,6 +225,16 @@ class OTP:
         # if OK was pressed
         if result:            
             
+            origin_layer = layer_list[self.dlg.origins_combo.currentIndex()]
+            destination_layer = layer_list[self.dlg.destinations_combo.currentIndex()]            
+            
+            tmp_dir = tempfile.mkdtemp()
+            orig_tmp_filename = os.path.join(tmp_dir, 'origins.csv')  
+            dest_tmp_filename = os.path.join(tmp_dir, 'destinations.csv')    
+            
+            QgsVectorFileWriter.writeAsVectorFormat(origin_layer, orig_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
+            QgsVectorFileWriter.writeAsVectorFormat(destination_layer, dest_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
+            
             selected_modes = []
             for index in xrange(self.dlg.mode_list_view.count()):
                 checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
@@ -209,6 +242,8 @@ class OTP:
                     selected_modes.append(str(checkbox.text()))   
             
             cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}"'.format(
-                jar=OTP_JAR, wd=working_dir, router='portland', origins='/home/cfr/otp/graphs/portland/origins.csv', destinations='/home/cfr/otp/graphs/portland/schools.csv')            
+                jar=OTP_JAR, wd=working_dir, router='portland', origins=orig_tmp_filename, destinations=dest_tmp_filename)            
             diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True)
             diag.exec_()
+            
+            shutil.rmtree(tmp_dir)
