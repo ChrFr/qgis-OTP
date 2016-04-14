@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from ui_progress import Ui_ProgressDialog
 from PyQt4 import QtCore, QtGui
-import copy, os, re, sys
+import copy, os, re, sys, time
 
 # WARNING: doesn't work in QGIS, because it doesn't support the QString module anymore (autocast to str)
 try:
@@ -107,7 +107,22 @@ def set_directory(parent, line_edit):
     if len(dirname) > 0:
         line_edit.setText(dirname)
         
+class Timer(QtCore.QThread):
+    time_elapsed = QtCore.pyqtSignal(int)
 
+    def __init__(self, label, process):
+        super(Timer, self).__init__()
+        self.start_time = None
+        self.label = label
+        self.process = process
+
+    def run(self):
+        self.start_time = time.time()
+        while self.process.state() != QtCore.QProcess.NotRunning:
+            time.sleep(1)
+            print self.process.state()
+            self.label.setText(time.time() - self.start_time)
+                    
 class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
     """
     Dialog showing progress in textfield and bar after starting a certain task with run()
@@ -176,7 +191,9 @@ class ExecCommandDialog(ProgressDialog):
             if len(err): self.show_status(err)
             
         self.process.readyReadStandardOutput.connect(progress)
-        self.process.readyReadStandardError.connect(progress)        
+        self.process.readyReadStandardError.connect(progress) 
+        
+        self.timer = Timer(self.elapsed_time_label, self.process)
         
         if auto_start:
             self.startButton.clicked.emit(True)
@@ -190,6 +207,7 @@ class ExecCommandDialog(ProgressDialog):
         super(ExecCommandDialog, self).stopped()
 
     def finished(self):
+        self.timer.terminate()
         if self.process.exitCode() == QtCore.QProcess.NormalExit:
             self.progress_bar.setValue(100)
             self.progress_bar.setStyleSheet(FINISHED_STYLE)
@@ -198,6 +216,7 @@ class ExecCommandDialog(ProgressDialog):
         self.stopped()
 
     def kill(self):
+        self.timer.terminate()
         self.progress_bar.setStyleSheet(ABORTED_STYLE)
         self.process.kill()
         self.log_edit.insertHtml('<b> Vorgang abgebrochen </b> <br>')
@@ -206,3 +225,5 @@ class ExecCommandDialog(ProgressDialog):
     def run(self):
         self.show_status('Starte Script: <i>' + self.command + '</i><br>')
         self.process.start(self.command)
+        self.timer.start()
+        
