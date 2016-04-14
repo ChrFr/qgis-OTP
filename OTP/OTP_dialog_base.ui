@@ -161,10 +161,21 @@
      <property name="maximum">
       <number>3600</number>
      </property>
+     <property name="value">
+      <number>120</number>
+     </property>
     </widget>
    </item>
    <item row="12" column="3">
-    <widget class="QTimeEdit" name="time_edit"/>
+    <widget class="QTimeEdit" name="time_edit">
+     <property name="time">
+      <time>
+       <hour>12</hour>
+       <minute>0</minute>
+       <second>0</second>
+      </time>
+     </property>
+    </widget>
    </item>
    <item row="15" column="4">
     <widget class="QLabel" name="label_8">
