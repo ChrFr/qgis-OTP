@@ -20,22 +20,22 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QProcess
+from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QProcess, QDateTime
 from PyQt4.QtGui import QAction, QIcon, QListWidgetItem, QCheckBox, QMessageBox
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
 from OTP_dialog import OTPDialog
 import os
-from config import OTP_JAR, GRAPH_PATH, AVAILABLE_MODES
+from config import OTP_JAR, GRAPH_PATH, AVAILABLE_MODES, DATETIME_FORMAT
 from dialogs import ExecCommandDialog, set_file
 from qgis._core import QgsVectorLayer
 from qgis.core import QgsVectorFileWriter
 from time import strftime
+import locale
 import tempfile
 import shutil
-
-DATETIME_FORMAT = '%d-%m-%Y-%H:%M'
+import time
 
 class OTP:
     """QGIS Plugin Implementation."""
@@ -53,11 +53,13 @@ class OTP:
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
+        loc = QSettings().value('locale/userLocale')[0:2]
+        #locale.setlocale(locale.LC_ALL, 'de_DE')
+        #loc = locale.getlocale()
         locale_path = os.path.join(
             self.plugin_dir,
             'i18n',
-            'OTP_{}.qm'.format(locale))
+            'OTP_{}.qm'.format(loc))
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -73,7 +75,7 @@ class OTP:
             lambda: set_file(self.dlg, 
                              self.dlg.target_file_edit,
                              filters=['CSV-Dateien (*.csv)'],
-                             directory=self.dlg.router_combo.currentText()+'-'+strftime(DATETIME_FORMAT)+'.csv', 
+                             directory=self.dlg.router_combo.currentText()+'-'+strftime('%d-%m-%Y-%H:%M')+'.csv', 
                              save=True)
         )              
                 
@@ -299,7 +301,15 @@ class OTP:
                 oid = self.dlg.origins_id_combo.currentText()
                 did = self.dlg.destinations_id_combo.currentText()
                 
-                cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}" --oid {oid} --did {did} --target "{target}"'.format(
+                d = self.dlg.calendar_edit.selectedDate()
+                t = self.dlg.time_edit.time()
+                dt = QDateTime(d)
+                dt.setTime(t)                
+                dt_string = dt.toPyDateTime().strftime(DATETIME_FORMAT)
+                
+                max_time = self.dlg.max_time_edit.value() * 60
+                
+                cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}" --oid {oid} --did {did} --target "{target}" --datetime {datetime} --maxtime {max_time}'.format(
                     jar=OTP_JAR, 
                     wd=working_dir, 
                     router=router, 
@@ -307,7 +317,10 @@ class OTP:
                     destinations=dest_tmp_filename, 
                     oid=oid,
                     did=did,
-                    target=target_file)            
+                    datetime=dt_string,
+                    target=target_file,
+                    max_time=max_time
+                )            
                 diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True)
                 diag.exec_()
                 

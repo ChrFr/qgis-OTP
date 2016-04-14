@@ -3,6 +3,7 @@ GRAPH_PATH='/home/cfr/otp/graphs'
 LATITUDE_COLUMN = 'lat'
 LONGITUDE_COLUMN = 'lon'
 ID_COLUMN = 'id'
+DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S"
 AVAILABLE_MODES = ['BICYCLE',
                    'BUS',
                    'BUSISH',

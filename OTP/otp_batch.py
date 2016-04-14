@@ -5,13 +5,13 @@ Created on Mar 16, 2016
 '''
 #!/usr/bin/jython
 from org.opentripplanner.scripting.api import OtpsEntryPoint
-from config import GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, ID_COLUMN
+from config import GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, ID_COLUMN, DATETIME_FORMAT
 from argparse import ArgumentParser
 import time
 
 router_name = ''
     
-def origin_to_dest(origins_csv, destinations_csv, target_csv, oid=None, did=None): 
+def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=1800, oid=None, did=None): 
     '''
     calculates reachability between origins and destinations with OpenTripPlanner 
     and saves results to csv file
@@ -22,6 +22,7 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, oid=None, did=None
     destinations_csv: file with destination points
     oid: optional, name of id-column in origins-file (if not given, is assigned from 0 to length of origins)
     did: optional, name of id-column in destinations-file (if not given, is assigned as 'unknown'
+    date_time: time object (time.struct_time)
     '''   
     
     otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router_name ])
@@ -29,8 +30,8 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, oid=None, did=None
     
     # Create a default request for a given time
     req = otp.createRequest()
-    req.setDateTime(2016, 3, 17, 10, 00, 00)
-    req.setMaxTimeSec(1800)
+    req.setDateTime(date_time.tm_year, date_time.tm_mon, date_time.tm_mday, date_time.tm_hour, date_time.tm_min, date_time.tm_sec)
+    req.setMaxTimeSec(max_time)
     
     origins = otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)
     
@@ -99,27 +100,23 @@ if __name__ == '__main__':
                         help="target csv file the results will be saved in (overwrites existing file)",
                         dest="target", default="otp_results.csv")      
     
-    parser.add_argument('-t', '--time', action="store",
-                        help="travel time (hours:minutes:seconds)",
-                        dest="time", default=time.strftime("%H:%M:%S"))    
+    parser.add_argument('--datetime', action="store",
+                        help="departure/arrival time (format see config.py: day/month/year-hours:minutes:seconds)",
+                        dest="datetime", default=time.strftime(DATETIME_FORMAT))  
     
-    parser.add_argument('-d', '--date', action="store",
-                        help="date of travel (year/month/day)",
-                        dest="date", default=time.strftime("%Y/%m/%d"))
+    parser.add_argument('--maxtime', action="store",
+                        help="max. travel time (in seconds)",
+                        dest="max_time", default=1800)   
     
     options = parser.parse_args()
     
     router_name = options.router
-    time = options.time
-    date = options.date
     origins_csv = options.origins
     destinations_csv = options.destinations
     target_csv = options.target
     oid = options.oid
     did = options.did
+    date_time = time.strptime(options.datetime, DATETIME_FORMAT)
+    max_time = int(options.max_time)    
     
-    #TODO: parse date and time to datetime
-    print date
-    print time
-    
-    origin_to_dest(origins_csv, destinations_csv, target_csv, oid=oid, did=did)
+    origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=max_time, oid=oid, did=did)

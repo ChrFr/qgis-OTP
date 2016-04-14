@@ -63,7 +63,7 @@ def browse_file(parent, directory=None, filters=[ALL_FILES_FILTER], selected_fil
         filename = str(
             QtGui.QFileDialog.getSaveFileName(
                 parent=parent, 
-                caption=_fromUtf8('Datei speichern'),
+                caption=u'Datei speichern',
                 directory=directory,
                 filter=filter
             ))
@@ -71,7 +71,7 @@ def browse_file(parent, directory=None, filters=[ALL_FILES_FILTER], selected_fil
         filename = str(
             QtGui.QFileDialog.getOpenFileName(
                 parent=parent, 
-                caption=_fromUtf8('Datei öffnen'),
+                caption=u'Datei öffnen',
                 directory=directory,
                 filter=filter,
                 selectedFilter=selected_filter
@@ -102,7 +102,7 @@ def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER], sele
 def set_directory(parent, line_edit):
     dirname = str(
             QtGui.QFileDialog.getExistingDirectory(
-                parent, _fromUtf8('Zielverzeichnis wählen')))
+                parent, u'Zielverzeichnis wählen'))
     # dirname is '' if canceled
     if len(dirname) > 0:
         line_edit.setText(dirname)
@@ -130,7 +130,7 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
 
     def stopped(self):
         self.startButton.setEnabled(True)
-        self.cancelButton.setText(_fromUtf8('Beenden'))
+        self.cancelButton.setText('Beenden')
         self.cancelButton.clicked.connect(self.close)
         if self.auto_close:
             self.close()
@@ -148,8 +148,8 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
             self.progress_bar.setValue(progress)
 
     # task needs to be overridden
-    def run(self):
-        pass
+    def run(self):        
+        self.progress_bar.setStyleSheet(DEFAULT_STYLE)
 
 
 class ExecCommandDialog(ProgressDialog):
