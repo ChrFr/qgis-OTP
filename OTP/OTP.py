@@ -21,19 +21,21 @@
  ***************************************************************************/
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QProcess
-from PyQt4.QtGui import QAction, QIcon, QListWidgetItem, QCheckBox
+from PyQt4.QtGui import QAction, QIcon, QListWidgetItem, QCheckBox, QMessageBox
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
 from OTP_dialog import OTPDialog
 import os
 from config import OTP_JAR, GRAPH_PATH, AVAILABLE_MODES
-from dialogs import ExecCommandDialog
+from dialogs import ExecCommandDialog, set_file
 from qgis._core import QgsVectorLayer
 from qgis.core import QgsVectorFileWriter
+from time import strftime
 import tempfile
 import shutil
 
+DATETIME_FORMAT = '%d-%m-%Y-%H:%M'
 
 class OTP:
     """QGIS Plugin Implementation."""
@@ -65,7 +67,26 @@ class OTP:
                 QCoreApplication.installTranslator(self.translator)
 
         # Create the dialog (after translation) and keep reference
-        self.dlg = OTPDialog()
+        self.dlg = OTPDialog()        
+        
+        self.dlg.target_browse_button.clicked.connect(
+            lambda: set_file(self.dlg, 
+                             self.dlg.target_file_edit,
+                             filters=['CSV-Dateien (*.csv)'],
+                             directory=self.dlg.router_combo.currentText()+'-'+strftime(DATETIME_FORMAT)+'.csv', 
+                             save=True)
+        )              
+                
+        self.layer_list = []        
+        self.dlg.origins_combo.currentIndexChanged.connect(
+            lambda: self.fill_id_combo(self.dlg.origins_combo, self.dlg.origins_id_combo))   
+        self.dlg.destinations_combo.currentIndexChanged.connect(
+            lambda: self.fill_id_combo(self.dlg.destinations_combo, self.dlg.destinations_id_combo))                 
+                    
+        for mode in AVAILABLE_MODES:
+            item = QListWidgetItem(self.dlg.mode_list_view)
+            checkbox = QCheckBox(mode)
+            self.dlg.mode_list_view.setItemWidget(item, checkbox)        
 
         # Declare instance attributes
         self.actions = []
@@ -182,21 +203,36 @@ class OTP:
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
-        del self.toolbar
-
+        del self.toolbar        
+        
+    def set_date(self):
+        date = self.dlg.calendar_edit.selectedDate()
+        self.dlg.current_date_label.setText(date.toString())
+        
+    def fill_id_combo(self, layer_combo, id_combo):  
+        id_combo.clear()
+        layer = self.layer_list[layer_combo.currentIndex()]
+        fields = layer.pendingFields()
+        field_names = [field.name() for field in fields]
+        id_combo.addItems(field_names)
 
     def run(self):
         layers = self.iface.legendInterface().layers()
         
-        layer_list = []
+        self.set_date()
+        self.dlg.calendar_edit.clicked.connect(self.set_date)          
+        
+        self.layer_list = []
         active_layer = self.iface.activeLayer()
+        self.dlg.origins_combo.clear()   
+        self.dlg.destinations_combo.clear()            
         i = 0
         idx = 0
         for layer in layers:            
             if isinstance(layer, QgsVectorLayer):
                 if layer == active_layer:
                     idx = i
-                layer_list.append(layer)
+                self.layer_list.append(layer)
                 self.dlg.origins_combo.addItem(layer.name())   
                 self.dlg.destinations_combo.addItem(layer.name())     
                 i += 1        
@@ -205,45 +241,78 @@ class OTP:
         self.dlg.origins_combo.setCurrentIndex(idx)          
         self.dlg.destinations_combo.setCurrentIndex(idx)   
         
+        self.dlg.router_combo.clear()
         # subdirectories in graph-dir are treated as routers by OTP
         for subdir in os.listdir(GRAPH_PATH):
             self.dlg.router_combo.addItem(subdir) 
-            
-        for mode in AVAILABLE_MODES:
-            item = QListWidgetItem(self.dlg.mode_list_view)
-            checkbox = QCheckBox(mode)
-            self.dlg.mode_list_view.setItemWidget(item, checkbox)
         
         working_dir = os.path.dirname(__file__)        
         
         # show the dialog
-        self.dlg.show()
+        self.dlg.show()        
         
-        # Run the dialog event loop
-        result = self.dlg.exec_()        
+        while True:
+            # Run the dialog event loop
+            ok = self.dlg.exec_()        
+                    
+            # if OK was pressed
+            if ok:                            
+                target_file = self.dlg.target_file_edit.text()
+                target_path = os.path.dirname(target_file)          
                 
-        # if OK was pressed
-        if result:            
-            
-            origin_layer = layer_list[self.dlg.origins_combo.currentIndex()]
-            destination_layer = layer_list[self.dlg.destinations_combo.currentIndex()]            
-            
-            tmp_dir = tempfile.mkdtemp()
-            orig_tmp_filename = os.path.join(tmp_dir, 'origins.csv')  
-            dest_tmp_filename = os.path.join(tmp_dir, 'destinations.csv')    
-            
-            QgsVectorFileWriter.writeAsVectorFormat(origin_layer, orig_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
-            QgsVectorFileWriter.writeAsVectorFormat(destination_layer, dest_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
-            
-            selected_modes = []
-            for index in xrange(self.dlg.mode_list_view.count()):
-                checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
-                if checkbox.checkState():
-                    selected_modes.append(str(checkbox.text()))   
-            
-            cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}"'.format(
-                jar=OTP_JAR, wd=working_dir, router='portland', origins=orig_tmp_filename, destinations=dest_tmp_filename)            
-            diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True)
-            diag.exec_()
-            
-            shutil.rmtree(tmp_dir)
+                if not os.path.exists(target_path):
+                    msg_box = QMessageBox(QMessageBox.Warning, "Fehler", u'Sie haben keinen gültigen Dateipfad angegeben.')
+                    msg_box.exec_()
+                    continue
+                elif not os.access(target_path, os.W_OK):
+                    msg_box = QMessageBox(QMessageBox.Warning, "Fehler", u'Sie haben keine Zugriffsberechtigung auf den Dateipfad.')
+                    msg_box.exec_()
+                    continue
+                
+                origin_layer = self.layer_list[self.dlg.origins_combo.currentIndex()]
+                destination_layer = self.layer_list[self.dlg.destinations_combo.currentIndex()]    
+                
+                if origin_layer==destination_layer:
+                    msg_box = QMessageBox()
+                    reply = msg_box.question(self.dlg,
+                                             'Hinweis',
+                                             'Die Layer mit Origins und Destinations sind identisch.\n'+
+                                             'Soll die Berechnung trotzdem gestartet werden?',
+                                             QMessageBox.Ok, QMessageBox.Cancel)
+                    if reply == QMessageBox.Cancel:
+                        continue                
+                
+                tmp_dir = tempfile.mkdtemp()
+                orig_tmp_filename = os.path.join(tmp_dir, 'origins.csv')  
+                dest_tmp_filename = os.path.join(tmp_dir, 'destinations.csv')    
+                
+                QgsVectorFileWriter.writeAsVectorFormat(origin_layer, orig_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
+                QgsVectorFileWriter.writeAsVectorFormat(destination_layer, dest_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
+                
+                selected_modes = []
+                for index in xrange(self.dlg.mode_list_view.count()):
+                    checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
+                    if checkbox.checkState():
+                        selected_modes.append(str(checkbox.text()))  
+                        
+                router = self.dlg.router_combo.currentText()
+                oid = self.dlg.origins_id_combo.currentText()
+                did = self.dlg.destinations_id_combo.currentText()
+                
+                cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}" --oid {oid} --did {did} --target "{target}"'.format(
+                    jar=OTP_JAR, 
+                    wd=working_dir, 
+                    router=router, 
+                    origins=orig_tmp_filename, 
+                    destinations=dest_tmp_filename, 
+                    oid=oid,
+                    did=did,
+                    target=target_file)            
+                diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True)
+                diag.exec_()
+                
+                shutil.rmtree(tmp_dir)
+                break
+                
+            else:
+                break

@@ -11,7 +11,7 @@ import time
 
 router_name = ''
     
-def origin_to_dest(origins_csv, destinations_csv, oid=None, did=None): 
+def origin_to_dest(origins_csv, destinations_csv, target_csv, oid=None, did=None): 
     '''
     calculates reachability between origins and destinations with OpenTripPlanner 
     and saves results to csv file
@@ -69,7 +69,7 @@ def origin_to_dest(origins_csv, destinations_csv, oid=None, did=None):
                 out_csv.addRow([origin_id, destination_id,
                                 travel_time, boardings, walk_distance])
     # Save the result
-    out_csv.save('/home/cfr/otp/graphs/portland/otp_results.csv')
+    out_csv.save(target_csv)
     print "Done"
     
 if __name__ == '__main__':
@@ -93,7 +93,11 @@ if __name__ == '__main__':
     
     parser.add_argument('--did', action="store",
                         help="id field in destinations file (Warning: if not given, resulting destination-ids are unknown)",
-                        dest="did", default=ID_COLUMN)    
+                        dest="did", default=ID_COLUMN)   
+    
+    parser.add_argument('--target', action="store",
+                        help="target csv file the results will be saved in (overwrites existing file)",
+                        dest="target", default="otp_results.csv")      
     
     parser.add_argument('-t', '--time', action="store",
                         help="travel time (hours:minutes:seconds)",
@@ -110,6 +114,7 @@ if __name__ == '__main__':
     date = options.date
     origins_csv = options.origins
     destinations_csv = options.destinations
+    target_csv = options.target
     oid = options.oid
     did = options.did
     
@@ -117,4 +122,4 @@ if __name__ == '__main__':
     print date
     print time
     
-    origin_to_dest(origins_csv, destinations_csv, oid=oid, did=did)
+    origin_to_dest(origins_csv, destinations_csv, target_csv, oid=oid, did=did)
