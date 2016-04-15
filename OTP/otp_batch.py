@@ -5,13 +5,14 @@ Created on Mar 16, 2016
 '''
 #!/usr/bin/jython
 from org.opentripplanner.scripting.api import OtpsEntryPoint
+from org.opentripplanner.routing.core import TraverseMode
 from config import GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, ID_COLUMN, DATETIME_FORMAT
 from argparse import ArgumentParser
 import time
 
 router_name = ''
     
-def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=1800, oid=None, did=None): 
+def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=1800, oid=None, did=None, modes=None, arriveby=False): 
     '''
     calculates reachability between origins and destinations with OpenTripPlanner 
     and saves results to csv file
@@ -23,6 +24,8 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
     oid: optional, name of id-column in origins-file (if not given, is assigned from 0 to length of origins)
     did: optional, name of id-column in destinations-file (if not given, is assigned as 'unknown'
     date_time: time object (time.struct_time)
+    modes: optional, list of modes to use
+    arriveby: optional, if True, given time is arrival time (reverts search tree)
     '''   
     
     otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router_name ])
@@ -32,6 +35,12 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
     req = otp.createRequest()
     req.setDateTime(date_time.tm_year, date_time.tm_mon, date_time.tm_mday, date_time.tm_hour, date_time.tm_min, date_time.tm_sec)
     req.setMaxTimeSec(max_time)
+    req.setArriveBy(arriveby)
+    if modes:
+        if 'LEG_SWITCH' in modes:
+            modes.remove('LEG_SWITCH')
+            #req.modes.setMode(TraverseMode.LEG_SWITCH, true)            
+        req.setModes(','.join(modes))
     
     origins = otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)
     
@@ -102,11 +111,20 @@ if __name__ == '__main__':
     
     parser.add_argument('--datetime', action="store",
                         help="departure/arrival time (format see config.py: day/month/year-hours:minutes:seconds)",
-                        dest="datetime", default=time.strftime(DATETIME_FORMAT))  
+                        dest="datetime", default=time.strftime(DATETIME_FORMAT))      
     
     parser.add_argument('--maxtime', action="store",
                         help="max. travel time (in seconds)",
-                        dest="max_time", default=1800)   
+                        dest="max_time", default=1800, type=int)  
+    
+    parser.add_argument('--modes', action="store",
+                        help="list of modes to use (e.g 'WALK' 'BUS' 'RAIL'",
+                        nargs='+',
+                        dest="modes")   
+    
+    parser.add_argument('--arrival', action="store",
+                        help="given time is arrival time",
+                        dest="arriveby", default=False)   
     
     options = parser.parse_args()
     
@@ -117,6 +135,8 @@ if __name__ == '__main__':
     oid = options.oid
     did = options.did
     date_time = time.strptime(options.datetime, DATETIME_FORMAT)
-    max_time = int(options.max_time)    
+    modes = options.modes
+    max_time = options.max_time
+    arriveby = options.arriveby
     
-    origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=max_time, oid=oid, did=did)
+    origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=max_time, oid=oid, did=did, modes=modes, arriveby=arriveby)

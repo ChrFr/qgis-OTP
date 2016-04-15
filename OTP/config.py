@@ -7,15 +7,24 @@ DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S"
 AVAILABLE_MODES = ['BICYCLE',
                    'BUS',
                    'BUSISH',
-                   'CABLE_CAR',
+                   #'CABLE_CAR', deactivated: Bug in OtpsRoutingRequest with underscores
                    'CAR',
                    'FERRY',
                    'FUNICULAR',
                    'GONDOLA',
-                   'LEG_SWITCH',
+                   #'LEG_SWITCH', deactivated: Bug in OtpsRoutingRequest with underscores
                    'RAIL',
                    'SUBWAY',
                    'TRAINISH',
                    'TRAM',
                    'TRANSIT',
                    'WALK']
+DEFAULT_MODES = ['BUS',
+                 'BUSISH',
+                 #'LEG_SWITCH', deactivated: Bug in OtpsRoutingRequest with underscores
+                 'RAIL',
+                 'SUBWAY',
+                 'TRAINISH',
+                 'TRAM',
+                 'TRANSIT',
+                 'WALK']

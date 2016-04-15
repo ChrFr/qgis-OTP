@@ -27,7 +27,7 @@ import resources
 # Import the code for the dialog
 from OTP_dialog import OTPDialog
 import os
-from config import OTP_JAR, GRAPH_PATH, AVAILABLE_MODES, DATETIME_FORMAT
+from config import OTP_JAR, GRAPH_PATH, AVAILABLE_MODES, DATETIME_FORMAT, DEFAULT_MODES
 from dialogs import ExecCommandDialog, set_file
 from qgis._core import QgsVectorLayer
 from qgis.core import QgsVectorFileWriter
@@ -88,6 +88,8 @@ class OTP:
         for mode in AVAILABLE_MODES:
             item = QListWidgetItem(self.dlg.mode_list_view)
             checkbox = QCheckBox(mode)
+            if mode in DEFAULT_MODES:
+                checkbox.setChecked(True)
             self.dlg.mode_list_view.setItemWidget(item, checkbox)        
 
         # Declare instance attributes
@@ -213,6 +215,8 @@ class OTP:
         
     def fill_id_combo(self, layer_combo, id_combo):  
         id_combo.clear()
+        if(layer_combo.currentIndex() >= len(self.layer_list)):
+            return
         layer = self.layer_list[layer_combo.currentIndex()]
         fields = layer.pendingFields()
         field_names = [field.name() for field in fields]
@@ -258,7 +262,8 @@ class OTP:
             ok = self.dlg.exec_()        
                     
             # if OK was pressed
-            if ok:                            
+            if ok:         
+                # OUT FILE
                 target_file = self.dlg.target_file_edit.text()
                 target_path = os.path.dirname(target_file)          
                 
@@ -271,6 +276,7 @@ class OTP:
                     msg_box.exec_()
                     continue
                 
+                # LAYERS
                 origin_layer = self.layer_list[self.dlg.origins_combo.currentIndex()]
                 destination_layer = self.layer_list[self.dlg.destinations_combo.currentIndex()]    
                 
@@ -291,6 +297,7 @@ class OTP:
                 QgsVectorFileWriter.writeAsVectorFormat(origin_layer, orig_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
                 QgsVectorFileWriter.writeAsVectorFormat(destination_layer, dest_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
                 
+                # MODES                
                 selected_modes = []
                 for index in xrange(self.dlg.mode_list_view.count()):
                     checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
@@ -301,15 +308,20 @@ class OTP:
                 oid = self.dlg.origins_id_combo.currentText()
                 did = self.dlg.destinations_id_combo.currentText()
                 
+                # TRAVEL TIME
                 d = self.dlg.calendar_edit.selectedDate()
                 t = self.dlg.time_edit.time()
                 dt = QDateTime(d)
                 dt.setTime(t)                
                 dt_string = dt.toPyDateTime().strftime(DATETIME_FORMAT)
                 
-                max_time = self.dlg.max_time_edit.value() * 60
+                # MAX TIME
+                max_time = self.dlg.max_time_edit.value() * 60        
                 
-                cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}" --oid {oid} --did {did} --target "{target}" --datetime {datetime} --maxtime {max_time}'.format(
+                # ARRIVAL
+                is_arrival = self.dlg.arrival_checkbox.checkState()
+                
+                cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}" --oid {oid} --did {did} --target "{target}" --datetime {datetime} --maxtime {max_time} --modes {modes} --arriveby {arrival}'.format(
                     jar=OTP_JAR, 
                     wd=working_dir, 
                     router=router, 
@@ -319,7 +331,9 @@ class OTP:
                     did=did,
                     datetime=dt_string,
                     target=target_file,
-                    max_time=max_time
+                    max_time=max_time,
+                    modes=' '.join(selected_modes),
+                    arrival=is_arrival
                 )            
                 diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True, progress_indicator='Processing:', total_ticks=origin_layer.featureCount())
                 diag.exec_()
