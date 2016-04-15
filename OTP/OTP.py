@@ -83,7 +83,7 @@ class OTP:
         self.dlg.origins_combo.currentIndexChanged.connect(
             lambda: self.fill_id_combo(self.dlg.origins_combo, self.dlg.origins_id_combo))   
         self.dlg.destinations_combo.currentIndexChanged.connect(
-            lambda: self.fill_id_combo(self.dlg.destinations_combo, self.dlg.destinations_id_combo))                 
+            lambda: self.fill_id_combo(self.dlg.destinations_combo, self.dlg.destinations_id_combo))       
                     
         for mode in AVAILABLE_MODES:
             item = QListWidgetItem(self.dlg.mode_list_view)
@@ -321,7 +321,7 @@ class OTP:
                     target=target_file,
                     max_time=max_time
                 )            
-                diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True)
+                diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True, progress_indicator='Processing:', total_ticks=origin_layer.featureCount())
                 diag.exec_()
                 
                 shutil.rmtree(tmp_dir)

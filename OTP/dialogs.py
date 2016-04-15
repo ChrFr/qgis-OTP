@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from ui_progress import Ui_ProgressDialog
 from PyQt4 import QtCore, QtGui
-import copy, os, re, sys, time
+import copy, os, re, sys, datetime
 
 # WARNING: doesn't work in QGIS, because it doesn't support the QString module anymore (autocast to str)
 try:
@@ -106,22 +106,6 @@ def set_directory(parent, line_edit):
     # dirname is '' if canceled
     if len(dirname) > 0:
         line_edit.setText(dirname)
-        
-class Timer(QtCore.QThread):
-    time_elapsed = QtCore.pyqtSignal(int)
-
-    def __init__(self, label, process):
-        super(Timer, self).__init__()
-        self.start_time = None
-        self.label = label
-        self.process = process
-
-    def run(self):
-        self.start_time = time.time()
-        while self.process.state() != QtCore.QProcess.NotRunning:
-            time.sleep(1)
-            print self.process.state()
-            self.label.setText(time.time() - self.start_time)
                     
 class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
     """
@@ -164,36 +148,53 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
 
     # task needs to be overridden
     def run(self):        
-        self.progress_bar.setStyleSheet(DEFAULT_STYLE)
+        pass
 
 
 class ExecCommandDialog(ProgressDialog):
     """
     ProgressDialog extented by an executable external process
+    
+    Parameters
+    ----------
+    progress_indicator: string indicating that process progressed (read from stdout, it has to start with this string to indicate progress)
+    total_ticks: times the progress_indicator appears in stdout until you reach 100 percent
     """
-    def __init__(self, command, parent=None, auto_close=False, auto_start=False):
+    def __init__(self, command, parent=None, auto_close=False, auto_start=False, progress_indicator='', total_ticks=0):
         super(ExecCommandDialog, self).__init__(parent=parent, auto_close=auto_close)
 
         # QProcess object for external app
         self.process = QtCore.QProcess(self)
         self.auto_close = auto_close
         self.command = command
+        self.start_time = 0
+
+        # aux. variable to determine if process was killed, because exit code of killed process can't be distinguished from normal exit in linux
+        self.killed = False
+        
+        self.ticks = 0.
 
         # Just to prevent accidentally running multiple times
         # Disable the button when process starts, and enable it when it finishes
         self.process.started.connect(self.running)
         self.process.finished.connect(self.finished)
         
-        def progress():
+        def show_progress():
             out = str(self.process.readAllStandardOutput())
             err = str(self.process.readAllStandardError())
-            if len(out): self.show_status(out)
+            if len(out): 
+                self.show_status(out)
+                if total_ticks and out.startswith(progress_indicator):
+                    self.ticks += 100. / total_ticks
+                    self.progress_bar.setValue(min(100, int(self.ticks)))
+                
             if len(err): self.show_status(err)
             
-        self.process.readyReadStandardOutput.connect(progress)
-        self.process.readyReadStandardError.connect(progress) 
+        self.process.readyReadStandardOutput.connect(show_progress)
+        self.process.readyReadStandardError.connect(show_progress) 
         
-        self.timer = Timer(self.elapsed_time_label, self.process)
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.update_timer)
         
         if auto_start:
             self.startButton.clicked.emit(True)
@@ -207,8 +208,8 @@ class ExecCommandDialog(ProgressDialog):
         super(ExecCommandDialog, self).stopped()
 
     def finished(self):
-        self.timer.terminate()
-        if self.process.exitCode() == QtCore.QProcess.NormalExit:
+        self.timer.stop()
+        if self.process.exitCode() == QtCore.QProcess.NormalExit and not self.killed:
             self.progress_bar.setValue(100)
             self.progress_bar.setStyleSheet(FINISHED_STYLE)
         else:
@@ -216,14 +217,26 @@ class ExecCommandDialog(ProgressDialog):
         self.stopped()
 
     def kill(self):
-        self.timer.terminate()
-        self.progress_bar.setStyleSheet(ABORTED_STYLE)
+        self.timer.stop()
+        self.killed = True
         self.process.kill()
         self.log_edit.insertHtml('<b> Vorgang abgebrochen </b> <br>')
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
         
-    def run(self):
-        self.show_status('Starte Script: <i>' + self.command + '</i><br>')
+    def run(self):       
+        self.killed = False
+        self.ticks = 0
+        self.progress_bar.setStyleSheet(DEFAULT_STYLE)        
+        self.progress_bar.setValue(0)
+        self.show_status('<br>Starte Script: <i>' + self.command + '</i><br>')
         self.process.start(self.command)
-        self.timer.start()
+        self.start_time = datetime.datetime.now()
+        self.timer.start(1000)
+        
+    def update_timer(self):
+        delta = datetime.datetime.now() - self.start_time
+        h, remainder = divmod(delta.seconds, 3600)
+        m, s = divmod(remainder, 60)
+        timer_text = '{:02d}:{:02d}:{:02d}'.format(h, m, s)
+        self.elapsed_time_label.setText(timer_text)
         
