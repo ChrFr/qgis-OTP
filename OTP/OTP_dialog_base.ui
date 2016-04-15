@@ -130,7 +130,7 @@
     </spacer>
    </item>
    <item row="12" column="4">
-    <widget class="QCheckBox" name="checkBox">
+    <widget class="QCheckBox" name="arrival_checkbox">
      <property name="text">
       <string>Ankunft</string>
      </property>
