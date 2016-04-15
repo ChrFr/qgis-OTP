@@ -90,7 +90,7 @@ class OTP:
             checkbox = QCheckBox(mode)
             if mode in DEFAULT_MODES:
                 checkbox.setChecked(True)
-            self.dlg.mode_list_view.setItemWidget(item, checkbox)        
+            self.dlg.mode_list_view.setItemWidget(item, checkbox)    
 
         # Declare instance attributes
         self.actions = []
@@ -215,7 +215,7 @@ class OTP:
         
     def fill_id_combo(self, layer_combo, id_combo):  
         id_combo.clear()
-        if(layer_combo.currentIndex() >= len(self.layer_list)):
+        if len(self.layer_list) == 0 or (layer_combo.currentIndex() >= len(self.layer_list)):
             return
         layer = self.layer_list[layer_combo.currentIndex()]
         fields = layer.pendingFields()
@@ -321,7 +321,7 @@ class OTP:
                 # ARRIVAL
                 is_arrival = self.dlg.arrival_checkbox.checkState()
                 
-                cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}" --oid {oid} --did {did} --target "{target}" --datetime {datetime} --maxtime {max_time} --modes {modes} --arriveby {arrival}'.format(
+                cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}" --oid {oid} --did {did} --target "{target}" --datetime {datetime} --maxtime {max_time} --modes {modes}'.format(
                     jar=OTP_JAR, 
                     wd=working_dir, 
                     router=router, 
@@ -332,10 +332,16 @@ class OTP:
                     datetime=dt_string,
                     target=target_file,
                     max_time=max_time,
-                    modes=' '.join(selected_modes),
-                    arrival=is_arrival
-                )            
-                diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True, progress_indicator='Processing:', total_ticks=origin_layer.featureCount())
+                    modes=' '.join(selected_modes)                    
+                )   
+                
+                if is_arrival:
+                    cmd += ' --arrival'
+                    n_points = destination_layer.featureCount()       
+                else:
+                    n_points = origin_layer.featureCount()           
+                    
+                diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True, progress_indicator='Processing:', total_ticks=n_points)
                 diag.exec_()
                 
                 shutil.rmtree(tmp_dir)

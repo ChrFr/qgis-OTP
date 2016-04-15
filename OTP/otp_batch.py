@@ -34,8 +34,7 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
     # Create a default request for a given time
     req = otp.createRequest()
     req.setDateTime(date_time.tm_year, date_time.tm_mon, date_time.tm_mday, date_time.tm_hour, date_time.tm_min, date_time.tm_sec)
-    req.setMaxTimeSec(max_time)
-    req.setArriveBy(arriveby)
+     
     if modes:
         if 'LEG_SWITCH' in modes:
             modes.remove('LEG_SWITCH')
@@ -50,34 +49,73 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
     out_csv = otp.createCSVOutput()
     out_csv.setHeader([ 'origin_id', 'destination_id', 'travel_time', 'boardings', 'walk_distance'])
     
-    # For each point of the synthetic grid
-    for i, origin in enumerate(origins):
+    def write_result_row(origin_id, destination_id, evaluation):        
+                
+        travel_time = evaluation.getTime()
+        boardings = evaluation.getBoardings()
+        walk_distance = evaluation.getWalkDistance()
+        out_csv.addRow([origin_id, destination_id,
+                        travel_time, boardings, walk_distance])
+
+    req.setArriveBy(arriveby)
+    # has to be set AFTER arriveby (request decides if negative weight or not by checking arriveby)
+    req.setMaxTimeSec(max_time)
     
-        print "Processing: ", origin
-        # Set the origin of the request to this point and run a search
-        req.setOrigin(origin)
-        spt = router.plan(req)
-        if spt is None: continue
+    # DEPARTURE
+    if not arriveby:
     
-        res = spt.eval(destinations)
-        if len(res) > 0:    
+        for i, origin in enumerate(origins):
+            
             if oid:
                 origin_id = origin.getFloatData(oid)
             else:
                 origin_id = i
-                
-            for eval_dest in res:
-                
-                if did:
-                    destination_id = eval_dest.getIndividual().getFloatData(did)
-                else:
-                    destination_id = 'unknown'
+        
+            print "Processing: origin - id: {id} lat/lon: {loc}".format(id=origin_id, loc=origin.getLocation())
+            # Set the origin of the request to this point and run a search
+            req.setOrigin(origin)
+            spt = router.plan(req)
+            if spt is None: continue
+        
+            res = spt.eval(destinations)
+            if len(res) > 0:    
+                    
+                for eval_dest in res:
+                    
+                    if did:
+                        destination_id = eval_dest.getIndividual().getFloatData(did)
+                    else:
+                        destination_id = 'unknown'
+                        
+                    write_result_row(origin_id, destination_id, eval_dest)
+           
+    # ARRIVAL             
+    else:
+    
+        for i, destination in enumerate(destinations):
+                        
+            if did:
+                destination_id = destination.getFloatData(did)
+            else:
+                destination_id = i
+        
+            print "Processing: destination - {id} {loc}".format(id=destination_id, loc=destination.getLocation())
             
-                travel_time = eval_dest.getTime()
-                boardings = eval_dest.getBoardings()
-                walk_distance = eval_dest.getWalkDistance()
-                out_csv.addRow([origin_id, destination_id,
-                                travel_time, boardings, walk_distance])
+            # Set the origin of the request to this point and run a search
+            req.setDestination(destination)
+            spt = router.plan(req)
+            if spt is None: continue
+        
+            res = spt.eval(origins)
+            if len(res) > 0:                        
+                for eval_orig in res:                    
+                    if oid:
+                        origin_id = eval_orig.getIndividual().getFloatData(oid)
+                    else:
+                        origin_id = 'unknown'       
+                        
+                    write_result_row(origin_id, destination_id, eval_orig)    
+                    
     # Save the result
     out_csv.save(target_csv)
     print "Done"
@@ -122,9 +160,11 @@ if __name__ == '__main__':
                         nargs='+',
                         dest="modes")   
     
-    parser.add_argument('--arrival', action="store",
+    parser.add_argument('--arrival', action="store_true",
                         help="given time is arrival time",
-                        dest="arriveby", default=False)   
+                        dest="arriveby")   
+    
+    parser.set_defaults(arriveby=False)
     
     options = parser.parse_args()
     
