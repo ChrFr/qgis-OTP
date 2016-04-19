@@ -158,6 +158,12 @@
    </item>
    <item row="15" column="3">
     <widget class="QSpinBox" name="max_time_edit">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>20</height>
+      </size>
+     </property>
      <property name="maximum">
       <number>3600</number>
      </property>
@@ -168,6 +174,12 @@
    </item>
    <item row="12" column="3">
     <widget class="QTimeEdit" name="time_edit">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>20</height>
+      </size>
+     </property>
      <property name="time">
       <time>
        <hour>12</hour>
@@ -218,6 +230,12 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>20</height>
+      </size>
+     </property>
     </widget>
    </item>
    <item row="2" column="0">
@@ -231,13 +249,34 @@
     </widget>
    </item>
    <item row="9" column="0" colspan="2">
-    <widget class="QComboBox" name="router_combo"/>
+    <widget class="QComboBox" name="router_combo">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>20</height>
+      </size>
+     </property>
+    </widget>
    </item>
    <item row="1" column="0" colspan="2">
-    <widget class="QComboBox" name="origins_combo"/>
+    <widget class="QComboBox" name="origins_combo">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>20</height>
+      </size>
+     </property>
+    </widget>
    </item>
    <item row="5" column="0" colspan="2">
-    <widget class="QComboBox" name="destinations_combo"/>
+    <widget class="QComboBox" name="destinations_combo">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>20</height>
+      </size>
+     </property>
+    </widget>
    </item>
    <item row="6" column="1">
     <widget class="QComboBox" name="destinations_id_combo">
@@ -246,6 +285,12 @@
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>20</height>
+      </size>
      </property>
     </widget>
    </item>
@@ -267,6 +312,12 @@
    </item>
    <item row="22" column="3" colspan="3">
     <widget class="QDialogButtonBox" name="button_box">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>23</height>
+      </size>
+     </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -302,7 +353,14 @@
     </widget>
    </item>
    <item row="20" column="3" colspan="2">
-    <widget class="QLineEdit" name="target_file_edit"/>
+    <widget class="QLineEdit" name="target_file_edit">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>20</height>
+      </size>
+     </property>
+    </widget>
    </item>
    <item row="0" column="4">
     <widget class="QLabel" name="current_date_label">
