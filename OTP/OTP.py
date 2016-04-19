@@ -277,10 +277,16 @@ class OTP:
             self.fill_layer_combos()
         
         # reload routers on every run (they might be changed outside)
+        # but try to keep old router selected
+        prev_router = self.dlg.router_combo.currentText()       
         self.dlg.router_combo.clear()
+        idx = 0
         # subdirectories in graph-dir are treated as routers by OTP
-        for subdir in os.listdir(GRAPH_PATH):
+        for i, subdir in enumerate(os.listdir(GRAPH_PATH)):
             self.dlg.router_combo.addItem(subdir) 
+            if prev_router == subdir:
+                idx = i                
+        self.dlg.router_combo.setCurrentIndex(idx)           
         
         working_dir = os.path.dirname(__file__)        
         

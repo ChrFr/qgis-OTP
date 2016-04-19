@@ -71,7 +71,7 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
             else:
                 origin_id = i
         
-            print "Processing: origin - id: {id} lat/lon: {loc}".format(id=origin_id, loc=origin.getLocation())
+            print "Processing: origin - id: {id:.0f} lat/lon: {loc}".format(id=origin_id, loc=origin.getLocation())
             # Set the origin of the request to this point and run a search
             req.setOrigin(origin)
             spt = router.plan(req)
@@ -99,7 +99,7 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
             else:
                 destination_id = i
         
-            print "Processing: destination - {id} {loc}".format(id=destination_id, loc=destination.getLocation())
+            print "Processing: destination - id: {id:.0f} lat/lon: {loc}".format(id=destination_id, loc=destination.getLocation())
             
             # Set the origin of the request to this point and run a search
             req.setDestination(destination)
