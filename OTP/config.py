@@ -12,7 +12,7 @@ AVAILABLE_MODES = ['BICYCLE',
                    'FERRY',
                    'FUNICULAR',
                    'GONDOLA',
-                   #'LEG_SWITCH', deactivated: Bug in OtpsRoutingRequest with underscores
+                   #'LEG_SWITCH', deactivated: it's only used internally in OTP
                    'RAIL',
                    'SUBWAY',
                    'TRAINISH',
@@ -21,7 +21,6 @@ AVAILABLE_MODES = ['BICYCLE',
                    'WALK']
 DEFAULT_MODES = ['BUS',
                  'BUSISH',
-                 #'LEG_SWITCH', deactivated: Bug in OtpsRoutingRequest with underscores
                  'RAIL',
                  'SUBWAY',
                  'TRAINISH',

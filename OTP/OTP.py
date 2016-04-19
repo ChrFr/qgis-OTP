@@ -69,7 +69,16 @@ class OTP:
                 QCoreApplication.installTranslator(self.translator)
 
         # Create the dialog (after translation) and keep reference
-        self.dlg = OTPDialog()        
+        self.dlg = OTPDialog()   
+        
+        # Declare instance attributes
+        self.actions = []
+        self.menu = self.tr(u'&OTP')
+        # TODO: We are going to let the user set this up in a future iteration
+        self.toolbar = self.iface.addToolBar(u'OTP')
+        self.toolbar.setObjectName(u'OTP')        
+        
+        # PREFILL UI ELEMENTS AND CONNECT SLOTS TO SIGNALS
         
         self.dlg.target_browse_button.clicked.connect(
             lambda: set_file(self.dlg, 
@@ -77,27 +86,30 @@ class OTP:
                              filters=['CSV-Dateien (*.csv)'],
                              directory=self.dlg.router_combo.currentText()+'-'+strftime('%d-%m-%Y-%H:%M')+'.csv', 
                              save=True)
-        )              
-                
-        self.layer_list = []        
+        )           
+        
+        # store layers to check, if they changed on rerun (combo boxes will be refilled then)                      
+        self.layer_list = []      
+        self.layers = self.iface.legendInterface().layers()
+        self.fill_layer_combos()     
+        
+        # refresh layer ids on selection of different layer
         self.dlg.origins_combo.currentIndexChanged.connect(
             lambda: self.fill_id_combo(self.dlg.origins_combo, self.dlg.origins_id_combo))   
         self.dlg.destinations_combo.currentIndexChanged.connect(
             lambda: self.fill_id_combo(self.dlg.destinations_combo, self.dlg.destinations_id_combo))       
-                    
+        
+        # checkboxes for selecting the traverse modes            
         for mode in AVAILABLE_MODES:
             item = QListWidgetItem(self.dlg.mode_list_view)
             checkbox = QCheckBox(mode)
             if mode in DEFAULT_MODES:
                 checkbox.setChecked(True)
             self.dlg.mode_list_view.setItemWidget(item, checkbox)    
-
-        # Declare instance attributes
-        self.actions = []
-        self.menu = self.tr(u'&OTP')
-        # TODO: We are going to let the user set this up in a future iteration
-        self.toolbar = self.iface.addToolBar(u'OTP')
-        self.toolbar.setObjectName(u'OTP')
+        
+        # calendar
+        self.set_date()
+        self.dlg.calendar_edit.clicked.connect(self.set_date)       
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -213,28 +225,17 @@ class OTP:
         date = self.dlg.calendar_edit.selectedDate()
         self.dlg.current_date_label.setText(date.toString())
         
-    def fill_id_combo(self, layer_combo, id_combo):  
-        id_combo.clear()
-        if len(self.layer_list) == 0 or (layer_combo.currentIndex() >= len(self.layer_list)):
-            return
-        layer = self.layer_list[layer_combo.currentIndex()]
-        fields = layer.pendingFields()
-        field_names = [field.name() for field in fields]
-        id_combo.addItems(field_names)
-
-    def run(self):
-        layers = self.iface.legendInterface().layers()
-        
-        self.set_date()
-        self.dlg.calendar_edit.clicked.connect(self.set_date)          
-        
+    def fill_layer_combos(self):
+        '''
+        fill the combo boxes for selection of origin/destination layers with all available vector-layers
+        '''
         self.layer_list = []
         active_layer = self.iface.activeLayer()
         self.dlg.origins_combo.clear()   
         self.dlg.destinations_combo.clear()            
         i = 0
         idx = 0
-        for layer in layers:            
+        for layer in self.layers:            
             if isinstance(layer, QgsVectorLayer):
                 if layer == active_layer:
                     idx = i
@@ -247,6 +248,35 @@ class OTP:
         self.dlg.origins_combo.setCurrentIndex(idx)          
         self.dlg.destinations_combo.setCurrentIndex(idx)   
         
+        # fill ids although there is already a signal/slot connection (in __init__) to do this,
+        # but if index doesn't change (idx == 0), signal doesn't fire (so it maybe is done twice, but this is not performance-relevant)
+        self.fill_id_combo(self.dlg.origins_combo, self.dlg.origins_id_combo)
+        self.fill_id_combo(self.dlg.destinations_combo, self.dlg.destinations_id_combo)
+        
+    def fill_id_combo(self, layer_combo, id_combo):  
+        '''
+        fill a combo box (id_combo) with all fields of the currently selected layer in the given layer_combo
+        '''
+        id_combo.clear()
+        if len(self.layer_list) == 0 or (layer_combo.currentIndex() >= len(self.layer_list)):
+            return
+        layer = self.layer_list[layer_combo.currentIndex()]
+        fields = layer.pendingFields()
+        field_names = [field.name() for field in fields]
+        id_combo.addItems(field_names)
+
+    def run(self):
+        '''
+        called every time, the plugin is (re)started (so don't connect slots to signals here, otherwise they may be connected multiple times)
+        '''
+        
+        # reload layer combos, if layers changed on rerun
+        layers = self.iface.legendInterface().layers()     
+        if layers != self.layers:
+            self.layers = layers
+            self.fill_layer_combos()
+        
+        # reload routers on every run (they might be changed outside)
         self.dlg.router_combo.clear()
         # subdirectories in graph-dir are treated as routers by OTP
         for subdir in os.listdir(GRAPH_PATH):
