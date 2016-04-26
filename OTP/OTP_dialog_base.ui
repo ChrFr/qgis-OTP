@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>631</width>
-    <height>332</height>
+    <width>728</width>
+    <height>361</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -23,30 +23,6 @@
    <string>OTP Erreichbarkeit</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="4" column="0" colspan="2">
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="QPushButton" name="close_button">
-       <property name="text">
-        <string>Schließen</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
    <item row="1" column="0">
     <widget class="QTabWidget" name="tabWidget_2">
      <property name="currentIndex">
@@ -57,20 +33,23 @@
        <string>Geodaten</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_4">
+       <item row="7" column="1">
+        <spacer name="verticalSpacer_6">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
        <item row="9" column="1">
         <widget class="QLabel" name="label_3">
          <property name="text">
           <string>OTP Router</string>
-         </property>
-        </widget>
-       </item>
-       <item row="10" column="1" colspan="2">
-        <widget class="QComboBox" name="router_combo">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>20</height>
-          </size>
          </property>
         </widget>
        </item>
@@ -113,18 +92,15 @@
          </property>
         </spacer>
        </item>
-       <item row="7" column="1">
-        <spacer name="verticalSpacer_6">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
+       <item row="10" column="1" colspan="2">
+        <widget class="QComboBox" name="router_combo">
+         <property name="minimumSize">
           <size>
-           <width>20</width>
-           <height>40</height>
+           <width>0</width>
+           <height>20</height>
           </size>
          </property>
-        </spacer>
+        </widget>
        </item>
        <item row="2" column="2">
         <widget class="QComboBox" name="origins_id_combo">
@@ -139,6 +115,13 @@
            <width>0</width>
            <height>20</height>
           </size>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1" colspan="2">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Layer mit Quellen</string>
          </property>
         </widget>
        </item>
@@ -166,13 +149,6 @@
            <width>0</width>
            <height>20</height>
           </size>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1" colspan="2">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Layer mit Quellen</string>
          </property>
         </widget>
        </item>
@@ -317,21 +293,32 @@
      </widget>
     </widget>
    </item>
-   <item row="1" column="1">
-    <layout class="QVBoxLayout" name="verticalLayout">
+   <item row="4" column="0" colspan="3">
+    <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <spacer name="verticalSpacer_7">
+      <spacer name="horizontalSpacer">
        <property name="orientation">
-        <enum>Qt::Vertical</enum>
+        <enum>Qt::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
-         <width>20</width>
-         <height>40</height>
+         <width>40</width>
+         <height>20</height>
         </size>
        </property>
       </spacer>
      </item>
+     <item>
+      <widget class="QPushButton" name="close_button">
+       <property name="text">
+        <string>Schließen</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="1" column="2">
+    <layout class="QVBoxLayout" name="verticalLayout">
      <item>
       <widget class="QTabWidget" name="calculation_tabs">
        <property name="currentIndex">
@@ -342,24 +329,7 @@
          <string>alle Quell-/Zieldaten</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_2">
-         <item row="3" column="1" colspan="2">
-          <widget class="QCheckBox" name="orig_dest_csv_check">
-           <property name="text">
-            <string>als CSV speichern</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="1" colspan="3">
-          <widget class="QLineEdit" name="orig_dest_file_edit">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>20</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="4">
+         <item row="3" column="4">
           <widget class="QPushButton" name="orig_dest_browse_button">
            <property name="minimumSize">
             <size>
@@ -378,33 +348,30 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
-          <spacer name="verticalSpacer_4">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
          <item row="2" column="1" colspan="2">
-          <widget class="QCheckBox" name="orig_dest_join_check">
+          <widget class="QCheckBox" name="orig_dest_csv_check">
            <property name="text">
-            <string>an Quelllayer joinen</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
+            <string>Ergebnisse als CSV speichern</string>
            </property>
           </widget>
          </item>
-         <item row="0" column="1" colspan="4">
-          <widget class="QLabel" name="label_12">
+         <item row="3" column="1" colspan="3">
+          <widget class="QLineEdit" name="orig_dest_file_edit">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>20</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QCheckBox" name="orig_dest_join_check">
            <property name="text">
-            <string>Gibt alle Kombinationen von Quell- und erreichbaren Zieldaten aus</string>
+            <string>Ergebnisse an Quelllayer joinen</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -430,6 +397,35 @@
             <size>
              <width>40</width>
              <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="0" column="1">
+          <spacer name="verticalSpacer_4">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="4" column="1">
+          <spacer name="verticalSpacer_8">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>5</height>
             </size>
            </property>
           </spacer>
@@ -517,24 +513,24 @@
            </property>
           </widget>
          </item>
-         <item row="6" column="0">
-          <widget class="QCheckBox" name="accumulator_csv_check">
-           <property name="text">
-            <string>als CSV speichern</string>
-           </property>
-          </widget>
-         </item>
          <item row="5" column="0" colspan="2">
           <widget class="QCheckBox" name="accumulator_join_check">
            <property name="text">
-            <string>an Quelllayer joinen</string>
+            <string>Ergebnisse an Quelllayer joinen</string>
            </property>
            <property name="checked">
             <bool>true</bool>
            </property>
           </widget>
          </item>
-         <item row="8" column="2" colspan="2">
+         <item row="6" column="0">
+          <widget class="QCheckBox" name="accumulator_csv_check">
+           <property name="text">
+            <string>Ergebnisse als CSV speichern</string>
+           </property>
+          </widget>
+         </item>
+         <item row="9" column="2" colspan="2">
           <widget class="QPushButton" name="start_accumulation_button">
            <property name="minimumSize">
             <size>
@@ -560,7 +556,7 @@
            </property>
           </spacer>
          </item>
-         <item row="8" column="0" colspan="2">
+         <item row="9" column="0" colspan="2">
           <spacer name="horizontalSpacer_6">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -573,11 +569,56 @@
            </property>
           </spacer>
          </item>
+         <item row="8" column="0">
+          <spacer name="verticalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>5</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
         </layout>
        </widget>
       </widget>
      </item>
+     <item>
+      <spacer name="verticalSpacer_7">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
     </layout>
+   </item>
+   <item row="1" column="1">
+    <spacer name="horizontalSpacer_4">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
    </item>
   </layout>
  </widget>
