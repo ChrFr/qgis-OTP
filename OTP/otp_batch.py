@@ -12,7 +12,8 @@ import time
 
 router_name = ''
     
-def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=1800, oid=None, did=None, modes=None, arriveby=False): 
+def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=1800, oid=None, did=None, modes=None, arriveby=False,
+                   print_every_n_lines = 50): 
     '''
     calculates reachability between origins and destinations with OpenTripPlanner 
     and saves results to csv file
@@ -26,6 +27,7 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
     date_time: time object (time.struct_time)
     modes: optional, list of modes to use
     arriveby: optional, if True, given time is arrival time (reverts search tree)
+    print_every_n_lines: optional, determines how often progress in processing origins/destination is written to stdout (default: 50)
     '''   
     
     otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router_name ])
@@ -60,18 +62,16 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
     req.setArriveBy(arriveby)
     # has to be set AFTER arriveby (request decides if negative weight or not by checking arriveby)
     req.setMaxTimeSec(max_time)
-    
+    n_origins = 0
+    n_destinations = 0
+    i = -1
     # DEPARTURE
     if not arriveby:
-    
         for i, origin in enumerate(origins):
-            
             if oid:
                 origin_id = origin.getFloatData(oid)
             else:
                 origin_id = i
-        
-            print "Processing: origin - id: {id:.0f} lat/lon: {loc}".format(id=origin_id, loc=origin.getLocation())
             # Set the origin of the request to this point and run a search
             req.setOrigin(origin)
             spt = router.plan(req)
@@ -88,7 +88,9 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
                         destination_id = 'unknown'
                         
                     write_result_row(origin_id, destination_id, eval_dest)
-           
+             
+            if not (i + 1) % print_every_n_lines:
+                print "Processing: {} origins processed".format(i+1)
     # ARRIVAL             
     else:
     
@@ -98,8 +100,6 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
                 destination_id = destination.getFloatData(did)
             else:
                 destination_id = i
-        
-            print "Processing: destination - id: {id:.0f} lat/lon: {loc}".format(id=destination_id, loc=destination.getLocation())
             
             # Set the origin of the request to this point and run a search
             req.setDestination(destination)
@@ -115,10 +115,13 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
                         origin_id = 'unknown'       
                         
                     write_result_row(origin_id, destination_id, eval_orig)    
+            
+            if not (i + 1) % print_every_n_lines:
+                print "Processing: {} destinations processed".format(i+1)
                     
     # Save the result
     out_csv.save(target_csv)
-    print "Done"
+    print "Done - {} {} processed".format(i+1, 'origins' if not arriveby else 'destinations')
     
 if __name__ == '__main__':
     parser = ArgumentParser(description="Batch Analysis with OpenTripPlanner")
@@ -162,7 +165,11 @@ if __name__ == '__main__':
     
     parser.add_argument('--arrival', action="store_true",
                         help="given time is arrival time",
-                        dest="arriveby")   
+                        dest="arriveby")      
+    
+    parser.add_argument('--nlines', action="store",
+                        help="determines how often progress in processing origins/destination is written to stdout (write every n results)",
+                        dest="nlines", default=50, type=int)   
     
     parser.set_defaults(arriveby=False)
     
@@ -178,5 +185,6 @@ if __name__ == '__main__':
     modes = options.modes
     max_time = options.max_time
     arriveby = options.arriveby
+    print_every_n_lines = options.nlines
     
-    origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=max_time, oid=oid, did=did, modes=modes, arriveby=arriveby)
+    origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=max_time, oid=oid, did=did, modes=modes, arriveby=arriveby, print_every_n_lines=print_every_n_lines)

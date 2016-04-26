@@ -37,6 +37,13 @@ import tempfile
 import shutil
 import time
 
+# result-modes
+ORIGIN_DESTINATION = 0
+ACCUMULATION = 1
+
+# how many results are written while running batch script
+PRINT_EVERY_N_LINES = 5
+
 class OTP:
     """QGIS Plugin Implementation."""
 
@@ -80,13 +87,26 @@ class OTP:
         
         # PREFILL UI ELEMENTS AND CONNECT SLOTS TO SIGNALS
         
-        self.dlg.target_browse_button.clicked.connect(
+        self.dlg.orig_dest_browse_button.clicked.connect(
             lambda: set_file(self.dlg, 
-                             self.dlg.target_file_edit,
+                             self.dlg.orig_dest_file_edit,
                              filters=['CSV-Dateien (*.csv)'],
-                             directory=self.dlg.router_combo.currentText()+'-'+strftime('%d-%m-%Y-%H:%M')+'.csv', 
+                             directory=self.dlg.router_combo.currentText()+'-Quelle-Ziel.csv', # '-'+strftime('%d-%m-%Y-%H:%M')+'.csv', 
+                             save=True)
+        )            
+
+        self.dlg.accumulator_browse_button.clicked.connect(
+            lambda: set_file(self.dlg, 
+                             self.dlg.accumulator_file_edit,
+                             filters=['CSV-Dateien (*.csv)'],
+                             directory=self.dlg.router_combo.currentText()+'-Quelle-Ziel.csv', # '-'+strftime('%d-%m-%Y-%H:%M')+'.csv', 
                              save=True)
         )           
+        
+        self.dlg.start_orig_dest_button.clicked.connect(lambda: self.run_otp(ORIGIN_DESTINATION))
+        self.dlg.start_accumulation_button.clicked.connect(lambda: self.run_otp(ACCUMULATION))        
+         
+        self.dlg.close_button.clicked.connect(self.dlg.close)
         
         # store layers to check, if they changed on rerun (combo boxes will be refilled then)                      
         self.layer_list = []      
@@ -264,6 +284,109 @@ class OTP:
         fields = layer.pendingFields()
         field_names = [field.name() for field in fields]
         id_combo.addItems(field_names)
+        
+    def run_otp(self, result_mode):                   
+        working_dir = os.path.dirname(__file__)       
+        
+        # LAYERS
+        origin_layer = self.layer_list[self.dlg.origins_combo.currentIndex()]
+        destination_layer = self.layer_list[self.dlg.destinations_combo.currentIndex()]    
+        
+        if origin_layer==destination_layer:
+            msg_box = QMessageBox()
+            reply = msg_box.question(self.dlg,
+                                     'Hinweis',
+                                     'Die Layer mit Origins und Destinations sind identisch.\n'+
+                                     'Soll die Berechnung trotzdem gestartet werden?',
+                                     QMessageBox.Ok, QMessageBox.Cancel)
+            if reply == QMessageBox.Cancel:
+                return                
+        
+        tmp_dir = tempfile.mkdtemp()
+        orig_tmp_filename = os.path.join(tmp_dir, 'origins.csv')  
+        dest_tmp_filename = os.path.join(tmp_dir, 'destinations.csv')    
+        
+        QgsVectorFileWriter.writeAsVectorFormat(origin_layer, orig_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
+        QgsVectorFileWriter.writeAsVectorFormat(destination_layer, dest_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
+        
+        # MODES                
+        selected_modes = []
+        for index in xrange(self.dlg.mode_list_view.count()):
+            checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
+            if checkbox.checkState():
+                selected_modes.append(str(checkbox.text()))  
+                
+        router = self.dlg.router_combo.currentText()
+        oid = self.dlg.origins_id_combo.currentText()
+        did = self.dlg.destinations_id_combo.currentText()
+        
+        # TRAVEL TIME
+        d = self.dlg.calendar_edit.selectedDate()
+        t = self.dlg.time_edit.time()
+        dt = QDateTime(d)
+        dt.setTime(t)                
+        dt_string = dt.toPyDateTime().strftime(DATETIME_FORMAT)
+        
+        # MAX TIME
+        max_time = self.dlg.max_time_edit.value() * 60        
+        
+        # ARRIVAL
+        is_arrival = self.dlg.arrival_checkbox.checkState()
+        
+        # OUT FILE
+        if result_mode == ORIGIN_DESTINATION and self.dlg.orig_dest_csv_check.checkState():
+            target_file = self.dlg.orig_dest_file_edit.text()
+            
+        elif result_mode == ACCUMULATION and self.dlg.accumulator_csv_check.checkState():
+            target_file = self.dlg.accumulator_file_edit.text()
+        
+        # if saving is not explicitly wanted, file is written to temporary folder, so it will be removed later
+        else:
+            target_file = os.path.join(tmp_dir, 'results.csv')                
+            
+        target_path = os.path.dirname(target_file)        
+            
+        if not os.path.exists(target_path):
+            msg_box = QMessageBox(QMessageBox.Warning, "Fehler", u'Sie haben keinen gültigen Dateipfad angegeben.')
+            msg_box.exec_()
+            return
+        elif not os.access(target_path, os.W_OK):
+            msg_box = QMessageBox(QMessageBox.Warning, "Fehler", u'Sie benötigen Schreibrechte im Dateipfad {}!'.format(target_path))
+            msg_box.exec_()
+            return                   
+            
+        if result_mode == ORIGIN_DESTINATION:
+            
+            cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}" --oid {oid} --did {did} --target "{target}" --datetime {datetime} --maxtime {max_time} --modes {modes} --nlines {nlines}'.format(
+                jar=OTP_JAR, 
+                wd=working_dir, 
+                router=router, 
+                origins=orig_tmp_filename, 
+                destinations=dest_tmp_filename, 
+                oid=oid,
+                did=did,
+                datetime=dt_string,
+                target=target_file,
+                max_time=max_time,
+                modes=' '.join(selected_modes),
+                nlines=PRINT_EVERY_N_LINES
+            )   
+            
+            if is_arrival:
+                cmd += ' --arrival'
+                n_points = destination_layer.featureCount()       
+            else:
+                n_points = origin_layer.featureCount()     
+                
+        if result_mode == ACCUMULATION:            
+            msg_box = QMessageBox(QMessageBox.Warning, "Warnung", 'Under Construction')
+            msg_box.exec_()
+            return                   
+                
+        diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True, progress_indicator='Processing:', total_ticks=n_points/PRINT_EVERY_N_LINES)
+        diag.exec_()
+        
+        shutil.rmtree(tmp_dir)                        
 
     def run(self):
         '''
@@ -286,102 +409,7 @@ class OTP:
             self.dlg.router_combo.addItem(subdir) 
             if prev_router == subdir:
                 idx = i                
-        self.dlg.router_combo.setCurrentIndex(idx)           
-        
-        working_dir = os.path.dirname(__file__)        
+        self.dlg.router_combo.setCurrentIndex(idx)        
         
         # show the dialog
-        self.dlg.show()        
-        
-        while True:
-            # Run the dialog event loop
-            ok = self.dlg.exec_()        
-                    
-            # if OK was pressed
-            if ok:         
-                # OUT FILE
-                target_file = self.dlg.target_file_edit.text()
-                target_path = os.path.dirname(target_file)          
-                
-                if not os.path.exists(target_path):
-                    msg_box = QMessageBox(QMessageBox.Warning, "Fehler", u'Sie haben keinen gültigen Dateipfad angegeben.')
-                    msg_box.exec_()
-                    continue
-                elif not os.access(target_path, os.W_OK):
-                    msg_box = QMessageBox(QMessageBox.Warning, "Fehler", u'Sie haben keine Zugriffsberechtigung auf den Dateipfad.')
-                    msg_box.exec_()
-                    continue
-                
-                # LAYERS
-                origin_layer = self.layer_list[self.dlg.origins_combo.currentIndex()]
-                destination_layer = self.layer_list[self.dlg.destinations_combo.currentIndex()]    
-                
-                if origin_layer==destination_layer:
-                    msg_box = QMessageBox()
-                    reply = msg_box.question(self.dlg,
-                                             'Hinweis',
-                                             'Die Layer mit Origins und Destinations sind identisch.\n'+
-                                             'Soll die Berechnung trotzdem gestartet werden?',
-                                             QMessageBox.Ok, QMessageBox.Cancel)
-                    if reply == QMessageBox.Cancel:
-                        continue                
-                
-                tmp_dir = tempfile.mkdtemp()
-                orig_tmp_filename = os.path.join(tmp_dir, 'origins.csv')  
-                dest_tmp_filename = os.path.join(tmp_dir, 'destinations.csv')    
-                
-                QgsVectorFileWriter.writeAsVectorFormat(origin_layer, orig_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
-                QgsVectorFileWriter.writeAsVectorFormat(destination_layer, dest_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
-                
-                # MODES                
-                selected_modes = []
-                for index in xrange(self.dlg.mode_list_view.count()):
-                    checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
-                    if checkbox.checkState():
-                        selected_modes.append(str(checkbox.text()))  
-                        
-                router = self.dlg.router_combo.currentText()
-                oid = self.dlg.origins_id_combo.currentText()
-                did = self.dlg.destinations_id_combo.currentText()
-                
-                # TRAVEL TIME
-                d = self.dlg.calendar_edit.selectedDate()
-                t = self.dlg.time_edit.time()
-                dt = QDateTime(d)
-                dt.setTime(t)                
-                dt_string = dt.toPyDateTime().strftime(DATETIME_FORMAT)
-                
-                # MAX TIME
-                max_time = self.dlg.max_time_edit.value() * 60        
-                
-                # ARRIVAL
-                is_arrival = self.dlg.arrival_checkbox.checkState()
-                
-                cmd = 'jython -Dpython.path="{jar}" {wd}/otp_batch.py --router {router} --origins "{origins}" --destinations "{destinations}" --oid {oid} --did {did} --target "{target}" --datetime {datetime} --maxtime {max_time} --modes {modes}'.format(
-                    jar=OTP_JAR, 
-                    wd=working_dir, 
-                    router=router, 
-                    origins=orig_tmp_filename, 
-                    destinations=dest_tmp_filename, 
-                    oid=oid,
-                    did=did,
-                    datetime=dt_string,
-                    target=target_file,
-                    max_time=max_time,
-                    modes=' '.join(selected_modes)                    
-                )   
-                
-                if is_arrival:
-                    cmd += ' --arrival'
-                    n_points = destination_layer.featureCount()       
-                else:
-                    n_points = origin_layer.featureCount()           
-                    
-                diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True, progress_indicator='Processing:', total_ticks=n_points)
-                diag.exec_()
-                
-                shutil.rmtree(tmp_dir)
-                break
-                
-            else:
-                break
+        self.dlg.show()                
