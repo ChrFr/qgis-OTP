@@ -69,7 +69,7 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
     if not arriveby:
         for i, origin in enumerate(origins):
             if oid:
-                origin_id = origin.getFloatData(oid)
+                origin_id = origin.getStringData(oid)
             else:
                 origin_id = i
             # Set the origin of the request to this point and run a search
@@ -83,7 +83,7 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
                 for eval_dest in res:
                     
                     if did:
-                        destination_id = eval_dest.getIndividual().getFloatData(did)
+                        destination_id = eval_dest.getIndividual().getStringData(did)
                     else:
                         destination_id = 'unknown'
                         
@@ -97,7 +97,7 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
         for i, destination in enumerate(destinations):
                         
             if did:
-                destination_id = destination.getFloatData(did)
+                destination_id = destination.getStringData(did)
             else:
                 destination_id = i
             
@@ -110,7 +110,7 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
             if len(res) > 0:                        
                 for eval_orig in res:                    
                     if oid:
-                        origin_id = eval_orig.getIndividual().getFloatData(oid)
+                        origin_id = eval_orig.getIndividual().getStringData(oid)
                     else:
                         origin_id = 'unknown'       
                         

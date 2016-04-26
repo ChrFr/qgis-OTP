@@ -29,7 +29,7 @@ from OTP_dialog import OTPDialog
 import os
 from config import OTP_JAR, GRAPH_PATH, AVAILABLE_MODES, DATETIME_FORMAT, DEFAULT_MODES
 from dialogs import ExecCommandDialog, set_file
-from qgis._core import QgsVectorLayer
+from qgis._core import QgsVectorLayer, QgsVectorJoinInfo
 from qgis.core import QgsVectorFileWriter
 from time import strftime
 import locale
@@ -333,6 +333,9 @@ class OTP:
         # ARRIVAL
         is_arrival = self.dlg.arrival_checkbox.checkState()
         
+        # JOIN
+        do_join = self.dlg.orig_dest_join_check.checkState() if ORIGIN_DESTINATION else self.dlg.accumulator_join_check.checkState()
+        
         # OUT FILE
         if result_mode == ORIGIN_DESTINATION and self.dlg.orig_dest_csv_check.checkState():
             target_file = self.dlg.orig_dest_file_edit.text()
@@ -381,11 +384,21 @@ class OTP:
         if result_mode == ACCUMULATION:            
             msg_box = QMessageBox(QMessageBox.Warning, "Warnung", 'Under Construction')
             msg_box.exec_()
-            return                   
+            return                           
                 
         diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True, progress_indicator='Processing:', total_ticks=n_points/PRINT_EVERY_N_LINES)
         diag.exec_()
         
+        if do_join:
+            result_layer = self.iface.addVectorLayer(target_file, 'results', 'delimitedtext')
+            join = QgsVectorJoinInfo()
+            join.joinLayerId = result_layer.id()
+            join.joinFieldName = 'origin_id'  
+            join.targetFieldName = oid      
+            origin_layer.addJoin(join)
+            # TODO permanent join and remove result layer (origin_layer save as shape?)    
+            # csv layer is only link to file, if temporary is removed you won't see anything later
+            
         shutil.rmtree(tmp_dir)                        
 
     def run(self):
