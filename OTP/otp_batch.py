@@ -147,7 +147,7 @@ class OTPEvaluation(object):
             
         def add_aggregated_row(id, evals):         
             aggregator = OtpsAggregate(mode, value)        
-            agg_value = aggregator.computeAggregate(evals)  
+            agg_value = aggregator.computeAggregate(evals, fieldname)  
             out_csv.addRow([id, agg_value])
         
         for i, individual in enumerate(results.individuals):
