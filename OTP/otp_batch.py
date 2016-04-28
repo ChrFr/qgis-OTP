@@ -6,10 +6,12 @@ Created on Mar 16, 2016
 #!/usr/bin/jython
 from org.opentripplanner.scripting.api import OtpsEntryPoint, OtpsCsvOutput
 from org.opentripplanner.routing.core import TraverseMode
-from org.opentripplanner.scripting.api import OtpsResultSet, OtpsCsvOutput
+from org.opentripplanner.scripting.api import OtpsResultSet, OtpsAggregate
 from config import GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, ID_COLUMN, DATETIME_FORMAT
 from argparse import ArgumentParser
 import time
+
+AGGREGATION_MODES = ["THRESHOLD_SUM_AGGREGATOR", "WEIGHTED_AVERAGE_AGGREGATOR", "THRESHOLD_CUMMULATIVE_AGGREGATOR"]
 
 router_name = ''
 
@@ -18,6 +20,7 @@ class Results(object):
         self.arriveby = arriveby
         self.individuals = []
         self.evaluated_individuals_2d = []
+        self.aggregated = False
         
     def aggregate(self):
         pass    
@@ -102,11 +105,13 @@ class OTPEvaluation(object):
         print "A total of {} destinations processed".format(i+1)                
         return results     
         
+       
     def write_results_to_csv(self, results, target_csv, oid, did):       
         
         # Create a CSV output
         out_csv = self.otp.createCSVOutput()
-        out_csv.setHeader([ 'origin_id', 'destination_id', 'travel_time', 'boardings', 'walk_distance'])
+        header = [ 'origin_id', 'destination_id', 'travel_time', 'boardings', 'walk_distance']           
+        out_csv.setHeader(header)
         
         def add_row(origin_id, destination_id, eval):    
             travel_time = eval.getTime()
@@ -130,6 +135,33 @@ class OTPEvaluation(object):
         
         out_csv.save(target_csv)
         print 'results written to "{}"'.format(target_csv)
+        
+    def write_aggregated_results_to_csv(self, results, target_csv, oid, did, fieldname, mode, value=None):       
+        
+        # Create a CSV output
+        out_csv = self.otp.createCSVOutput()
+        header = [ 'id', fieldname + '_aggregated']            
+        out_csv.setHeader(header)
+        
+        print "aggregating results"
+            
+        def add_aggregated_row(id, evals):         
+            aggregator = OtpsAggregate(mode, value)        
+            agg_value = aggregator.computeAggregate(evals)  
+            out_csv.addRow([id, agg_value])
+        
+        for i, individual in enumerate(results.individuals):
+            evaluated_individuals = results.evaluated_individuals_2d[i]
+            
+            if results.arriveby:
+                destination_id = individual.getStringData(oid)
+                add_aggregated_row(destination_id, evaluated_individuals)
+            else:
+                origin_id = individual.getStringData(oid)
+                add_aggregated_row(origin_id, evaluated_individuals)
+            
+        out_csv.save(target_csv)
+        print 'aggregated results written to "{}"'.format(target_csv)
     
 if __name__ == '__main__':
     parser = ArgumentParser(description="Batch Analysis with OpenTripPlanner")
@@ -177,8 +209,20 @@ if __name__ == '__main__':
     
     parser.add_argument('--nlines', action="store",
                         help="determines how often progress in processing origins/destination is written to stdout (write every n results)",
-                        dest="nlines", default=50, type=int)   
+                        dest="nlines", default=50, type=int)       
     
+    parser.add_argument('--aggregate', action="store",
+                        help="aggregate the results, set the name of the field you want to aggregate",
+                        dest="aggregate", default=None)     
+    
+    parser.add_argument('--aggregation_mode', action="store",
+                        help="(ignored, when --aggregate is not set) available aggregation modes: " + str(AGGREGATION_MODES),
+                        dest="aggregation_mode", default=AGGREGATION_MODES[0])
+    
+    parser.add_argument('--threshold', action="store",
+                        help="threshold for aggregation/accumulation, only used for THRESHOLD_CUMMULATIVE_AGGREGATOR",
+                        dest="threshold", default=0, type=int)
+        
     parser.set_defaults(arriveby=False)
     
     options = parser.parse_args()
@@ -193,13 +237,18 @@ if __name__ == '__main__':
     modes = options.modes
     max_time = options.max_time
     arriveby = options.arriveby
-    print_every_n_lines = options.nlines
-    
+    print_every_n_lines = options.nlines    
+    aggregate_field = options.aggregate
+    aggregation_mode = options.aggregation_mode
+    threshold = options.threshold
     
     otpEval = OTPEvaluation(print_every_n_lines)    
     otpEval.setup(date_time, max_time, modes, arriveby)    
     
     results = otpEval.evaluate_arrival(origins_csv, destinations_csv) if arriveby else otpEval.evaluate_departures(origins_csv, destinations_csv)
-        
-    otpEval.write_results_to_csv(results, target_csv, oid, did)
+    
+    if aggregate_field:
+        results = otpEval.write_aggregated_results_to_csv(results, target_csv, oid, did, aggregate_field, aggregation_mode, threshold)
+    else:
+        otpEval.write_results_to_csv(results, target_csv, oid, did)
     print
