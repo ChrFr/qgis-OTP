@@ -399,7 +399,7 @@ class OTP:
             # TODO permanent join and remove result layer (origin_layer save as shape?)    
             # csv layer is only link to file, if temporary is removed you won't see anything later
             
-        shutil.rmtree(tmp_dir)                        
+        #shutil.rmtree(tmp_dir)                        
 
     def run(self):
         '''

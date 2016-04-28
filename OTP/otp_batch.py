@@ -4,16 +4,30 @@ Created on Mar 16, 2016
 @author: Christoph Franke
 '''
 #!/usr/bin/jython
-from org.opentripplanner.scripting.api import OtpsEntryPoint
+from org.opentripplanner.scripting.api import OtpsEntryPoint, OtpsCsvOutput
 from org.opentripplanner.routing.core import TraverseMode
+from org.opentripplanner.scripting.api import OtpsResultSet, OtpsCsvOutput
 from config import GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, ID_COLUMN, DATETIME_FORMAT
 from argparse import ArgumentParser
 import time
 
 router_name = ''
+
+class Results(object):
+    def __init__(self, arriveby=False):
+        self.arriveby = arriveby
+        self.individuals = []
+        self.evaluated_individuals_2d = []
+        
+    def aggregate(self):
+        pass    
     
-def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=1800, oid=None, did=None, modes=None, arriveby=False,
-                   print_every_n_lines = 50): 
+    def add_result(self, individual, evaluated_individuals):
+        self.individuals.append(individual)
+        self.evaluated_individuals_2d.append(evaluated_individuals)        
+    
+
+class OTPEvaluation(object):
     '''
     calculates reachability between origins and destinations with OpenTripPlanner 
     and saves results to csv file
@@ -22,106 +36,100 @@ def origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_tim
     ----------
     origins_csv: file with origin points
     destinations_csv: file with destination points
-    oid: optional, name of id-column in origins-file (if not given, is assigned from 0 to length of origins)
-    did: optional, name of id-column in destinations-file (if not given, is assigned as 'unknown'
     date_time: time object (time.struct_time)
     modes: optional, list of modes to use
     arriveby: optional, if True, given time is arrival time (reverts search tree)
     print_every_n_lines: optional, determines how often progress in processing origins/destination is written to stdout (default: 50)
     '''   
+    def __init__(self, print_every_n_lines = 50):
+        self.otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router_name ])
+        self.router = self.otp.getRouter()
+        self.request = self.otp.createRequest()
     
-    otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router_name ])
-    router = otp.getRouter()
-    
-    # Create a default request for a given time
-    req = otp.createRequest()
-    req.setDateTime(date_time.tm_year, date_time.tm_mon, date_time.tm_mday, date_time.tm_hour, date_time.tm_min, date_time.tm_sec)
-     
-    if modes:
-        if 'LEG_SWITCH' in modes:
-            modes.remove('LEG_SWITCH')
-            #req.modes.setMode(TraverseMode.LEG_SWITCH, true)            
-        req.setModes(','.join(modes))
-    
-    origins = otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)
-    
-    destinations = otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)        
-    
-    # Create a CSV output
-    out_csv = otp.createCSVOutput()
-    out_csv.setHeader([ 'origin_id', 'destination_id', 'travel_time', 'boardings', 'walk_distance'])
-    
-    def write_result_row(origin_id, destination_id, evaluation):        
-                
-        travel_time = evaluation.getTime()
-        boardings = evaluation.getBoardings()
-        walk_distance = evaluation.getWalkDistance()
-        out_csv.addRow([origin_id, destination_id,
-                        travel_time, boardings, walk_distance])
-
-    req.setArriveBy(arriveby)
-    # has to be set AFTER arriveby (request decides if negative weight or not by checking arriveby)
-    req.setMaxTimeSec(max_time)
-    n_origins = 0
-    n_destinations = 0
-    i = -1
-    # DEPARTURE
-    if not arriveby:
-        for i, origin in enumerate(origins):
-            if oid:
-                origin_id = origin.getStringData(oid)
-            else:
-                origin_id = i
-            # Set the origin of the request to this point and run a search
-            req.setOrigin(origin)
-            spt = router.plan(req)
-            if spt is None: continue
+    def setup(self, date_time, max_time=1800, modes=None, arriveby=False):
+        self.request.setDateTime(date_time.tm_year, date_time.tm_mon, date_time.tm_mday, date_time.tm_hour, date_time.tm_min, date_time.tm_sec)         
+        self.request.setArriveBy(arriveby)
+        # has to be set AFTER arriveby (request decides if negative weight or not by checking arriveby)
+        self.request.setMaxTimeSec(max_time)
         
-            res = spt.eval(destinations)
-            if len(res) > 0:    
-                    
-                for eval_dest in res:
-                    
-                    if did:
-                        destination_id = eval_dest.getIndividual().getStringData(did)
-                    else:
-                        destination_id = 'unknown'
-                        
-                    write_result_row(origin_id, destination_id, eval_dest)
-             
+        if modes:          
+            self.request.setModes(','.join(modes))
+
+    def evaluate_departures(self, origins_csv, destinations_csv):        
+    
+        origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
+        destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)       
+        
+        i = -1        
+        results = Results(arriveby=False)
+        
+        for i, origin in enumerate(origins):
+            # Set the origin of the request to this point and run a search
+            self.request.setOrigin(origin)
+            spt = self.router.plan(self.request)
+            
+            evaluated_individuals = None if spt is None else spt.eval(destinations)
+            
+            results.add_result(origin, evaluated_individuals)    
+                
             if not (i + 1) % print_every_n_lines:
                 print "Processing: {} origins processed".format(i+1)
-    # ARRIVAL             
-    else:
+                
+        print "A total of {} origins processed".format(i+1)              
+        return results 
     
+    def evaluate_arrival(self, origins_csv, destinations_csv):        
+        
+        origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
+        destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)        
+    
+        i = -1        
+        results = Results(arriveby=True)
+        
         for i, destination in enumerate(destinations):
-                        
-            if did:
-                destination_id = destination.getStringData(did)
-            else:
-                destination_id = i
             
             # Set the origin of the request to this point and run a search
-            req.setDestination(destination)
-            spt = router.plan(req)
-            if spt is None: continue
-        
-            res = spt.eval(origins)
-            if len(res) > 0:                        
-                for eval_orig in res:                    
-                    if oid:
-                        origin_id = eval_orig.getIndividual().getStringData(oid)
-                    else:
-                        origin_id = 'unknown'       
-                        
-                    write_result_row(origin_id, destination_id, eval_orig)    
+            self.request.setDestination(destination)
+            spt = self.router.plan(self.request)
+            
+            evaluated_individuals = None if spt is None else spt.eval(origins)
+            
+            results.add_result(destination, evaluated_individuals)    
             
             if not (i + 1) % print_every_n_lines:
-                print "Processing: {} destinations processed".format(i+1)
-                    
-    # Save the result
-    out_csv.save(target_csv)
-    print "Done - {} {} processed".format(i+1, 'origins' if not arriveby else 'destinations')
+                print "Processing: {} destinations processed".format(i+1)    
+                
+        print "A total of {} destinations processed".format(i+1)                
+        return results     
+        
+    def write_results_to_csv(self, results, target_csv, oid, did):       
+        
+        # Create a CSV output
+        out_csv = self.otp.createCSVOutput()
+        out_csv.setHeader([ 'origin_id', 'destination_id', 'travel_time', 'boardings', 'walk_distance'])
+        
+        def add_row(origin_id, destination_id, eval):    
+            travel_time = eval.getTime()
+            boardings = eval.getBoardings()
+            walk_distance = eval.getWalkDistance()
+            out_csv.addRow([origin_id, destination_id, travel_time, boardings, walk_distance])
+        
+        for i, individual in enumerate(results.individuals):
+            evaluated_individuals = results.evaluated_individuals_2d[i]
+            
+            if results.arriveby:
+                destination_id = individual.getStringData(oid)
+                for evaluated_individual in evaluated_individuals:
+                    origin_id = evaluated_individual.getIndividual().getStringData(oid)
+                    add_row(origin_id, destination_id, evaluated_individual)
+            else:
+                origin_id = individual.getStringData(oid)
+                for evaluated_individual in evaluated_individuals:
+                    destination_id = evaluated_individual.getIndividual().getStringData(did)
+                    add_row(origin_id, destination_id, evaluated_individual)       
+        
+        out_csv.save(target_csv)
+        print 'results written to "{}"'.format(target_csv)
     
 if __name__ == '__main__':
     parser = ArgumentParser(description="Batch Analysis with OpenTripPlanner")
@@ -187,4 +195,11 @@ if __name__ == '__main__':
     arriveby = options.arriveby
     print_every_n_lines = options.nlines
     
-    origin_to_dest(origins_csv, destinations_csv, target_csv, date_time, max_time=max_time, oid=oid, did=did, modes=modes, arriveby=arriveby, print_every_n_lines=print_every_n_lines)
+    
+    otpEval = OTPEvaluation(print_every_n_lines)    
+    otpEval.setup(date_time, max_time, modes, arriveby)    
+    
+    results = otpEval.evaluate_arrival(origins_csv, destinations_csv) if arriveby else otpEval.evaluate_departures(origins_csv, destinations_csv)
+        
+    otpEval.write_results_to_csv(results, target_csv, oid, did)
+    print
