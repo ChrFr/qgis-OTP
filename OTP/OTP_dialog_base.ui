@@ -322,7 +322,7 @@
      <item>
       <widget class="QTabWidget" name="calculation_tabs">
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="orig_dest_calc_tab">
         <attribute name="title">
@@ -432,9 +432,9 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="accumulator_tab">
+       <widget class="QWidget" name="aggregation_tab">
         <attribute name="title">
-         <string>Akkumulation</string>
+         <string>Aggregation</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_3">
          <item row="4" column="0">
@@ -453,12 +453,12 @@
          <item row="0" column="0">
           <widget class="QLabel" name="label_11">
            <property name="text">
-            <string>Art der Akkumulation</string>
+            <string>Art der Aggregation</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="0" colspan="3">
-          <widget class="QComboBox" name="accumulator_combo">
+         <item row="1" column="0" colspan="4">
+          <widget class="QComboBox" name="aggregation_combo">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -467,25 +467,48 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="0">
-          <widget class="QSpinBox" name="accumulator_value_edit">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>20</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="accumulator_value_label">
+         <item row="5" column="0" colspan="3">
+          <widget class="QCheckBox" name="aggregation_join_check">
            <property name="text">
-            <string>Wert</string>
+            <string>Ergebnisse an Quelllayer joinen</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
-         <item row="7" column="3">
-          <widget class="QPushButton" name="accumulator_browse_button">
+         <item row="6" column="0">
+          <widget class="QCheckBox" name="aggregation_csv_check">
+           <property name="text">
+            <string>Ergebnisse als CSV speichern</string>
+           </property>
+          </widget>
+         </item>
+         <item row="9" column="3" colspan="2">
+          <widget class="QPushButton" name="start_aggregation_button">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>23</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Berechnen</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="0" colspan="4">
+          <widget class="QLineEdit" name="aggregation_file_edit">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>20</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="4">
+          <widget class="QPushButton" name="aggregation_browse_button">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -503,43 +526,52 @@
            </property>
           </widget>
          </item>
-         <item row="7" column="0" colspan="3">
-          <widget class="QLineEdit" name="accumulator_file_edit">
+         <item row="8" column="0">
+          <spacer name="verticalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>5</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="9" column="0" colspan="3">
+          <spacer name="horizontalSpacer_6">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="3" column="0">
+          <widget class="QComboBox" name="comboBox"/>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLabel" name="accumulator_value_label">
+           <property name="text">
+            <string>Wert</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2" colspan="2">
+          <widget class="QSpinBox" name="aggregation_value_edit">
            <property name="minimumSize">
             <size>
              <width>0</width>
              <height>20</height>
             </size>
-           </property>
-          </widget>
-         </item>
-         <item row="5" column="0" colspan="2">
-          <widget class="QCheckBox" name="accumulator_join_check">
-           <property name="text">
-            <string>Ergebnisse an Quelllayer joinen</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="6" column="0">
-          <widget class="QCheckBox" name="accumulator_csv_check">
-           <property name="text">
-            <string>Ergebnisse als CSV speichern</string>
-           </property>
-          </widget>
-         </item>
-         <item row="9" column="2" colspan="2">
-          <widget class="QPushButton" name="start_accumulation_button">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>23</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>Berechnen</string>
            </property>
           </widget>
          </item>
@@ -556,34 +588,12 @@
            </property>
           </spacer>
          </item>
-         <item row="9" column="0" colspan="2">
-          <spacer name="horizontalSpacer_6">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_12">
+           <property name="text">
+            <string>Zu aggregierendes Feld</string>
            </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item row="8" column="0">
-          <spacer name="verticalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Fixed</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>5</height>
-            </size>
-           </property>
-          </spacer>
+          </widget>
          </item>
         </layout>
        </widget>
