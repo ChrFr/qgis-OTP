@@ -7,11 +7,9 @@ Created on Mar 16, 2016
 from org.opentripplanner.scripting.api import OtpsEntryPoint, OtpsCsvOutput
 from org.opentripplanner.routing.core import TraverseMode
 from org.opentripplanner.scripting.api import OtpsResultSet, OtpsAggregate
-from config import GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, ID_COLUMN, DATETIME_FORMAT
+from config import GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, ID_COLUMN, DATETIME_FORMAT, AGGREGATION_MODES
 from argparse import ArgumentParser
 import time
-
-AGGREGATION_MODES = ["THRESHOLD_SUM_AGGREGATOR", "WEIGHTED_AVERAGE_AGGREGATOR", "THRESHOLD_CUMMULATIVE_AGGREGATOR"]
 
 router_name = ''
 
@@ -143,7 +141,7 @@ class OTPEvaluation(object):
         header = [ 'id', fieldname + '_aggregated']            
         out_csv.setHeader(header)
         
-        print "aggregating results"
+        print "Aggregating results..."
             
         def add_aggregated_row(id, evals):         
             aggregator = OtpsAggregate(mode, value)        
@@ -219,9 +217,9 @@ if __name__ == '__main__':
                         help="(ignored, when --aggregate is not set) available aggregation modes: " + str(AGGREGATION_MODES),
                         dest="aggregation_mode", default=AGGREGATION_MODES[0])
     
-    parser.add_argument('--threshold', action="store",
-                        help="threshold for aggregation/accumulation, only used for THRESHOLD_CUMMULATIVE_AGGREGATOR",
-                        dest="threshold", default=0, type=int)
+    parser.add_argument('--agg_value', action="store",
+                        help="value needed for aggregation/accumulation (only used as threshold for THRESHOLD_CUMMULATIVE_AGGREGATOR at the moment)",
+                        dest="agg_value", default=0, type=int)
         
     parser.set_defaults(arriveby=False)
     
@@ -240,7 +238,7 @@ if __name__ == '__main__':
     print_every_n_lines = options.nlines    
     aggregate_field = options.aggregate
     aggregation_mode = options.aggregation_mode
-    threshold = options.threshold
+    agg_value = options.agg_value
     
     otpEval = OTPEvaluation(print_every_n_lines)    
     otpEval.setup(date_time, max_time, modes, arriveby)    
@@ -248,7 +246,7 @@ if __name__ == '__main__':
     results = otpEval.evaluate_arrival(origins_csv, destinations_csv) if arriveby else otpEval.evaluate_departures(origins_csv, destinations_csv)
     
     if aggregate_field:
-        results = otpEval.write_aggregated_results_to_csv(results, target_csv, oid, did, aggregate_field, aggregation_mode, threshold)
+        results = otpEval.write_aggregated_results_to_csv(results, target_csv, oid, did, aggregate_field, aggregation_mode, value=agg_value)
     else:
         otpEval.write_results_to_csv(results, target_csv, oid, did)
     print
