@@ -108,14 +108,16 @@ class OTPEvaluation(object):
         
         # Create a CSV output
         out_csv = self.otp.createCSVOutput()
-        header = [ 'origin_id', 'destination_id', 'travel_time', 'boardings', 'walk_distance']           
+        header = [ 'origin_id', 'destination_id', 'travel_time', 'start_time', 'arrival_time','boardings', 'walk_distance']           
         out_csv.setHeader(header)
         
         def add_row(origin_id, destination_id, eval):    
             travel_time = eval.getTime()
             boardings = eval.getBoardings()
             walk_distance = eval.getWalkDistance()
-            out_csv.addRow([origin_id, destination_id, travel_time, boardings, walk_distance])
+            start = eval.getStartTime().toString()
+            arrival = eval.getArrivalTime().toString()
+            out_csv.addRow([origin_id, destination_id, travel_time, start, arrival, boardings, walk_distance])
         
         for i, individual in enumerate(results.individuals):
             evaluated_individuals = results.evaluated_individuals_2d[i]
