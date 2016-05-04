@@ -14,14 +14,19 @@ import time
 router_name = ''
 
 class Results(object):
+    '''
+    aux. class to store the results (EvaluatedIndividuals) of a single routing request;
+    individuals hold the origins (or destinations if arriveby);
+    evaluated_individuals_2d hold the destinations (or origins if arriveby) ordered same way as individuals
+    
+    Parameters
+    ----------
+    arriveby: optional, if True, results were calculated with a reverted search tree
+    '''
     def __init__(self, arriveby=False):
         self.arriveby = arriveby
         self.individuals = []
         self.evaluated_individuals_2d = []
-        self.aggregated = False
-        
-    def aggregate(self):
-        pass    
     
     def add_result(self, individual, evaluated_individuals):
         self.individuals.append(individual)
@@ -30,16 +35,11 @@ class Results(object):
 
 class OTPEvaluation(object):
     '''
-    calculates reachability between origins and destinations with OpenTripPlanner 
-    and saves results to csv file
+    Use to calculate the reachability between origins and destinations with OpenTripPlanner
+    and to save the results to a csv file
     
     Parameters
     ----------
-    origins_csv: file with origin points
-    destinations_csv: file with destination points
-    date_time: time object (time.struct_time)
-    modes: optional, list of modes to use
-    arriveby: optional, if True, given time is arrival time (reverts search tree)
     print_every_n_lines: optional, determines how often progress in processing origins/destination is written to stdout (default: 50)
     '''   
     def __init__(self, print_every_n_lines = 50):
@@ -48,6 +48,16 @@ class OTPEvaluation(object):
         self.request = self.otp.createRequest()
     
     def setup(self, date_time, max_time=1800, modes=None, arriveby=False):
+        '''
+        sets up the routing request
+        
+        Parameters
+        ----------
+        date_time: time object (time.struct_time), start respectively arrival time (if arriveby == True)
+        modes: optional, list of traverse-modes to use
+        max_time: optional, maximum travel-time (the smaller this value, the smaller the shortest path tree, that has to be created; saves processing time) 
+        arriveby: optional, if True, given time is arrival time (reverts search tree)
+        '''
         self.request.setDateTime(date_time.tm_year, date_time.tm_mon, date_time.tm_mday, date_time.tm_hour, date_time.tm_min, date_time.tm_sec)         
         self.request.setArriveBy(arriveby)
         # has to be set AFTER arriveby (request decides if negative weight or not by checking arriveby)
@@ -56,7 +66,20 @@ class OTPEvaluation(object):
         if modes:          
             self.request.setModes(','.join(modes))
 
-    def evaluate_departures(self, origins_csv, destinations_csv):        
+    def evaluate_departures(self, origins_csv, destinations_csv):     
+        '''
+        evaluate the shortest paths from origins to destinations
+        uses the routing options set in setup() (run it first!)
+        
+        Parameters
+        ----------
+        origins_csv: file with origin points
+        destinations_csv: file with destination points
+        
+        Returns
+        -------
+        evaluated destinations that can be reached in time
+        '''   
     
         origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
         destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)       
@@ -79,8 +102,20 @@ class OTPEvaluation(object):
         print "A total of {} origins processed".format(i+1)              
         return results 
     
-    def evaluate_arrival(self, origins_csv, destinations_csv):        
+    def evaluate_arrival(self, origins_csv, destinations_csv):   
+        '''
+        evaluate the shortest paths from destinations to origins (reverse search)
+        uses the routing options set in setup() (run it first!), arriveby has to be set
         
+        Parameters
+        ----------
+        origins_csv: file with origin points
+        destinations_csv: file with destination points
+        
+        Returns
+        -------
+        evaluated origins the destinations can be reached from in time
+        '''   
         origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
         destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)        
     
@@ -105,7 +140,16 @@ class OTPEvaluation(object):
         
        
     def write_results_to_csv(self, results, target_csv, oid, did):       
+        '''
+        write results to a csv file
         
+        Parameters
+        ----------
+        results: results of an evaluation
+        target_csv: filename of the file to write to
+        oid: name of the field of the origin ids
+        did: name of the field of the destination ids
+        '''
         # Create a CSV output
         out_csv = self.otp.createCSVOutput()
         header = [ 'origin_id', 'destination_id', 'travel_time', 'start_time', 'arrival_time','boardings', 'walk_distance']           
@@ -136,7 +180,20 @@ class OTPEvaluation(object):
         out_csv.save(target_csv)
         print 'results written to "{}"'.format(target_csv)
         
-    def write_aggregated_results_to_csv(self, results, target_csv, oid, did, fieldname, mode, value=None):       
+    def write_aggregated_results_to_csv(self, results, target_csv, oid, did, fieldname, mode, value=None):      
+        '''
+        write results to a csv file after aggregating them
+        
+        Parameters
+        ----------
+        results: results of an evaluation
+        target_csv: filename of the file to write to
+        oid: name of the field of the origin ids
+        did: name of the field of the destination ids
+        fieldname: the field to aggregate
+        mode: the aggregation mode (see config.AGGREGATION_MODES)
+        value: optional, a value needed by the aggregation mode (e.g. threshold)
+        '''     
         
         # Create a CSV output
         out_csv = self.otp.createCSVOutput()
