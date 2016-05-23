@@ -14,26 +14,6 @@ from java.lang import Double
 
 router_name = ''
 
-class Results(object):
-    '''
-    aux. class to store the results (EvaluatedIndividuals) of a single routing request;
-    individuals hold the origins (or destinations if arriveby);
-    evaluated_individuals_2d hold the destinations (or origins if arriveby) ordered same way as individuals
-    
-    Parameters
-    ----------
-    arriveby: optional, if True, results were calculated with a reverted search tree
-    '''
-    def __init__(self, arriveby=False):
-        self.arriveby = arriveby
-        self.individuals = []
-        self.evaluated_individuals_2d = []
-    
-    def add_result(self, individual, evaluated_individuals):
-        self.individuals.append(individual)
-        self.evaluated_individuals_2d.append(evaluated_individuals)        
-    
-
 class OTPEvaluation(object):
     '''
     Use to calculate the reachability between origins and destinations with OpenTripPlanner
@@ -67,7 +47,7 @@ class OTPEvaluation(object):
         if modes:          
             self.request.setModes(','.join(modes))
 
-    def evaluate_departures(self, origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=None):     
+    def evaluate_departures(self, origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=None, mode=None, value=None):     
         '''
         evaluate the shortest paths from origins to destinations
         uses the routing options set in setup() (run it first!)
@@ -76,10 +56,12 @@ class OTPEvaluation(object):
         ----------
         origins_csv: file with origin points
         destinations_csv: file with destination points
-        
-        Returns
-        -------
-        evaluated destinations that can be reached in time
+        target_csv: filename of the file to write to
+        oid: name of the field of the origin ids
+        did: name of the field of the destination ids
+        accumulate_field: the field to aggregate
+        mode: the aggregation mode (see config.AGGREGATION_MODES)
+        value: optional, a value needed by the aggregation mode (e.g. threshold)
         '''   
     
         origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
@@ -109,8 +91,9 @@ class OTPEvaluation(object):
             walk_distance = resultSet.getWalkDistances()
             
             if aggregate_field:
-                agg_value = resultSet.aggregate()
-                out_csv.addRow([origin_id, agg_value]) 
+                resultSet.setAggregationMode(mode)
+                aggregated = resultSet.aggregate()
+                out_csv.addRow([origin_id, aggregated]) 
             
             else:            
                 for j, t in enumerate(times):
@@ -125,7 +108,7 @@ class OTPEvaluation(object):
         out_csv.save(target_csv)
         print 'results written to "{}"'.format(target_csv)  
     
-    def evaluate_arrival(self, origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None):   
+    def evaluate_arrival(self, origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, value=None):   
         '''
         evaluate the shortest paths from destinations to origins (reverse search)
         uses the routing options set in setup() (run it first!), arriveby has to be set
@@ -134,10 +117,12 @@ class OTPEvaluation(object):
         ----------
         origins_csv: file with origin points
         destinations_csv: file with destination points
-        
-        Returns
-        -------
-        evaluated origins the destinations can be reached from in time
+        target_csv: filename of the file to write to
+        oid: name of the field of the origin ids
+        did: name of the field of the destination ids
+        accumulate_field: the field to accumulate
+        mode: the accumulation mode (see config.ACCUMULATION_MODES)
+        value: optional, a value needed by the accumulation mode (e.g. threshold)
         '''   
         origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
         destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)        
@@ -169,8 +154,8 @@ class OTPEvaluation(object):
             # ToDo: accumulate wit empty set
             if accumulate_field:
                 pass
-#                 acc_value = resultSet.accumulate()
-#                 out_csv.addRow([origin_id, agg_value]) 
+#                 accumulated = resultSet.accumulate()
+#                 out_csv.addRow([origin_id, accumulated]) 
             
             else:            
                 for j, t in enumerate(times):
@@ -267,6 +252,7 @@ if __name__ == '__main__':
     otpEval = OTPEvaluation(print_every_n_lines)    
     otpEval.setup(date_time, max_time, modes, arriveby)    
     
-    results = otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None) if arriveby else otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=aggregate_field)
-    
-    print
+    if arriveby:
+        otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, value=agg_value) 
+    else:
+        otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=aggregate_field, mode=aggregation_mode)

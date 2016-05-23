@@ -103,8 +103,12 @@ class OTP:
                              save=True)
         )           
         
+        # set active tab (aggregation or accumulation depending on arrival checkbox)
+        self.arrival_check()
+        self.dlg.arrival_checkbox.clicked.connect(self.arrival_check)
+        
         self.dlg.start_orig_dest_button.clicked.connect(lambda: self.run_otp(ORIGIN_DESTINATION))
-        self.dlg.start_aggregation_button.clicked.connect(lambda: self.run_otp(AGGREGATION))        
+        self.dlg.start_aggregation_button.clicked.connect(lambda: self.run_otp(AGGREGATION))     
          
         self.dlg.close_button.clicked.connect(self.dlg.close)
         
@@ -256,6 +260,16 @@ class OTP:
     def set_date(self):
         date = self.dlg.calendar_edit.selectedDate()
         self.dlg.current_date_label.setText(date.toString())
+        
+    def arrival_check(self):        
+        is_arrival = self.dlg.arrival_checkbox.checkState()         
+        self.dlg.calculation_tabs.removeTab(self.dlg.calculation_tabs.indexOf(self.dlg.accumulation_tab))    
+        self.dlg.calculation_tabs.removeTab(self.dlg.calculation_tabs.indexOf(self.dlg.aggregation_tab))
+        
+        if is_arrival:
+            self.dlg.calculation_tabs.addTab(self.dlg.accumulation_tab, "Akkumulation")
+        else:
+            self.dlg.calculation_tabs.addTab(self.dlg.aggregation_tab, "Aggregation")
         
     def fill_layer_combos(self):
         '''
