@@ -118,10 +118,13 @@ class OTP:
             lambda: self.fill_id_combo(self.dlg.origins_combo, self.dlg.origins_id_combo))   
         self.dlg.destinations_combo.currentIndexChanged.connect(
             lambda: self.fill_id_combo(self.dlg.destinations_combo, self.dlg.destinations_id_combo))  
-        # reset aggregation field combo, if layer changed
+        # reset aggregation and accumulation field combo, if layer changed
         self.dlg.destinations_combo.currentIndexChanged.connect(
             lambda: self.fill_id_combo(self.dlg.destinations_combo, self.dlg.aggregation_field_combo))       
         self.fill_id_combo(self.dlg.destinations_combo, self.dlg.aggregation_field_combo) 
+        self.dlg.destinations_combo.currentIndexChanged.connect(
+            lambda: self.fill_id_combo(self.dlg.destinations_combo, self.dlg.accumulation_field_combo))       
+        self.fill_id_combo(self.dlg.destinations_combo, self.dlg.accumulation_field_combo) 
         
         # checkboxes for selecting the traverse modes            
         for mode in AVAILABLE_MODES:

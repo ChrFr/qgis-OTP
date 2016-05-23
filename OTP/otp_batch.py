@@ -10,6 +10,7 @@ from org.opentripplanner.scripting.api import OtpsResultSet, OtpsAggregate
 from config import GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, ID_COLUMN, DATETIME_FORMAT, AGGREGATION_MODES
 from argparse import ArgumentParser
 import time
+from java.lang import Double
 
 router_name = ''
 
@@ -66,7 +67,7 @@ class OTPEvaluation(object):
         if modes:          
             self.request.setModes(','.join(modes))
 
-    def evaluate_departures(self, origins_csv, destinations_csv):     
+    def evaluate_departures(self, origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=None):     
         '''
         evaluate the shortest paths from origins to destinations
         uses the routing options set in setup() (run it first!)
@@ -84,25 +85,47 @@ class OTPEvaluation(object):
         origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
         destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)       
         
-        i = -1        
-        results = Results(arriveby=False)
+        i = -1                  
         
+        header = [ 'origin_id' ]
+        if not aggregate_field or len(aggregate_field) == 0:
+            header += [ 'destination_id', 'travel_time', 'start_time', 'arrival_time','boardings', 'walk_distance'] 
+        else:
+            header += [aggregate_field + '_aggregated']            
+        out_csv = self.otp.createCSVOutput()
+        out_csv.setHeader(header)
+
         for i, origin in enumerate(origins):
             # Set the origin of the request to this point and run a search
             self.request.setOrigin(origin)
             spt = self.router.plan(self.request)
             
-            evaluated_individuals = None if spt is None else spt.eval(destinations)
+            resultSet = None if spt is None else spt.getResultSet(destinations, aggregate_field)
             
-            results.add_result(origin, evaluated_individuals)    
+            origin_id = origin.getStringData(oid)    
+            times = resultSet.getTimes()
+            boardings = resultSet.getBoardings()
+            dids = resultSet.getStringData(did)     
+            walk_distance = resultSet.getWalkDistances()
+            
+            if aggregate_field:
+                agg_value = resultSet.aggregate()
+                out_csv.addRow([origin_id, agg_value]) 
+            
+            else:            
+                for j, t in enumerate(times):
+                    if t != Double.MAX_VALUE:
+                        out_csv.addRow([origin_id, dids[j], times[j], "", "", boardings[j], walk_distance[j]])                
                 
             if not (i + 1) % print_every_n_lines:
                 print "Processing: {} origins processed".format(i+1)
                 
-        print "A total of {} origins processed".format(i+1)              
-        return results 
+        print "A total of {} origins processed".format(i+1)   
+        
+        out_csv.save(target_csv)
+        print 'results written to "{}"'.format(target_csv)  
     
-    def evaluate_arrival(self, origins_csv, destinations_csv):   
+    def evaluate_arrival(self, origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None):   
         '''
         evaluate the shortest paths from destinations to origins (reverse search)
         uses the routing options set in setup() (run it first!), arriveby has to be set
@@ -119,8 +142,15 @@ class OTPEvaluation(object):
         origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
         destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)        
     
-        i = -1        
-        results = Results(arriveby=True)
+        i = -1       
+        
+        header = [ 'origin_id' ]
+        if not aggregate_field or len(aggregate_field) == 0:
+            header += [ 'destination_id', 'travel_time', 'start_time', 'arrival_time','boardings', 'walk_distance'] 
+        else:
+            header += ['origin_id',  accumulate_field + '_accumulated']            
+        out_csv = self.otp.createCSVOutput()
+        out_csv.setHeader(header)
         
         for i, destination in enumerate(destinations):
             
@@ -128,97 +158,32 @@ class OTPEvaluation(object):
             self.request.setDestination(destination)
             spt = self.router.plan(self.request)
             
-            evaluated_individuals = None if spt is None else spt.eval(origins)
+            resultSet = None if spt is None else spt.getResultSet(origins, accumulate_field)             
             
-            results.add_result(destination, evaluated_individuals)    
+            dest_id = destination.getStringData(oid)    
+            times = resultSet.getTimes()
+            boardings = resultSet.getBoardings()
+            oids = resultSet.getStringData(did)     
+            walk_distance = resultSet.getWalkDistances()
+            
+            # ToDo: accumulate wit empty set
+            if accumulate_field:
+                pass
+#                 acc_value = resultSet.accumulate()
+#                 out_csv.addRow([origin_id, agg_value]) 
+            
+            else:            
+                for j, t in enumerate(times):
+                    if t != Double.MAX_VALUE:
+                        out_csv.addRow([oids[j], dest_id, times[j], "", "", boardings[j], walk_distance[j]])          
             
             if not (i + 1) % print_every_n_lines:
                 print "Processing: {} destinations processed".format(i+1)    
-                
-        print "A total of {} destinations processed".format(i+1)                
-        return results     
-        
-       
-    def write_results_to_csv(self, results, target_csv, oid, did):       
-        '''
-        write results to a csv file
-        
-        Parameters
-        ----------
-        results: results of an evaluation
-        target_csv: filename of the file to write to
-        oid: name of the field of the origin ids
-        did: name of the field of the destination ids
-        '''
-        # Create a CSV output
-        out_csv = self.otp.createCSVOutput()
-        header = [ 'origin_id', 'destination_id', 'travel_time', 'start_time', 'arrival_time','boardings', 'walk_distance']           
-        out_csv.setHeader(header)
-        
-        def add_row(origin_id, destination_id, eval):    
-            travel_time = eval.getTime()
-            boardings = eval.getBoardings()
-            walk_distance = eval.getWalkDistance()
-            start = eval.getStartTime().toString()
-            arrival = eval.getArrivalTime().toString()
-            out_csv.addRow([origin_id, destination_id, travel_time, start, arrival, boardings, walk_distance])
-        
-        for i, individual in enumerate(results.individuals):
-            evaluated_individuals = results.evaluated_individuals_2d[i]
-            
-            if results.arriveby:
-                destination_id = individual.getStringData(oid)
-                for evaluated_individual in evaluated_individuals:
-                    origin_id = evaluated_individual.getIndividual().getStringData(oid)
-                    add_row(origin_id, destination_id, evaluated_individual)
-            else:
-                origin_id = individual.getStringData(oid)
-                for evaluated_individual in evaluated_individuals:
-                    destination_id = evaluated_individual.getIndividual().getStringData(did)
-                    add_row(origin_id, destination_id, evaluated_individual)       
+         
+        print "A total of {} destinations processed".format(i+1)    
         
         out_csv.save(target_csv)
-        print 'results written to "{}"'.format(target_csv)
-        
-    def write_aggregated_results_to_csv(self, results, target_csv, oid, did, fieldname, mode, value=None):      
-        '''
-        write results to a csv file after aggregating them
-        
-        Parameters
-        ----------
-        results: results of an evaluation
-        target_csv: filename of the file to write to
-        oid: name of the field of the origin ids
-        did: name of the field of the destination ids
-        fieldname: the field to aggregate
-        mode: the aggregation mode (see config.AGGREGATION_MODES)
-        value: optional, a value needed by the aggregation mode (e.g. threshold)
-        '''     
-        
-        # Create a CSV output
-        out_csv = self.otp.createCSVOutput()
-        header = [ 'id', fieldname + '_aggregated']            
-        out_csv.setHeader(header)
-        
-        print "Aggregating results..."
-            
-        def add_aggregated_row(id, evals):         
-            aggregator = OtpsAggregate(mode, value)        
-            agg_value = aggregator.computeAggregate(evals, fieldname)  
-            out_csv.addRow([id, agg_value])
-        
-        for i, individual in enumerate(results.individuals):
-            evaluated_individuals = results.evaluated_individuals_2d[i]
-            
-            if results.arriveby:
-                destination_id = individual.getStringData(oid)
-                add_aggregated_row(destination_id, evaluated_individuals)
-            else:
-                origin_id = individual.getStringData(oid)
-                add_aggregated_row(origin_id, evaluated_individuals)
-            
-        out_csv.save(target_csv)
-        print 'aggregated results written to "{}"'.format(target_csv)
+        print 'results written to "{}"'.format(target_csv)     
     
 if __name__ == '__main__':
     parser = ArgumentParser(description="Batch Analysis with OpenTripPlanner")
@@ -270,7 +235,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--aggregate', action="store",
                         help="aggregate the results, set the name of the field you want to aggregate",
-                        dest="aggregate", default=None)     
+                        dest="aggregate", default='')     
     
     parser.add_argument('--aggregation_mode', action="store",
                         help="(ignored, when --aggregate is not set) available aggregation modes: " + str(AGGREGATION_MODES),
@@ -302,10 +267,6 @@ if __name__ == '__main__':
     otpEval = OTPEvaluation(print_every_n_lines)    
     otpEval.setup(date_time, max_time, modes, arriveby)    
     
-    results = otpEval.evaluate_arrival(origins_csv, destinations_csv) if arriveby else otpEval.evaluate_departures(origins_csv, destinations_csv)
+    results = otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None) if arriveby else otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=aggregate_field)
     
-    if aggregate_field:
-        results = otpEval.write_aggregated_results_to_csv(results, target_csv, oid, did, aggregate_field, aggregation_mode, value=agg_value)
-    else:
-        otpEval.write_results_to_csv(results, target_csv, oid, did)
     print
