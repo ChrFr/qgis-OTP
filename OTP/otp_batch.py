@@ -92,7 +92,7 @@ class OTPEvaluation(object):
             
             if aggregate_field:
                 resultSet.setAggregationMode(mode)
-                aggregated = resultSet.aggregate()
+                aggregated = resultSet.aggregate(value)
                 out_csv.addRow([origin_id, aggregated]) 
             
             else:            
@@ -226,9 +226,9 @@ if __name__ == '__main__':
                         help="(ignored, when --aggregate is not set) available aggregation modes: " + str(AGGREGATION_MODES),
                         dest="aggregation_mode", default=AGGREGATION_MODES[0])
     
-    parser.add_argument('--agg_value', action="store",
+    parser.add_argument('--value', action="store",
                         help="value needed for aggregation/accumulation (only used as threshold for THRESHOLD_CUMMULATIVE_AGGREGATOR at the moment)",
-                        dest="agg_value", default=0, type=int)
+                        dest="value", default=0, type=int)
         
     parser.set_defaults(arriveby=False)
     
@@ -247,12 +247,12 @@ if __name__ == '__main__':
     print_every_n_lines = options.nlines    
     aggregate_field = options.aggregate
     aggregation_mode = options.aggregation_mode
-    agg_value = options.agg_value
+    agg_value = options.value
     
     otpEval = OTPEvaluation(print_every_n_lines)    
     otpEval.setup(date_time, max_time, modes, arriveby)    
     
     if arriveby:
-        otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, value=agg_value) 
+        otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, value=value) 
     else:
-        otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=aggregate_field, mode=aggregation_mode)
+        otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=aggregate_field, mode=aggregation_mode, value=value)

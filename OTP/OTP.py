@@ -314,13 +314,16 @@ class OTP:
     def set_agg_value_select(self):
         selected = self.dlg.aggregation_mode_combo.currentText()
         # only this one needs a value as an argument at the moment
-        if selected == 'THRESHOLD_CUMMULATIVE_AGGREGATOR':
+        if selected == 'THRESHOLD_CUMMULATIVE_AGGREGATOR' or selected == 'DECAY_AGGREGATOR':
             self.dlg.aggregation_value_edit.setVisible(True)
             self.dlg.aggregation_value_label.setVisible(True)
-            self.dlg.aggregation_value_label.setText('Schwellwert')
         else:
             self.dlg.aggregation_value_edit.setVisible(False)
             self.dlg.aggregation_value_label.setVisible(False)   
+        if selected == 'THRESHOLD_CUMMULATIVE_AGGREGATOR':
+            self.dlg.aggregation_value_label.setText('Schwellwert')
+        if selected == 'DECAY_AGGREGATOR':
+            self.dlg.aggregation_value_label.setText('lambda')
         
     def run_otp(self, result_mode):                   
         working_dir = os.path.dirname(__file__)       
@@ -429,7 +432,7 @@ class OTP:
                 mode=self.dlg.aggregation_mode_combo.currentText())
             if self.dlg.aggregation_value_edit.isVisible():
                 value = self.dlg.aggregation_value_edit.value()
-                agg_cmd += ' --agg_value {value}'.format(value=value)
+                agg_cmd += ' --value {value}'.format(value=value)
             cmd += agg_cmd             
                 
         diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True, progress_indicator='Processing:', total_ticks=n_points/PRINT_EVERY_N_LINES)
