@@ -354,6 +354,18 @@ class OTP:
                 if param.has_key("decimals"):
                     edit.setDecimals(param["decimals"])
                 edit_layout.addRow(label, edit)
+                
+    def get_mode_params(self, result_mode):
+        params = []
+        if result_mode == AGGREGATION:
+            edit_layout = self.dlg.aggregation_value_edit
+        else:
+            edit_layout = self.dlg.accumulation_value_edit     
+        for i in range(edit_layout.count()):
+            widget = edit_layout.itemAt(i).widget()
+            if isinstance(widget, QDoubleSpinBox):
+                params.append(str(widget.value()))
+        return params
         
     def run_otp(self, result_mode):                   
         working_dir = os.path.dirname(__file__)       
@@ -471,15 +483,29 @@ class OTP:
         else:
             n_points = origin_layer.featureCount()     
             
-        if result_mode == AGGREGATION:    
-            agg_cmd = ' --aggregate "{field}" --aggregation_mode {mode}'
-            agg_cmd = agg_cmd.format(
-                field=self.dlg.aggregation_field_combo.currentText(),
-                mode=self.dlg.aggregation_mode_combo.currentText())
-            if self.dlg.aggregation_value_edit.isVisible():
-                value = self.dlg.aggregation_value_edit.value()
-                agg_cmd += ' --value {value}'.format(value=value)
-            cmd += agg_cmd             
+        # PARAMETERS (for acc/agg)        
+        if result_mode == AGGREGATION or result_mode == ACCUMULATION:
+            if result_mode == AGGREGATION:
+                field = self.dlg.aggregation_field_combo.currentText()
+                mode_arg = self.dlg.aggregation_mode_combo.currentText()  
+                mode = 'aggregate'
+            else:                
+                field = self.dlg.accumulation_field_combo.currentText()
+                mode_arg = self.dlg.accumulation_mode_combo.currentText()  
+                mode = 'accumulate'                
+            
+            result_cmd = ' --{mode} {mode_arg} --field "{field}"'
+            result_cmd = result_cmd.format(
+                mode=mode,
+                field=field,
+                mode_arg=mode_arg
+            )
+            
+            params = self.get_mode_params(result_mode)
+            if len(params) > 0:
+                result_cmd += ' --mode_params {params}'.format(params=' '.join(params))
+                
+            cmd += result_cmd             
                 
         diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), 
                                  auto_start=True, 
@@ -487,10 +513,14 @@ class OTP:
                                  total_ticks=n_points/PRINT_EVERY_N_LINES)
         diag.exec_()
         
-        if do_join or self.dlg.orig_dest_add_check.isChecked():
+        if do_join or (result_mode == ORIGIN_DESTINATION and self.dlg.orig_dest_add_check.isChecked()):
             result_layer = self.iface.addVectorLayer(target_file, 
                                                      'results ' + self.dlg.router_combo.currentText(), 
                                                      'delimitedtext')
+        else:
+            # tmp files are no longer needed, if not added to qgis
+            shutil.rmtree(tmp_dir) 
+            
         if do_join:
             join = QgsVectorJoinInfo()
             join.joinLayerId = result_layer.id()
@@ -500,8 +530,6 @@ class OTP:
             # TODO permanent join and remove result layer (origin_layer save as shape?)    
             # csv layer is only link to file, if temporary is removed you won't see anything later
             
-        #shutil.rmtree(tmp_dir)                        
-
     def run(self):
         '''
         called every time, the plugin is (re)started (so don't connect slots to signals here, otherwise they may be connected multiple times)

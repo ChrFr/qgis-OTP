@@ -49,7 +49,7 @@ class OTPEvaluation(object):
         if modes:          
             self.request.setModes(','.join(modes))
 
-    def evaluate_departures(self, origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=None, mode=None, values=None):     
+    def evaluate_departures(self, origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=None, mode=None, params=None):     
         '''
         evaluate the shortest paths from origins to destinations
         uses the routing options set in setup() (run it first!)
@@ -63,7 +63,7 @@ class OTPEvaluation(object):
         did: name of the field of the destination ids
         accumulate_field: the field to aggregate
         mode: the aggregation mode (see config.AGGREGATION_MODES)
-        value: optional, a value needed by the aggregation mode (e.g. threshold)
+        params: optional, params needed by the aggregation mode (e.g. threshold)
         '''   
     
         origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
@@ -96,7 +96,7 @@ class OTPEvaluation(object):
                 
                 if aggregate_field:
                     resultSet.setAggregationMode(mode)
-                    aggregated = resultSet.aggregate(values)
+                    aggregated = resultSet.aggregate(params)
                     out_csv.addRow([origin_id, aggregated]) 
                 
                 else:            
@@ -112,7 +112,7 @@ class OTPEvaluation(object):
         out_csv.save(target_csv)
         print 'results written to "{}"'.format(target_csv)  
     
-    def evaluate_arrival(self, origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, values=None):   
+    def evaluate_arrival(self, origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, params=None):   
         '''
         evaluate the shortest paths from destinations to origins (reverse search)
         uses the routing options set in setup() (run it first!), arriveby has to be set
@@ -126,7 +126,7 @@ class OTPEvaluation(object):
         did: name of the field of the destination ids
         accumulate_field: the field to accumulate
         mode: the accumulation mode (see config.ACCUMULATION_MODES)
-        value: optional, a value needed by the accumulation mode (e.g. threshold)
+        params: optional,params needed by the accumulation mode (e.g. threshold)
         '''   
         origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
         destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)        
@@ -234,10 +234,10 @@ if __name__ == '__main__':
                         help="the name of the field you want to aggregate/accumulate",
                         dest="field", default=None)  
         
-    parser.add_argument('--values', action="store",
-                        help="value needed for aggregation/accumulation",
+    parser.add_argument('--mode_params', action="store",
+                        help="parameters needed for aggregation/accumulation (specific to mode)",
                         nargs='+',
-                        dest="values", type=float)
+                        dest="mode_params", type=float)
         
     parser.set_defaults(arriveby=False)
     
@@ -257,7 +257,7 @@ if __name__ == '__main__':
     field = options.field
     aggregation_mode = options.aggregation_mode
     accumulation_mode = options.accumulation_mode
-    values = options.values
+    mode_params = options.mode_params
     
     otpEval = OTPEvaluation(print_every_n_lines)    
     otpEval.setup(date_time, max_time, modes, arriveby)    
@@ -275,6 +275,6 @@ if __name__ == '__main__':
         raise ValueError("the name of the field you want to aggregate/accumulate is missing")  
     
     if arriveby:
-        otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=field, mode=accumulation_mode, values=values) 
+        otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=field, mode=accumulation_mode, params=mode_params) 
     else:
-        otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=field, mode=aggregation_mode, values=values)
+        otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=field, mode=aggregation_mode, params=mode_params)

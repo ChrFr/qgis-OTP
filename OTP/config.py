@@ -10,17 +10,35 @@ ACCUMULATION_MODES = ["DECAY_ACCUMULATOR", "THRESHOLD_ACCUMULATOR"]
 # needed parameters for aggregation/accumulation modes (=keys) are listed here
 # order of parameters in list has to be the same, the specific mode requires them
 MODE_PARAMS = {
+    "THRESHOLD_SUM_AGGREGATOR": [
+        {
+            "label": "Schwellwert (sec)",
+            "min": 0,
+            "max": 5400,
+            "default": 3600, 
+            "step": 1,
+            "decimals": 0
+        }        
+    ],
     "THRESHOLD_CUMMULATIVE_AGGREGATOR": [
         {
-            "label": "Schwellwert", # label of the 
+            "label": "Schwellwert (sec)", # label of the param (UI only)
             "min": 0, # minimum value
-            "max": 10, # maximum value
-            "default": 0, # default value
+            "max": 5400, # maximum value
+            "default": 3600, # default value
             "step": 1, # size of steps between values (default 1) 
             "decimals": 0 # number of decimals (default 2)
         }
         ],
     "DECAY_AGGREGATOR": [
+        {
+            "label": "Schwellwert (sec)",
+            "min": 0,
+            "max": 5400,
+            "default": 3600, 
+            "step": 1,
+            "decimals": 0
+        },
         {
             "label": "lambda",
             "min": 0,
