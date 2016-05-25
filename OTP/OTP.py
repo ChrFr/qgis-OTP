@@ -20,16 +20,22 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QProcess, QDateTime
-from PyQt4.QtGui import QAction, QIcon, QListWidgetItem, QCheckBox, QMessageBox
+from PyQt4.QtCore import (QSettings, QTranslator, qVersion, 
+                          QCoreApplication, QProcess, QDateTime)
+from PyQt4.QtGui import (QAction, QIcon, QListWidgetItem, 
+                         QCheckBox, QMessageBox, QLabel,
+                         QDoubleSpinBox)
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
 from OTP_dialog import OTPDialog
 import os
-from config import OTP_JAR, GRAPH_PATH, AVAILABLE_MODES, DATETIME_FORMAT, DEFAULT_MODES, AGGREGATION_MODES
+from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
+                    DATETIME_FORMAT, DEFAULT_MODES, 
+                    AGGREGATION_MODES, ACCUMULATION_MODES, 
+                    MODE_PARAMS)
 from dialogs import ExecCommandDialog, set_file
-from qgis._core import QgsVectorLayer, QgsVectorJoinInfo
+from qgis._core import QgsVectorLayer, QgsVectorJoinInfo, QgsCoordinateReferenceSystem
 from qgis.core import QgsVectorFileWriter
 from time import strftime
 import locale
@@ -40,6 +46,7 @@ import time
 # result-modes
 ORIGIN_DESTINATION = 0
 AGGREGATION = 1
+ACCUMULATION = 2
 
 # how many results are written while running batch script
 PRINT_EVERY_N_LINES = 5
@@ -101,8 +108,8 @@ class OTP:
                              filters=['CSV-Dateien (*.csv)'],
                              directory=self.dlg.router_combo.currentText()+'-Aggregation.csv', # '-'+strftime('%d-%m-%Y-%H:%M')+'.csv', 
                              save=True)
-        )           
-        
+        )  
+                
         # set active tab (aggregation or accumulation depending on arrival checkbox)
         self.arrival_check()
         self.dlg.arrival_checkbox.clicked.connect(self.arrival_check)
@@ -131,17 +138,23 @@ class OTP:
         self.fill_id_combo(self.dlg.destinations_combo, self.dlg.accumulation_field_combo) 
         
         # checkboxes for selecting the traverse modes            
-        for mode in AVAILABLE_MODES:
+        for mode in AVAILABLE_TRAVERSE_MODES:
             item = QListWidgetItem(self.dlg.mode_list_view)
             checkbox = QCheckBox(mode)
             if mode in DEFAULT_MODES:
                 checkbox.setChecked(True)
             self.dlg.mode_list_view.setItemWidget(item, checkbox) 
            
-        # combobox with modes for aggregation
+        # combobox with modes
         self.dlg.aggregation_mode_combo.addItems(AGGREGATION_MODES)
-        self.set_agg_value_select()
-        self.dlg.aggregation_mode_combo.currentIndexChanged.connect(self.set_agg_value_select)   
+        self.set_mode_params(AGGREGATION)
+        self.dlg.aggregation_mode_combo.currentIndexChanged.connect(
+            lambda: self.set_mode_params(AGGREGATION))   
+        
+        self.dlg.accumulation_mode_combo.addItems(ACCUMULATION_MODES)
+        self.set_mode_params(ACCUMULATION)
+        self.dlg.aggregation_mode_combo.currentIndexChanged.connect(
+            lambda: self.set_mode_params(ACCUMULATION))        
         
         # calendar
         self.set_date()
@@ -311,19 +324,36 @@ class OTP:
         field_names = [field.name() for field in fields]
         id_combo.addItems(field_names)      
         
-    def set_agg_value_select(self):
-        selected = self.dlg.aggregation_mode_combo.currentText()
-        # only this one needs a value as an argument at the moment
-        if selected == 'THRESHOLD_CUMMULATIVE_AGGREGATOR' or selected == 'DECAY_AGGREGATOR':
-            self.dlg.aggregation_value_edit.setVisible(True)
-            self.dlg.aggregation_value_label.setVisible(True)
+    def set_mode_params(self, result_mode):
+        if result_mode == AGGREGATION:
+            selected = self.dlg.aggregation_mode_combo.currentText()
+            edit_layout = self.dlg.aggregation_value_edit
         else:
-            self.dlg.aggregation_value_edit.setVisible(False)
-            self.dlg.aggregation_value_label.setVisible(False)   
-        if selected == 'THRESHOLD_CUMMULATIVE_AGGREGATOR':
-            self.dlg.aggregation_value_label.setText('Schwellwert')
-        if selected == 'DECAY_AGGREGATOR':
-            self.dlg.aggregation_value_label.setText('lambda')
+            selected = self.dlg.accumulation_mode_combo.currentText()
+            edit_layout = self.dlg.accumulation_value_edit     
+        
+        # clear layout
+        for i in reversed(range(edit_layout.count())):
+            widget = edit_layout.itemAt(i).widget()
+            edit_layout.removeWidget(widget)
+            widget.setParent(None)
+            
+        # only this one needs a value as an argument at the moment
+        if selected in MODE_PARAMS.keys():
+            for param in MODE_PARAMS[selected]:
+                label = QLabel(param["label"])
+                edit = QDoubleSpinBox()
+                step = param["step"] if param.has_key("step") else 1
+                edit.setSingleStep(step)
+                if param.has_key("max"):
+                    edit.setMaximum(param["max"])
+                if param.has_key("min"):
+                    edit.setMinimum(param["min"])
+                if param.has_key("default"):
+                    edit.setValue(param["default"])
+                if param.has_key("decimals"):
+                    edit.setDecimals(param["decimals"])
+                edit_layout.addRow(label, edit)
         
     def run_otp(self, result_mode):                   
         working_dir = os.path.dirname(__file__)       
@@ -346,8 +376,20 @@ class OTP:
         orig_tmp_filename = os.path.join(tmp_dir, 'origins.csv')  
         dest_tmp_filename = os.path.join(tmp_dir, 'destinations.csv')    
         
-        QgsVectorFileWriter.writeAsVectorFormat(origin_layer, orig_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
-        QgsVectorFileWriter.writeAsVectorFormat(destination_layer, dest_tmp_filename, "utf-8", None, "CSV", layerOptions="GEOMETRY=AS_WKT")
+        wgs84 = QgsCoordinateReferenceSystem(4326)
+        QgsVectorFileWriter.writeAsVectorFormat(origin_layer, 
+                                                orig_tmp_filename, 
+                                                "utf-8", 
+                                                wgs84, 
+                                                "CSV", 
+                                                layerOptions=["GEOMETRY=AS_YX", "GEOMETRY_NAME=pnt"])
+        QgsVectorFileWriter.writeAsVectorFormat(destination_layer, 
+                                                dest_tmp_filename, 
+                                                "utf-8", 
+                                                wgs84, 
+                                                "CSV", 
+                                                layerOptions=["GEOMETRY=AS_YX", "GEOMETRY_NAME=geom"])
+        print 'wrote origins and destinations to temporary folder "{}"'.format(tmp_dir)
         
         # MODES                
         selected_modes = []
@@ -374,7 +416,11 @@ class OTP:
         is_arrival = self.dlg.arrival_checkbox.checkState()
         
         # JOIN
-        do_join = self.dlg.orig_dest_join_check.checkState() if ORIGIN_DESTINATION else self.dlg.aggregation_join_check.checkState()
+        do_join = False
+        if result_mode == AGGREGATION:
+            do_join = self.dlg.aggregation_join_check.isChecked()
+        elif result_mode == ACCUMULATION:
+            do_join = self.dlg.accumulation_join_check.isChecked()
         
         # OUT FILE
         if result_mode == ORIGIN_DESTINATION and self.dlg.orig_dest_csv_check.checkState():
@@ -435,11 +481,17 @@ class OTP:
                 agg_cmd += ' --value {value}'.format(value=value)
             cmd += agg_cmd             
                 
-        diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), auto_start=True, progress_indicator='Processing:', total_ticks=n_points/PRINT_EVERY_N_LINES)
+        diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), 
+                                 auto_start=True, 
+                                 progress_indicator='Processing:', 
+                                 total_ticks=n_points/PRINT_EVERY_N_LINES)
         diag.exec_()
         
+        if do_join or self.dlg.orig_dest_add_check.isChecked():
+            result_layer = self.iface.addVectorLayer(target_file, 
+                                                     'results ' + self.dlg.router_combo.currentText(), 
+                                                     'delimitedtext')
         if do_join:
-            result_layer = self.iface.addVectorLayer(target_file, 'results', 'delimitedtext')
             join = QgsVectorJoinInfo()
             join.joinLayerId = result_layer.id()
             join.joinFieldName = 'origin_id'  

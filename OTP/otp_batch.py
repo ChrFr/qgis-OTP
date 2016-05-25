@@ -82,23 +82,25 @@ class OTPEvaluation(object):
             self.request.setOrigin(origin)
             spt = self.router.plan(self.request)
             
-            resultSet = None if spt is None else spt.getResultSet(destinations, aggregate_field)
+            if spt is not None:
             
-            origin_id = origin.getStringData(oid)    
-            times = resultSet.getTimes()
-            boardings = resultSet.getBoardings()
-            dids = resultSet.getStringData(did)     
-            walk_distance = resultSet.getWalkDistances()
-            
-            if aggregate_field:
-                resultSet.setAggregationMode(mode)
-                aggregated = resultSet.aggregate(value)
-                out_csv.addRow([origin_id, aggregated]) 
-            
-            else:            
-                for j, t in enumerate(times):
-                    if t != Double.MAX_VALUE:
-                        out_csv.addRow([origin_id, dids[j], times[j], "", "", boardings[j], walk_distance[j]])                
+                resultSet = spt.getResultSet(destinations, aggregate_field)            
+                
+                origin_id = origin.getStringData(oid)    
+                times = resultSet.getTimes()
+                boardings = resultSet.getBoardings()
+                dids = resultSet.getStringData(did)     
+                walk_distance = resultSet.getWalkDistances()
+                
+                if aggregate_field:
+                    resultSet.setAggregationMode(mode)
+                    aggregated = resultSet.aggregate(value)
+                    out_csv.addRow([origin_id, aggregated]) 
+                
+                else:            
+                    for j, t in enumerate(times):
+                        if t != Double.MAX_VALUE:
+                            out_csv.addRow([origin_id, dids[j], times[j], "", "", boardings[j], walk_distance[j]])                
                 
             if not (i + 1) % print_every_n_lines:
                 print "Processing: {} origins processed".format(i+1)
@@ -247,7 +249,7 @@ if __name__ == '__main__':
     print_every_n_lines = options.nlines    
     aggregate_field = options.aggregate
     aggregation_mode = options.aggregation_mode
-    agg_value = options.value
+    value = options.value
     
     otpEval = OTPEvaluation(print_every_n_lines)    
     otpEval.setup(date_time, max_time, modes, arriveby)    
