@@ -444,11 +444,11 @@ class OTP:
             msg_box.exec_()
             return    
         
-        # basic cmd looks same for all evaluations
+        # basic cmd is same for all evaluations
         cmd = '''jython -Dpython.path="{jar}" {wd}/otp_batch.py 
  --router {router} --origins "{origins}" --destinations "{destinations}" 
  --oid {oid} --did {did} --target "{target}" --datetime {datetime} 
- --maxtime {max_time} --modes {modes} --nlines {nlines}'''
+ --maxtime {max_time} --traverse_modes {modes} --nlines {nlines}'''
         
         cmd = cmd.format(
             jar=OTP_JAR, 

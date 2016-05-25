@@ -7,7 +7,9 @@ Created on Mar 16, 2016
 from org.opentripplanner.scripting.api import OtpsEntryPoint, OtpsCsvOutput
 from org.opentripplanner.routing.core import TraverseMode
 from org.opentripplanner.scripting.api import OtpsResultSet, OtpsAggregate
-from config import GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, ID_COLUMN, DATETIME_FORMAT, AGGREGATION_MODES
+from config import (GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, 
+                    ID_COLUMN, DATETIME_FORMAT, AGGREGATION_MODES,
+                    ACCUMULATION_MODES)
 from argparse import ArgumentParser
 import time
 from java.lang import Double
@@ -47,7 +49,7 @@ class OTPEvaluation(object):
         if modes:          
             self.request.setModes(','.join(modes))
 
-    def evaluate_departures(self, origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=None, mode=None, value=None):     
+    def evaluate_departures(self, origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=None, mode=None, values=None):     
         '''
         evaluate the shortest paths from origins to destinations
         uses the routing options set in setup() (run it first!)
@@ -94,7 +96,7 @@ class OTPEvaluation(object):
                 
                 if aggregate_field:
                     resultSet.setAggregationMode(mode)
-                    aggregated = resultSet.aggregate(value)
+                    aggregated = resultSet.aggregate(values)
                     out_csv.addRow([origin_id, aggregated]) 
                 
                 else:            
@@ -110,7 +112,7 @@ class OTPEvaluation(object):
         out_csv.save(target_csv)
         print 'results written to "{}"'.format(target_csv)  
     
-    def evaluate_arrival(self, origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, value=None):   
+    def evaluate_arrival(self, origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, values=None):   
         '''
         evaluate the shortest paths from destinations to origins (reverse search)
         uses the routing options set in setup() (run it first!), arriveby has to be set
@@ -207,7 +209,7 @@ if __name__ == '__main__':
                         help="max. travel time (in seconds)",
                         dest="max_time", default=1800, type=int)  
     
-    parser.add_argument('--modes', action="store",
+    parser.add_argument('--traverse_modes', action="store",
                         help="list of modes to use (e.g 'WALK' 'BUS' 'RAIL'",
                         nargs='+',
                         dest="modes")   
@@ -221,16 +223,21 @@ if __name__ == '__main__':
                         dest="nlines", default=50, type=int)       
     
     parser.add_argument('--aggregate', action="store",
-                        help="aggregate the results, set the name of the field you want to aggregate",
-                        dest="aggregate", default='')     
+                        help="aggregate the results, available aggregation modes: " + str(AGGREGATION_MODES),
+                        dest="aggregation_mode", default=None)    
     
-    parser.add_argument('--aggregation_mode', action="store",
-                        help="(ignored, when --aggregate is not set) available aggregation modes: " + str(AGGREGATION_MODES),
-                        dest="aggregation_mode", default=AGGREGATION_MODES[0])
+    parser.add_argument('--accumulate', action="store",
+                        help="aggregate the results, available aggregation modes: " + str(ACCUMULATION_MODES),
+                        dest="accumulation_mode", default=None)   
     
-    parser.add_argument('--value', action="store",
-                        help="value needed for aggregation/accumulation (only used as threshold for THRESHOLD_CUMMULATIVE_AGGREGATOR at the moment)",
-                        dest="value", default=0, type=int)
+    parser.add_argument('--field', action="store",
+                        help="the name of the field you want to aggregate/accumulate",
+                        dest="field", default=None)  
+        
+    parser.add_argument('--values', action="store",
+                        help="value needed for aggregation/accumulation",
+                        nargs='+',
+                        dest="values", type=float)
         
     parser.set_defaults(arriveby=False)
     
@@ -247,14 +254,27 @@ if __name__ == '__main__':
     max_time = options.max_time
     arriveby = options.arriveby
     print_every_n_lines = options.nlines    
-    aggregate_field = options.aggregate
+    field = options.field
     aggregation_mode = options.aggregation_mode
-    value = options.value
+    accumulation_mode = options.accumulation_mode
+    values = options.values
     
     otpEval = OTPEvaluation(print_every_n_lines)    
     otpEval.setup(date_time, max_time, modes, arriveby)    
     
+    if aggregation_mode and arriveby:
+        raise ValueError('aggregation only works with departure analysis')
+            
+    if accumulation_mode and not arriveby:
+        raise ValueError('accumulation only works with arriveby analysis')   
+    
+    if aggregation_mode and accumulation_mode:
+        raise ValueError("you can't do aggregation and accumulation at the same time")    
+    
+    if (aggregation_mode or accumulation_mode) and not field:
+        raise ValueError("the name of the field you want to aggregate/accumulate is missing")  
+    
     if arriveby:
-        otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, value=value) 
+        otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=field, mode=accumulation_mode, values=values) 
     else:
-        otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=aggregate_field, mode=aggregation_mode, value=value)
+        otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=field, mode=aggregation_mode, values=values)
