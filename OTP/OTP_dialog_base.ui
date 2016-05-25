@@ -388,9 +388,9 @@
           </widget>
          </item>
          <item row="1" column="1" colspan="2">
-          <widget class="QCheckBox" name="orig_dest_join_check">
+          <widget class="QCheckBox" name="orig_dest_add_check">
            <property name="text">
-            <string>Ergebnisse an Quelllayer joinen</string>
+            <string>Ergebnisse als Layer hinzufügen</string>
            </property>
            <property name="checked">
             <bool>true</bool>
