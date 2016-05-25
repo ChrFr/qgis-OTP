@@ -281,6 +281,9 @@
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
+         <property name="maximum">
+          <number>1000000000</number>
+         </property>
         </widget>
        </item>
        <item row="5" column="2">
@@ -302,6 +305,9 @@
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
+         </property>
         </widget>
        </item>
        <item row="4" column="0">
@@ -315,6 +321,9 @@
         <widget class="QDoubleSpinBox" name="bike_speed_edit">
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
          </property>
         </widget>
        </item>
@@ -330,10 +339,10 @@
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
          <property name="maximum">
-          <number>3600</number>
+          <number>1000000000</number>
          </property>
          <property name="value">
-          <number>120</number>
+          <number>99</number>
          </property>
         </widget>
        </item>
@@ -348,6 +357,9 @@
         <widget class="QSpinBox" name="max_walk_dist_edit">
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="maximum">
+          <number>1000000000</number>
          </property>
         </widget>
        </item>
