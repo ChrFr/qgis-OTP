@@ -185,27 +185,10 @@
        <string>Datum</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_5">
-       <item row="5" column="2">
-        <widget class="QLabel" name="label_8">
-         <property name="text">
-          <string>Minuten</string>
-         </property>
-        </widget>
-       </item>
        <item row="4" column="0">
         <widget class="QLabel" name="label_5">
          <property name="text">
           <string>Zeit</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="label_7">
-         <property name="text">
-          <string>maximale Reisezeit</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -233,22 +216,6 @@
            <minute>0</minute>
            <second>0</second>
           </time>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="1">
-        <widget class="QSpinBox" name="max_time_edit">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>20</height>
-          </size>
-         </property>
-         <property name="maximum">
-          <number>3600</number>
-         </property>
-         <property name="value">
-          <number>120</number>
          </property>
         </widget>
        </item>
@@ -287,6 +254,160 @@
           </size>
          </property>
         </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>Parameter</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_7">
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_15">
+         <property name="text">
+          <string>max. Laufgeschwindigkeit</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="label_21">
+         <property name="text">
+          <string>max. initiale Wartezeit</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QSpinBox" name="clamp_edit">
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="2">
+        <widget class="QLabel" name="label_22">
+         <property name="text">
+          <string>s</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2">
+        <widget class="QLabel" name="label_16">
+         <property name="text">
+          <string>m/s</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QDoubleSpinBox" name="walk_speed_edit">
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_19">
+         <property name="text">
+          <string>max. Fahrradgeschw.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QDoubleSpinBox" name="bike_speed_edit">
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QSpinBox" name="max_time_edit">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="maximum">
+          <number>3600</number>
+         </property>
+         <property name="value">
+          <number>120</number>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>min</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QSpinBox" name="max_walk_dist_edit">
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_17">
+         <property name="text">
+          <string>max. Laufdistanz</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="2">
+        <widget class="QLabel" name="label_18">
+         <property name="text">
+          <string>m</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="2">
+        <widget class="QLabel" name="label_20">
+         <property name="text">
+          <string>m/s</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <spacer name="verticalSpacer_14">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>maximale Reisezeit</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_23">
+         <property name="toolTip">
+          <string>komma-sperarierte Liste von Routen, jede mit dem Format [agencyId]_[routeName]_[routeId]</string>
+         </property>
+         <property name="text">
+          <string>gebannte Routen</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1" colspan="2">
+        <widget class="QLineEdit" name="banned_routes_edit">
+         <property name="toolTip">
+          <string>komma-sperarierte Liste von Routen, jede mit dem Format [agencyId]_[routeName]_[routeId]</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -459,7 +580,10 @@
          <string>Aggregation</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_3">
-         <item row="6" column="0" colspan="3">
+         <item row="5" column="0">
+          <layout class="QFormLayout" name="aggregation_value_edit"/>
+         </item>
+         <item row="7" column="0" colspan="3">
           <widget class="QCheckBox" name="aggregation_join_check">
            <property name="text">
             <string>Ergebnisse an Quelllayer joinen</string>
@@ -479,7 +603,7 @@
            </property>
           </widget>
          </item>
-         <item row="5" column="0">
+         <item row="6" column="0">
           <spacer name="verticalSpacer">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
@@ -492,7 +616,7 @@
            </property>
           </spacer>
          </item>
-         <item row="10" column="3" colspan="2">
+         <item row="11" column="3" colspan="2">
           <widget class="QPushButton" name="start_aggregation_button">
            <property name="minimumSize">
             <size>
@@ -505,7 +629,7 @@
            </property>
           </widget>
          </item>
-         <item row="8" column="4">
+         <item row="9" column="4">
           <widget class="QPushButton" name="aggregation_browse_button">
            <property name="minimumSize">
             <size>
@@ -524,7 +648,7 @@
            </property>
           </widget>
          </item>
-         <item row="9" column="0">
+         <item row="10" column="0">
           <spacer name="verticalSpacer_2">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
@@ -540,7 +664,7 @@
            </property>
           </spacer>
          </item>
-         <item row="8" column="0" colspan="4">
+         <item row="9" column="0" colspan="4">
           <widget class="QLineEdit" name="aggregation_file_edit">
            <property name="minimumSize">
             <size>
@@ -550,7 +674,7 @@
            </property>
           </widget>
          </item>
-         <item row="7" column="0" colspan="2">
+         <item row="8" column="0" colspan="2">
           <widget class="QCheckBox" name="aggregation_csv_check">
            <property name="text">
             <string>Ergebnisse als CSV speichern</string>
@@ -564,7 +688,7 @@
            </property>
           </widget>
          </item>
-         <item row="10" column="0">
+         <item row="11" column="0">
           <spacer name="horizontalSpacer_6">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -584,11 +708,24 @@
            </property>
           </widget>
          </item>
-         <item row="4" column="0">
-          <layout class="QFormLayout" name="aggregation_value_edit"/>
-         </item>
          <item row="3" column="0" colspan="2">
           <widget class="QComboBox" name="aggregation_field_combo"/>
+         </item>
+         <item row="4" column="0">
+          <spacer name="verticalSpacer_12">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>10</height>
+            </size>
+           </property>
+          </spacer>
          </item>
         </layout>
        </widget>
@@ -597,6 +734,9 @@
          <string>Akkumulation</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_6">
+         <item row="5" column="0">
+          <layout class="QFormLayout" name="accumulation_value_edit"/>
+         </item>
          <item row="0" column="0" colspan="4">
           <widget class="QLabel" name="label_14">
            <property name="text">
@@ -614,7 +754,7 @@
            </property>
           </widget>
          </item>
-         <item row="5" column="0">
+         <item row="6" column="0">
           <spacer name="verticalSpacer_10">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
@@ -637,14 +777,14 @@
          <item row="3" column="0">
           <widget class="QComboBox" name="accumulation_field_combo"/>
          </item>
-         <item row="7" column="0" colspan="2">
+         <item row="8" column="0" colspan="2">
           <widget class="QCheckBox" name="accumulation_csv_check">
            <property name="text">
             <string>Ergebnisse als CSV speichern</string>
            </property>
           </widget>
          </item>
-         <item row="6" column="0" colspan="3">
+         <item row="7" column="0" colspan="3">
           <widget class="QCheckBox" name="accumulation_join_check">
            <property name="text">
             <string>Ergebnisse an Quelllayer joinen</string>
@@ -654,7 +794,7 @@
            </property>
           </widget>
          </item>
-         <item row="9" column="0">
+         <item row="10" column="0">
           <spacer name="verticalSpacer_11">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
@@ -670,7 +810,7 @@
            </property>
           </spacer>
          </item>
-         <item row="8" column="0" colspan="4">
+         <item row="9" column="0" colspan="4">
           <widget class="QLineEdit" name="accumulation_file_edit">
            <property name="minimumSize">
             <size>
@@ -680,7 +820,7 @@
            </property>
           </widget>
          </item>
-         <item row="8" column="4">
+         <item row="9" column="4">
           <widget class="QPushButton" name="accumulation_browse_button">
            <property name="minimumSize">
             <size>
@@ -699,7 +839,7 @@
            </property>
           </widget>
          </item>
-         <item row="10" column="0">
+         <item row="11" column="0">
           <spacer name="horizontalSpacer_7">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -712,7 +852,7 @@
            </property>
           </spacer>
          </item>
-         <item row="10" column="3" colspan="2">
+         <item row="11" column="3" colspan="2">
           <widget class="QPushButton" name="start_accumulation_button">
            <property name="minimumSize">
             <size>
@@ -726,7 +866,20 @@
           </widget>
          </item>
          <item row="4" column="0">
-          <layout class="QFormLayout" name="accumulation_value_edit"/>
+          <spacer name="verticalSpacer_13">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>10</height>
+            </size>
+           </property>
+          </spacer>
          </item>
         </layout>
        </widget>
