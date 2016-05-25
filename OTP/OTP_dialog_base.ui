@@ -655,7 +655,7 @@
           </widget>
          </item>
          <item row="2" column="2">
-          <widget class="QLabel" name="aggregation_value_label_2">
+          <widget class="QLabel" name="accumulation_value_label">
            <property name="text">
             <string>Wert</string>
            </property>
