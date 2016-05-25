@@ -86,23 +86,25 @@ class OTPEvaluation(object):
             
             if spt is not None:
             
-                resultSet = spt.getResultSet(destinations, aggregate_field)            
+                result_set = spt.getResultSet(destinations, aggregate_field)            
                 
                 origin_id = origin.getStringData(oid)    
-                times = resultSet.getTimes()
-                boardings = resultSet.getBoardings()
-                dids = resultSet.getStringData(did)     
-                walk_distance = resultSet.getWalkDistances()
+                times = result_set.getTimes()
+                boardings = result_set.getBoardings()
+                dids = result_set.getStringData(did)     
+                walk_distances = result_set.getWalkDistances()
+                starts = result_set.getStartTimes()
+                arrivals = result_set.getArrivalTimes()
                 
                 if aggregate_field:
-                    resultSet.setAggregationMode(mode)
+                    result_set.setAggregationMode(mode)
                     aggregated = resultSet.aggregate(params)
                     out_csv.addRow([origin_id, aggregated]) 
                 
                 else:            
                     for j, t in enumerate(times):
                         if t != Double.MAX_VALUE:
-                            out_csv.addRow([origin_id, dids[j], times[j], "", "", boardings[j], walk_distance[j]])                
+                            out_csv.addRow([origin_id, dids[j], times[j], starts[j], arrivals[j], boardings[j], walk_distances[j]])                
                 
             if not (i + 1) % print_every_n_lines:
                 print "Processing: {} origins processed".format(i+1)
@@ -134,10 +136,10 @@ class OTPEvaluation(object):
         i = -1       
         
         header = [ 'origin_id' ]
-        if not aggregate_field or len(aggregate_field) == 0:
+        if not accumulate_field or len(accumulate_field) == 0:
             header += [ 'destination_id', 'travel_time', 'start_time', 'arrival_time','boardings', 'walk_distance'] 
         else:
-            header += ['origin_id',  accumulate_field + '_accumulated']            
+            header += [accumulate_field + '_accumulated']            
         out_csv = self.otp.createCSVOutput()
         out_csv.setHeader(header)
         
@@ -145,26 +147,29 @@ class OTPEvaluation(object):
             
             # Set the origin of the request to this point and run a search
             self.request.setDestination(destination)
-            spt = self.router.plan(self.request)
+            spt = self.router.plan(self.request)            
             
-            resultSet = None if spt is None else spt.getResultSet(origins, accumulate_field)             
+            if spt is not None:
+                result_set = spt.getResultSet(origins, accumulate_field)             
             
-            dest_id = destination.getStringData(oid)    
-            times = resultSet.getTimes()
-            boardings = resultSet.getBoardings()
-            oids = resultSet.getStringData(did)     
-            walk_distance = resultSet.getWalkDistances()
+                dest_id = destination.getStringData(did)    
+                times = result_set.getTimes()
+                boardings = result_set.getBoardings()
+                oids = result_set.getStringData(oid)     
+                walk_distances = result_set.getWalkDistances()
+                starts = result_set.getStartTimes()
+                arrivals = result_set.getArrivalTimes()
             
-            # ToDo: accumulate wit empty set
-            if accumulate_field:
-                pass
-#                 accumulated = resultSet.accumulate()
-#                 out_csv.addRow([origin_id, accumulated]) 
-            
-            else:            
-                for j, t in enumerate(times):
-                    if t != Double.MAX_VALUE:
-                        out_csv.addRow([oids[j], dest_id, times[j], "", "", boardings[j], walk_distance[j]])          
+                # ToDo: accumulate with empty set
+                if accumulate_field:
+                    pass
+    #                 accumulated = resultSet.accumulate()
+    #                 out_csv.addRow([origin_id, accumulated]) 
+                
+                else:            
+                    for j, t in enumerate(times):
+                        if t != Double.MAX_VALUE:
+                            out_csv.addRow([oids[j], dest_id, times[j], starts[j], arrivals[j], boardings[j], walk_distances[j]])          
             
             if not (i + 1) % print_every_n_lines:
                 print "Processing: {} destinations processed".format(i+1)    

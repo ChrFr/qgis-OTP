@@ -33,7 +33,7 @@ import os
 from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
                     DATETIME_FORMAT, DEFAULT_MODES, 
                     AGGREGATION_MODES, ACCUMULATION_MODES, 
-                    MODE_PARAMS)
+                    MODE_PARAMS, DEFAULTS)
 from dialogs import ExecCommandDialog, set_file
 from qgis._core import QgsVectorLayer, QgsVectorJoinInfo, QgsCoordinateReferenceSystem
 from qgis.core import QgsVectorFileWriter
@@ -154,7 +154,14 @@ class OTP:
         self.dlg.accumulation_mode_combo.addItems(ACCUMULATION_MODES)
         self.set_mode_params(ACCUMULATION)
         self.dlg.aggregation_mode_combo.currentIndexChanged.connect(
-            lambda: self.set_mode_params(ACCUMULATION))        
+            lambda: self.set_mode_params(ACCUMULATION))       
+        
+        # defaults
+        self.dlg.max_time_edit.setValue(DEFAULTS['maxTimeMin'])
+        self.dlg.max_walk_dist_edit.setValue(DEFAULTS['maxWalkDistance'])
+        self.dlg.walk_speed_edit.setValue(DEFAULTS['walkSpeed'])
+        self.dlg.bike_speed_edit.setValue(DEFAULTS['bikeSpeed'])
+        self.dlg.clamp_edit.setValue(DEFAULTS['clampInitialWait'])
         
         # calendar
         self.set_date()

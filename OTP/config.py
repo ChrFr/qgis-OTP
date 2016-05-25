@@ -78,3 +78,12 @@ DEFAULT_MODES = [
     'TRANSIT',
     'WALK'
 ]
+
+DEFAULTS = {
+    'maxWalkDistance': 1000000000,
+    'bikeSpeed': 5,
+    'walkSpeed': 1.33,
+    'clampInitialWait': 1000000000, # -1?
+    'maxTimeMin': 1000000000,
+    
+}
