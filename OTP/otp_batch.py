@@ -49,7 +49,7 @@ class OTPEvaluation(object):
         if modes:          
             self.request.setModes(','.join(modes))
 
-    def evaluate_departures(self, origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=None, mode=None, params=None):     
+    def evaluate_departures(self, origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=None, mode=None, params=None, bestof=None):     
         '''
         evaluate the shortest paths from origins to destinations
         uses the routing options set in setup() (run it first!)
@@ -94,16 +94,22 @@ class OTPEvaluation(object):
                 dids = result_set.getStringData(did)     
                 walk_distances = result_set.getWalkDistances()
                 starts = result_set.getStartTimes()
-                arrivals = result_set.getArrivalTimes()
+                arrivals = result_set.getArrivalTimes()                        
                 
                 if aggregate_field:
                     result_set.setAggregationMode(mode)
                     aggregated = resultSet.aggregate(params)
                     out_csv.addRow([origin_id, aggregated]) 
                 
-                else:            
-                    for j, t in enumerate(times):
-                        if t != Double.MAX_VALUE:
+                else:          
+                    if bestof is not None:
+                        indices = [t[0] for t in sorted(enumerate(times), key=lambda x:x[1])]
+                        indices = indices[:bestof]
+                    else:
+                        indices = range(len(times))
+                    for j in indices:
+                        time = times[j]
+                        if time < Double.MAX_VALUE:
                             out_csv.addRow([origin_id, dids[j], times[j], starts[j], arrivals[j], boardings[j], walk_distances[j]])                
                 
             if not (i + 1) % print_every_n_lines:
@@ -114,7 +120,7 @@ class OTPEvaluation(object):
         out_csv.save(target_csv)
         print 'results written to "{}"'.format(target_csv)  
     
-    def evaluate_arrival(self, origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, params=None):   
+    def evaluate_arrival(self, origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, params=None, bestof=None):   
         '''
         evaluate the shortest paths from destinations to origins (reverse search)
         uses the routing options set in setup() (run it first!), arriveby has to be set
@@ -243,6 +249,10 @@ if __name__ == '__main__':
                         help="parameters needed for aggregation/accumulation (specific to mode)",
                         nargs='+',
                         dest="mode_params", type=float)
+    
+    parser.add_argument('--bestof', action="store",
+                        help="only take the n origin/destination results with the shortest travel times",
+                        dest="bestof", type=int)     
         
     parser.set_defaults(arriveby=False)
     
@@ -260,6 +270,7 @@ if __name__ == '__main__':
     arriveby = options.arriveby
     print_every_n_lines = options.nlines    
     field = options.field
+    bestof = options.bestof
     aggregation_mode = options.aggregation_mode
     accumulation_mode = options.accumulation_mode
     mode_params = options.mode_params
@@ -280,6 +291,6 @@ if __name__ == '__main__':
         raise ValueError("the name of the field you want to aggregate/accumulate is missing")  
     
     if arriveby:
-        otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=field, mode=accumulation_mode, params=mode_params) 
+        otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=field, mode=accumulation_mode, params=mode_params, bestof=bestof) 
     else:
-        otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=field, mode=aggregation_mode, params=mode_params)
+        otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=field, mode=aggregation_mode, params=mode_params, bestof=bestof)

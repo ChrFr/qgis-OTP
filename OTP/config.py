@@ -12,38 +12,38 @@ ACCUMULATION_MODES = ["DECAY_ACCUMULATOR", "THRESHOLD_ACCUMULATOR"]
 MODE_PARAMS = {
     "THRESHOLD_SUM_AGGREGATOR": [
         {
-            "label": "Schwellwert (sec)",
+            "label": "Schwellwert (min)",
             "min": 0,
-            "max": 5400,
-            "default": 3600, 
+            "max": 180,
+            "default": 60, 
             "step": 1,
             "decimals": 0
         }        
     ],
     "THRESHOLD_CUMMULATIVE_AGGREGATOR": [
         {
-            "label": "Schwellwert (sec)", # label of the param (UI only)
+            "label": "Schwellwert (min)", # label of the param (UI only)
             "min": 0, # minimum value
-            "max": 5400, # maximum value
-            "default": 3600, # default value
+            "max": 180, # maximum value
+            "default": 60, # default value
             "step": 1, # size of steps between values (default 1) 
             "decimals": 0 # number of decimals (default 2)
         }
         ],
     "DECAY_AGGREGATOR": [
         {
-            "label": "Schwellwert (sec)",
+            "label": "Schwellwert (min)",
             "min": 0,
-            "max": 5400,
-            "default": 3600, 
+            "max": 180,
+            "default": 60, 
             "step": 1,
             "decimals": 0
         },
         {
             "label": "lambda",
-            "min": 0,
-            "max": 10,
-            "default": 0,
+            "min": -10,
+            "max": 0,
+            "default": -0.1,
             "step": 0.01,
             "decimals": 2
         }

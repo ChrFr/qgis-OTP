@@ -98,7 +98,12 @@ class OTP:
             lambda: set_file(self.dlg, 
                              self.dlg.orig_dest_file_edit,
                              filters=['CSV-Dateien (*.csv)'],
-                             directory=self.dlg.router_combo.currentText()+'-Quelle-Ziel.csv', # '-'+strftime('%d-%m-%Y-%H:%M')+'.csv', 
+                             directory='{}-{}-{}.csv'.format(
+                                 self.dlg.router_combo.currentText(),
+                                 self.dlg.origins_combo.currentText(),
+                                 self.dlg.destinations_combo.currentText()
+                                  # '-'+strftime('%d-%m-%Y-%H:%M')
+                                  ),
                              save=True)
         )            
 
@@ -106,7 +111,10 @@ class OTP:
             lambda: set_file(self.dlg, 
                              self.dlg.aggregation_file_edit,
                              filters=['CSV-Dateien (*.csv)'],
-                             directory=self.dlg.router_combo.currentText()+'-Aggregation.csv', # '-'+strftime('%d-%m-%Y-%H:%M')+'.csv', 
+                             directory='{}-{}-aggregiert.csv'.format(
+                                 self.dlg.router_combo.currentText(),
+                                 self.dlg.origins_combo.currentText()
+                                  ),
                              save=True)
         )  
                 
@@ -114,8 +122,8 @@ class OTP:
         self.arrival_check()
         self.dlg.arrival_checkbox.clicked.connect(self.arrival_check)
         
-        self.dlg.start_orig_dest_button.clicked.connect(lambda: self.run_otp(ORIGIN_DESTINATION))
-        self.dlg.start_aggregation_button.clicked.connect(lambda: self.run_otp(AGGREGATION))     
+        self.dlg.start_orig_dest_button.clicked.connect(lambda: self.call_otp(ORIGIN_DESTINATION))
+        self.dlg.start_aggregation_button.clicked.connect(lambda: self.call_otp(AGGREGATION))     
          
         self.dlg.close_button.clicked.connect(self.dlg.close)
         
@@ -374,7 +382,7 @@ class OTP:
                 params.append(str(widget.value()))
         return params
         
-    def run_otp(self, result_mode):                   
+    def call_otp(self, result_mode):                   
         working_dir = os.path.dirname(__file__)       
         
         # LAYERS
@@ -512,7 +520,11 @@ class OTP:
             if len(params) > 0:
                 result_cmd += ' --mode_params {params}'.format(params=' '.join(params))
                 
-            cmd += result_cmd             
+            cmd += result_cmd   
+            
+        if self.dlg.bestof_check.isChecked():
+            bestof = self.dlg.bestof_edit.value()
+            cmd += ' --bestof {}'.format(bestof)            
                 
         diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), 
                                  auto_start=True, 
@@ -521,8 +533,14 @@ class OTP:
         diag.exec_()
         
         if do_join or (result_mode == ORIGIN_DESTINATION and self.dlg.orig_dest_add_check.isChecked()):
+            layer_name = 'results-' + self.dlg.router_combo.currentText()
+            if result_mode == ORIGIN_DESTINATION:
+                layer_name += '-' + self.dlg.origins_combo.currentText()
+                layer_name += '-' + self.dlg.destinations_combo.currentText()
+            if result_mode == AGGREGATION:
+                layer_name += '-' + self.dlg.origins_combo.currentText() + '-aggregiert'
             result_layer = self.iface.addVectorLayer(target_file, 
-                                                     'results ' + self.dlg.router_combo.currentText(), 
+                                                     layer_name, 
                                                      'delimitedtext')
         else:
             # tmp files are no longer needed, if not added to qgis

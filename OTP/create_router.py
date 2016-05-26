@@ -1,5 +1,5 @@
 import os
-from shutil import copy
+from shutil import move
 from argparse import ArgumentParser
 from subprocess import call
 
@@ -28,7 +28,12 @@ def main():
     target_folder = os.path.join(args.graph_folder, args.name)
     if not os.path.exists(target_folder):
         os.makedirs(target_folder)
-    copy(graph_file, target_folder)    
+    dst_file = os.path.join(target_folder, "Graph.obj")
+    if os.path.exists(dst_file):
+        os.remove(dst_file)
+        print "overwriting old file..."
+    move(graph_file, dst_file)  
+    print "Graph moved to " + dst_file
 
 if __name__ == "__main__":
     main()
