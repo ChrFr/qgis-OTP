@@ -127,10 +127,9 @@ class OTP:
          
         self.dlg.close_button.clicked.connect(self.dlg.close)
         
-        # store layers to check, if they changed on rerun (combo boxes will be refilled then)                      
-        self.layer_list = []      
-        self.layers = self.iface.legendInterface().layers()
-        self.fill_layer_combos()     
+        # available layers are stored in here                      
+        self.layer_list = []    
+        self.layers = None
         
         # refresh layer ids on selection of different layer
         self.dlg.origins_combo.currentIndexChanged.connect(
@@ -299,45 +298,63 @@ class OTP:
         else:
             self.dlg.calculation_tabs.addTab(self.dlg.aggregation_tab, "Aggregation")
         
-    def fill_layer_combos(self):
+    def fill_layer_combos(self, layers):
         '''
         fill the combo boxes for selection of origin/destination layers with all available vector-layers
+        keep selections of previously selected layers, if possible
         '''
+        old_origin_layer = None 
+        old_destination_layer = None
+        if len(self.layer_list) > 0:    
+            old_origin_layer = self.layer_list[self.dlg.origins_combo.currentIndex()]
+            old_destination_layer = self.layer_list[self.dlg.destinations_combo.currentIndex()]              
+        
         self.layer_list = []
-        active_layer = self.iface.activeLayer()
         self.dlg.origins_combo.clear()   
-        self.dlg.destinations_combo.clear()            
-        i = 0
-        idx = 0
-        for layer in self.layers:            
+        self.dlg.destinations_combo.clear()   
+        old_origin_idx = 0
+        old_destination_idx = 0
+        i = 0 # counter for QgsVectorLayers
+        for layer in layers:
             if isinstance(layer, QgsVectorLayer):
-                if layer == active_layer:
-                    idx = i
+                if layer == old_origin_layer:
+                    old_origin_idx = i
+                if layer == old_destination_idx:
+                    old_destination_idx = i
                 self.layer_list.append(layer)
                 self.dlg.origins_combo.addItem(layer.name())   
-                self.dlg.destinations_combo.addItem(layer.name())     
-                i += 1        
-                
+                self.dlg.destinations_combo.addItem(layer.name())  
+                i += 1
+                           
         # select active layer in comboboxes                    
-        self.dlg.origins_combo.setCurrentIndex(idx)          
-        self.dlg.destinations_combo.setCurrentIndex(idx)   
+        self.dlg.origins_combo.setCurrentIndex(old_origin_idx)          
+        self.dlg.destinations_combo.setCurrentIndex(old_destination_idx)   
         
         # fill ids although there is already a signal/slot connection (in __init__) to do this,
         # but if index doesn't change (idx == 0), signal doesn't fire (so it maybe is done twice, but this is not performance-relevant)
         self.fill_id_combo(self.dlg.origins_combo, self.dlg.origins_id_combo)
         self.fill_id_combo(self.dlg.destinations_combo, self.dlg.destinations_id_combo)
         
+        self.layers = layers     
+        
     def fill_id_combo(self, layer_combo, id_combo):  
         '''
         fill a combo box (id_combo) with all fields of the currently selected layer in the given layer_combo
-        '''
+        tries to keep same field as selected before
+        WARNING: does not keep same field selected if layers changed and rerun
+        '''        
+        old_id_field = id_combo.currentText()
         id_combo.clear()
         if len(self.layer_list) == 0 or (layer_combo.currentIndex() >= len(self.layer_list)):
             return
         layer = self.layer_list[layer_combo.currentIndex()]
         fields = layer.pendingFields()
-        field_names = [field.name() for field in fields]
-        id_combo.addItems(field_names)      
+        old_idx = 0
+        for i, field in enumerate(fields):
+            if field.name() == old_id_field:
+                old_idx = i
+            id_combo.addItem(field.name())
+        id_combo.setCurrentIndex(old_idx)
         
     def set_mode_params(self, result_mode):
         if result_mode == AGGREGATION:
@@ -563,8 +580,7 @@ class OTP:
         # reload layer combos, if layers changed on rerun
         layers = self.iface.legendInterface().layers()     
         if layers != self.layers:
-            self.layers = layers
-            self.fill_layer_combos()
+            self.fill_layer_combos(layers)
         
         # reload routers on every run (they might be changed outside)
         # but try to keep old router selected
