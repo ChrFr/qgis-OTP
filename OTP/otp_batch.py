@@ -45,6 +45,7 @@ class OTPEvaluation(object):
         self.request.setArriveBy(arriveby)
         # has to be set AFTER arriveby (request decides if negative weight or not by checking arriveby)
         self.request.setMaxTimeSec(max_time)
+        #self.request.setMaxWalkDistance(1500)
         
         if modes:          
             self.request.setModes(','.join(modes))
@@ -98,7 +99,7 @@ class OTPEvaluation(object):
                 
                 if aggregate_field:
                     result_set.setAggregationMode(mode)
-                    aggregated = resultSet.aggregate(params)
+                    aggregated = result_set.aggregate(params)
                     out_csv.addRow([origin_id, aggregated]) 
                 
                 else:          
