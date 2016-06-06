@@ -72,31 +72,31 @@ AVAILABLE_TRAVERSE_MODES = [
     'WALK'
 ]
 
-DEFAULT_FILE = os.path.join(os.path.split((sys.argv)[0])[0], "config.xml")
+DEFAULT_FILE = os.path.join(os.path.split((sys.argv)[0])[0], "otp_config.xml")
 
 # structure of config-object, composition of xml is the same, contains default values 
 setting_struct = OrderedDict([
     ('origin', {
-        'layer': None,
-        'id_field': None
+        'layer': '',
+        'id_field': '',
+        'file': ''
     }),
     ('destination', {
-        'layer': None,
-        'id_field': None
+        'layer': '',
+        'id_field': '',
+        'file': ''
     }),
     ('time', {
-        'datetime': None, # == now,        
+        'datetime': '', # == now,        
         'arrive_by': False,        
         'time_batch': {
-            'activated': False,
-            'from': None,
-            'to': None,
-            'time_step': None
-        },
-        
+            'active': False,
+            'end': '',
+            'time_step': ''
+        },        
     }),
     ('router_config', {
-        'router': None, 
+        'router': '', 
         'traverse_modes': [
             'BUS',
             'BUSISH',
@@ -110,16 +110,18 @@ setting_struct = OrderedDict([
         'maxWalkDistance': 1000000000,
         'bikeSpeed': 5,
         'walkSpeed': 1.33,
-        'clampInitialWait': 1000000000, # -1?
+        'clampInitialWaitSec': 1000000000, # -1?
         'maxTimeMin': 1000000000,
         'banned_routes': []
     }),
     ('post_processing', {
-        'best_of': None,
+        'best_of': '',
+        'target_file': '',
         'aggregation_accumulation': {
-            'mode': None, # if None, no postprocessing
-            'params': [3600],
-            'processed_field': None        
+            'active': False,
+            'mode': '',
+            'params': [],
+            'processed_field': ''        
         }
     })
 ])
@@ -161,7 +163,7 @@ class Config(Borg):
     def reset(self):        
         self.settings = copy.deepcopy(setting_struct)        
 
-    def write(self, filename=None):
+    def write(self, filename=None, hide_inactive=False):
         '''
         write the config as xml to given file (default config.xml)
         '''
@@ -169,8 +171,14 @@ class Config(Borg):
         if not filename:
             filename = DEFAULT_FILE
 
+        settings = copy.deepcopy(self.settings)
+        if hide_inactive:
+            if not bool(settings['time']['timebatch']['active']):
+                del settings['time']['timebatch']
+            if not bool(settings['post_processing']['aggregation_accumulation']['active']):
+                del settings['post_processing']['aggregation_accumulation']
         xml_tree = etree.Element('CONFIG')
-        dict_to_xml(xml_tree, self.settings)
+        dict_to_xml(xml_tree, settings)
         etree.ElementTree(xml_tree).write(str(filename), pretty_print=True)
 
 def dict_to_xml(element, dictionary):
@@ -178,11 +186,8 @@ def dict_to_xml(element, dictionary):
     append the entries of a dictionary as childs to the given xml tree element
     '''
     if isinstance(dictionary, list):
-        for value in dictionary:
-            elem = etree.Element('value')
-            element.append(elem)
-            if isinstance(dictionary, list) or isinstance(dictionary, dict):
-                dict_to_xml(elem, value)
+        print dictionary
+        element.text = ','.join(dictionary)
     elif not isinstance(dictionary, dict):
         element.text = str(dictionary)
     else:
@@ -191,21 +196,20 @@ def dict_to_xml(element, dictionary):
             element.append(elem)
             dict_to_xml(elem, dictionary[key])
 
-def xml_to_dict(tree, represented_as_arrays=[]):
+def xml_to_dict(tree):
     '''
     convert a xml tree to a dictionary
     represented_as_arrays: list of Strings, all XML Tags, which should be handled as arrays
     '''
-    if tree.tag in represented_as_arrays:
-        value = []
-        for child in tree.getchildren():
-            value.append(xml_to_dict(child, represented_as_arrays))
-    elif len(tree.getchildren()) > 0:
+    if len(tree.getchildren()) > 0:
         value = {}
         for child in tree.getchildren():
-            value[child.tag] = xml_to_dict(child, represented_as_arrays)
+            value[child.tag] = xml_to_dict(child)
     else:
         value = tree.text
         if not value:
-            value = ''
+            value = ''            
+        value = value.split(',')
+        if len(value) == 1:
+            value = value[0]
     return value

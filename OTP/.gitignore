@@ -2,3 +2,4 @@
 *.class
 /ui_progress.py
 /config.xml
+/otp_config.xml

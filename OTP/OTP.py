@@ -24,7 +24,8 @@ from PyQt4.QtCore import (QSettings, QTranslator, qVersion,
                           QCoreApplication, QProcess, QDateTime)
 from PyQt4.QtGui import (QAction, QIcon, QListWidgetItem, 
                          QCheckBox, QMessageBox, QLabel,
-                         QDoubleSpinBox)
+                         QDoubleSpinBox, QFileDialog)
+
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
@@ -32,7 +33,7 @@ from OTP_dialog import OTPDialog
 import os
 from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES, 
-                    MODE_PARAMS)
+                    MODE_PARAMS, DEFAULT_FILE)
 from dialogs import ExecCommandDialog, set_file
 from qgis._core import QgsVectorLayer, QgsVectorJoinInfo, QgsCoordinateReferenceSystem
 from qgis.core import QgsVectorFileWriter
@@ -53,6 +54,8 @@ ACCUMULATION = 2
 
 # how many results are written while running batch script
 PRINT_EVERY_N_LINES = 5
+
+XML_FILTER = u'XML-Dateien (*.xml)'
 
 class OTP:
     """QGIS Plugin Implementation."""
@@ -128,11 +131,14 @@ class OTP:
         self.dlg.start_orig_dest_button.clicked.connect(lambda: self.call_otp(ORIGIN_DESTINATION))
         self.dlg.start_aggregation_button.clicked.connect(lambda: self.call_otp(AGGREGATION))     
          
-        self.dlg.close_button.clicked.connect(self.dlg.close) #ToDo: save on close
+        self.dlg.close_button.clicked.connect(self.close) #ToDo: save on close
         
         # available layers are stored in here                      
         self.layer_list = []    
         self.layers = None
+        
+        layers = self.iface.legendInterface().layers()    
+        self.fill_layer_combos(layers)        
         
         # refresh layer ids on selection of different layer
         self.dlg.origins_combo.currentIndexChanged.connect(
@@ -164,8 +170,13 @@ class OTP:
         self.dlg.aggregation_mode_combo.currentIndexChanged.connect(
             lambda: self.set_mode_params(ACCUMULATION))       
         
+        # router
+        self.fill_router_combo()
+        
         # settings
-        self.dlg.config_default_button.clicked(self.reset_config)
+        self.dlg.config_default_button.clicked.connect(self.reset_config)
+        self.dlg.config_read_button.clicked.connect(self.read_config)
+        self.dlg.config_save_button.clicked.connect(self.save_config_as)
         self.apply_config()
         
         # calendar
@@ -287,12 +298,110 @@ class OTP:
         self.apply_config()
         
     def apply_config(self):
+        
+        # ORIGIN
+        origin_config = config.settings['origin'] 
+        layer_idx = self.dlg.origins_combo.findText(origin_config['layer'])
+        # layer found
+        if layer_idx >= 0:  
+            self.dlg.origins_combo.setCurrentIndex(layer_idx)    
+            # if id is not found (returns -1) take first one (0)
+            id_idx = max(self.dlg.origins_id_combo.findText(origin_config['id_field']), 0)           
+            self.dlg.origins_id_combo.setCurrentIndex(id_idx)        
+        # layer not found -> take first one
+        else:
+            self.dlg.origins_combo.setCurrentIndex(0)  
+            
+        # DESTINATION
+        dest_config = config.settings['destination'] 
+        layer_idx = self.dlg.destinations_combo.findText(dest_config['layer'])
+        # layer found
+        if layer_idx >= 0:  
+            self.dlg.destinations_combo.setCurrentIndex(layer_idx)    
+            # if id is not found (returns -1) take first one (0)
+            id_idx = max(self.dlg.destinations_id_combo.findText(dest_config['id_field']), 0)           
+            self.dlg.destinations_id_combo.setCurrentIndex(id_idx)        
+        # layer not found -> take first one
+        else:
+            self.dlg.destinations_combo.setCurrentIndex(0)        
+        
+        # ROUTER
         router_config = config.settings['router_config']
-        self.dlg.max_time_edit.setValue('maxTimeMin')
-        #self.dlg.max_walk_dist_edit.setValue(DEFAULTS['maxWalkDistance'])
-        #self.dlg.walk_speed_edit.setValue(DEFAULTS['walkSpeed'])
-        #self.dlg.bike_speed_edit.setValue(DEFAULTS['bikeSpeed'])
-        #self.dlg.clamp_edit.setValue(DEFAULTS['clampInitialWait'])
+        # if router is not found (returns -1) take first one (0)
+        idx = max(self.dlg.router_combo.findText(router_config['router']), 0)
+        self.dlg.router_combo.setCurrentIndex(idx)    
+        
+        self.dlg.max_time_edit.setValue(int(router_config['maxTimeMin']))
+        self.dlg.max_walk_dist_edit.setValue(int(router_config['maxWalkDistance']))
+        self.dlg.walk_speed_edit.setValue(float(router_config['walkSpeed']))
+        self.dlg.bike_speed_edit.setValue(float(router_config['bikeSpeed']))
+        self.dlg.clamp_edit.setValue(int(router_config['clampInitialWaitSec']))    
+        self.dlg.banned_routes_edit.setText(router_config['banned_routes'])            
+                    
+        # TRAVERSE MODES    
+        modes = router_config['traverse_modes']
+        for index in xrange(self.dlg.mode_list_view.count()):
+            checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
+            print str(checkbox.text())
+            print modes
+            if str(checkbox.text()) in modes :
+                checkbox.setCheckState(True) 
+            else:
+                checkbox.setCheckState(False) 
+            
+    def update_config(self):        
+                
+        # LAYERS
+        origin_config = config.settings['origin'] 
+        origin_config['layer'] = self.dlg.origins_combo.currentText()
+        origin_config['id_field'] = self.dlg.origins_id_combo.currentText()
+        dest_config = config.settings['destination'] 
+        dest_config['layer'] = self.dlg.destinations_combo.currentText()
+        dest_config['id_field'] = self.dlg.destinations_id_combo.currentText()        
+                
+        # ROUTER
+        router_config = config.settings['router_config']
+        router_config['router'] = self.dlg.router_combo.currentText()
+        router_config['maxTimeMin'] = self.dlg.max_time_edit.value()
+        router_config['maxWalkDistance'] = self.dlg.max_walk_dist_edit.value()      
+        router_config['walkSpeed'] = self.dlg.walk_speed_edit.value()      
+        router_config['bikeSpeed'] = self.dlg.bike_speed_edit.value()   
+        router_config['clampInitialWaitSec'] = self.dlg.clamp_edit.value() 
+        router_config['banned_routes'] = self.dlg.banned_routes_edit.text()         
+                
+        # TRAVERSE MODES    
+        selected_modes = []
+        for index in xrange(self.dlg.mode_list_view.count()):
+            checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
+            if checkbox.checkState():
+                selected_modes.append(str(checkbox.text()))   
+        router_config['traverse_modes'] = selected_modes
+        
+    def save_config_as(self):        
+        filename = str(
+            QFileDialog.getSaveFileName(
+                self.dlg, u'Konfigurationsdatei wählen',
+                directory=DEFAULT_FILE,
+                filter=XML_FILTER)
+            )
+        if filename:         
+            self.update_config()
+            config.write(filename)    
+            
+    def read_config(self):
+        filename = str(
+            QFileDialog.getOpenFileName(
+                self.dlg, u'Konfigurationsdatei wählen',
+                filter=XML_FILTER)
+            )
+        if filename:
+            config.read(filename)
+            self.apply_config()
+    
+    def close(self):
+        self.update_config()
+        config.write()  
+        self.dlg.close()
         
     def set_date(self):
         date = self.dlg.calendar_edit.selectedDate()
@@ -307,6 +416,18 @@ class OTP:
             self.dlg.calculation_tabs.addTab(self.dlg.accumulation_tab, "Akkumulation")
         else:
             self.dlg.calculation_tabs.addTab(self.dlg.aggregation_tab, "Aggregation")
+            
+    def fill_router_combo(self):
+        # try to keep old router selected
+        prev_router = self.dlg.router_combo.currentText()       
+        self.dlg.router_combo.clear()
+        idx = 0
+        # subdirectories in graph-dir are treated as routers by OTP
+        for i, subdir in enumerate(os.listdir(GRAPH_PATH)):
+            self.dlg.router_combo.addItem(subdir) 
+            if prev_router == subdir:
+                idx = i                
+        self.dlg.router_combo.setCurrentIndex(idx)    
         
     def fill_layer_combos(self, layers):
         '''
@@ -593,16 +714,7 @@ class OTP:
             self.fill_layer_combos(layers)
         
         # reload routers on every run (they might be changed outside)
-        # but try to keep old router selected
-        prev_router = self.dlg.router_combo.currentText()       
-        self.dlg.router_combo.clear()
-        idx = 0
-        # subdirectories in graph-dir are treated as routers by OTP
-        for i, subdir in enumerate(os.listdir(GRAPH_PATH)):
-            self.dlg.router_combo.addItem(subdir) 
-            if prev_router == subdir:
-                idx = i                
-        self.dlg.router_combo.setCurrentIndex(idx)        
+        self.fill_router_combo()    
         
         # show the dialog
         self.dlg.show()                
