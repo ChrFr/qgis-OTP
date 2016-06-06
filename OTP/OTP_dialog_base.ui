@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1093</width>
+    <width>1191</width>
     <height>632</height>
    </rect>
   </property>
@@ -32,14 +32,14 @@
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
-         <widget class="QPushButton" name="config_load_button">
+         <widget class="QPushButton" name="config_read_button">
           <property name="text">
            <string>Laden</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="config_read_button">
+         <widget class="QPushButton" name="config_save_button">
           <property name="text">
            <string>Speichern</string>
           </property>
@@ -576,7 +576,7 @@
    <item row="1" column="0">
     <widget class="QTabWidget" name="tabWidget_2">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab_3">
       <attribute name="title">
@@ -813,7 +813,11 @@
           </widget>
          </item>
          <item>
-          <widget class="QSpinBox" name="spinBox"/>
+          <widget class="QSpinBox" name="spinBox">
+           <property name="maximum">
+            <number>3600</number>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QLabel" name="label_27">
