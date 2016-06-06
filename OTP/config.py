@@ -1,5 +1,6 @@
-#from lxml import etree
-#import os, sys, copy
+from lxml import etree
+import os, sys, copy
+from collections import OrderedDict
 
 OTP_JAR='/opt/repos/OpenTripPlanner/target/otp-0.20.0-SNAPSHOT-shaded.jar'
 GRAPH_PATH='/home/cfr/otp/graphs'
@@ -71,117 +72,140 @@ AVAILABLE_TRAVERSE_MODES = [
     'WALK'
 ]
 
-DEFAULT_MODES = [
-    'BUS',
-    'BUSISH',
-    'RAIL',
-    'SUBWAY',
-    'TRAINISH',
-    'TRAM',
-    'TRANSIT',
-    'WALK'
-]
+DEFAULT_FILE = os.path.join(os.path.split((sys.argv)[0])[0], "config.xml")
 
-DEFAULTS = {
-    'maxWalkDistance': 1000000000,
-    'bikeSpeed': 5,
-    'walkSpeed': 1.33,
-    'clampInitialWait': 1000000000, # -1?
-    'maxTimeMin': 1000000000    
-}
+# structure of config-object, composition of xml is the same, contains default values 
+setting_struct = OrderedDict([
+    ('origin', {
+        'layer': None,
+        'id_field': None
+    }),
+    ('destination', {
+        'layer': None,
+        'id_field': None
+    }),
+    ('time', {
+        'datetime': None, # == now,        
+        'arrive_by': False,        
+        'time_batch': {
+            'activated': False,
+            'from': None,
+            'to': None,
+            'time_step': None
+        },
+        
+    }),
+    ('router_config', {
+        'router': None, 
+        'traverse_modes': [
+            'BUS',
+            'BUSISH',
+            'RAIL',
+            'SUBWAY',
+            'TRAINISH',
+            'TRAM',
+            'TRANSIT',
+            'WALK'
+        ],
+        'maxWalkDistance': 1000000000,
+        'bikeSpeed': 5,
+        'walkSpeed': 1.33,
+        'clampInitialWait': 1000000000, # -1?
+        'maxTimeMin': 1000000000,
+        'banned_routes': []
+    }),
+    ('post_processing', {
+        'best_of': None,
+        'aggregation_accumulation': {
+            'mode': None, # if None, no postprocessing
+            'params': [3600],
+            'processed_field': None        
+        }
+    })
+])
 
-#DEFAULT_FILE = os.path.join(os.path.split((sys.argv)[0])[0], "config.xml")
+'''
+Borg pattern, all subclasses share same state (similar to singleton, but without single identity)
+'''
+class Borg:
+    _shared_state = {}
+    def __init__(self):
+        self.__dict__ = self._shared_state
 
-#setting_struct = {
-    #'params': {
-        #'maxWalkDistance': 1000000000,
-        #'bikeSpeed': 5,
-        #'walkSpeed': 1.33,
-        #'clampInitialWait': 1000000000, # -1?
-        #'maxTimeMin': 1000000000    
-    #}
-#}
+'''
+holds informations about the environment and database settings
+'''
+class Config(Borg):
 
-#'''
-#Borg pattern, all subclasses share same state (similar to singleton, but without single identity)
-#'''
-#class Borg:
-    #_shared_state = {}
-    #def __init__(self):
-        #self.__dict__ = self._shared_state
+    def __init__(self):
+        Borg.__init__(self)
 
-#'''
-#holds informations about the environment and database settings
-#'''
-#class Config(Borg):
+    def read(self, filename=None):
+        '''
+        read the config from given xml file (default config.xml)
+        '''
 
-    #def __init__(self):
-        #Borg.__init__(self)
-        #self.read()
+        if not filename:
+            filename = DEFAULT_FILE
 
-    #def read(self, filename=None):
-        #'''
-        #read the config from given xml file (default config.xml)
-        #'''
+        # create file if it does not exist
+        if not os.path.isfile(filename):
+            self.settings = copy.deepcopy(setting_struct)
+            self.write(filename)
+        tree = etree.parse(filename)
+        self.settings = copy.deepcopy(setting_struct)
+        f_set = xml_to_dict(tree.getroot())
+        for key, value in f_set.iteritems():
+            self.settings[key].update(value)
+            
+    def reset(self):        
+        self.settings = copy.deepcopy(setting_struct)        
 
-        #if not filename:
-            #filename = DEFAULT_FILE
+    def write(self, filename=None):
+        '''
+        write the config as xml to given file (default config.xml)
+        '''
 
-        ## create file if it does not exist
-        #if not os.path.isfile(filename):
-            #self.settings = copy.deepcopy(setting_struct)
-            #self.write(filename)
-        #tree = etree.parse(filename)
-        #self.settings = copy.deepcopy(setting_struct)
-        #f_set = xml_to_dict(tree.getroot())
-        #for key, value in f_set.iteritems():
-            #self.settings[key].update(value)
+        if not filename:
+            filename = DEFAULT_FILE
 
-    #def write(self, filename=None):
-        #'''
-        #write the config as xml to given file (default config.xml)
-        #'''
+        xml_tree = etree.Element('CONFIG')
+        dict_to_xml(xml_tree, self.settings)
+        etree.ElementTree(xml_tree).write(str(filename), pretty_print=True)
 
-        #if not filename:
-            #filename = DEFAULT_FILE
+def dict_to_xml(element, dictionary):
+    '''
+    append the entries of a dictionary as childs to the given xml tree element
+    '''
+    if isinstance(dictionary, list):
+        for value in dictionary:
+            elem = etree.Element('value')
+            element.append(elem)
+            if isinstance(dictionary, list) or isinstance(dictionary, dict):
+                dict_to_xml(elem, value)
+    elif not isinstance(dictionary, dict):
+        element.text = str(dictionary)
+    else:
+        for key in dictionary:
+            elem = etree.Element(key)
+            element.append(elem)
+            dict_to_xml(elem, dictionary[key])
 
-        #xml_tree = etree.Element('CONFIG')
-        #dict_to_xml(xml_tree, self.settings)
-        #etree.ElementTree(xml_tree).write(str(filename), pretty_print=True)
-
-#def dict_to_xml(element, dictionary):
-    #'''
-    #append the entries of a dictionary as childs to the given xml tree element
-    #'''
-    #if isinstance(dictionary, list):
-        #for value in dictionary:
-            #elem = etree.Element('value')
-            #element.append(elem)
-            #if isinstance(dictionary, list) or isinstance(dictionary, dict):
-                #dict_to_xml(elem, value)
-    #elif not isinstance(dictionary, dict):
-        #element.text = str(dictionary)
-    #else:
-        #for key in dictionary:
-            #elem = etree.Element(key)
-            #element.append(elem)
-            #dict_to_xml(elem, dictionary[key])
-
-#def xml_to_dict(tree, represented_as_arrays=[]):
-    #'''
-    #convert a xml tree to a dictionary
-    #represented_as_arrays: list of Strings, all XML Tags, which should be handled as arrays
-    #'''
-    #if tree.tag in represented_as_arrays:
-        #value = []
-        #for child in tree.getchildren():
-            #value.append(xml_to_dict(child, represented_as_arrays))
-    #elif len(tree.getchildren()) > 0:
-        #value = {}
-        #for child in tree.getchildren():
-            #value[child.tag] = xml_to_dict(child, represented_as_arrays)
-    #else:
-        #value = tree.text
-        #if not value:
-            #value = ''
-    #return value
+def xml_to_dict(tree, represented_as_arrays=[]):
+    '''
+    convert a xml tree to a dictionary
+    represented_as_arrays: list of Strings, all XML Tags, which should be handled as arrays
+    '''
+    if tree.tag in represented_as_arrays:
+        value = []
+        for child in tree.getchildren():
+            value.append(xml_to_dict(child, represented_as_arrays))
+    elif len(tree.getchildren()) > 0:
+        value = {}
+        for child in tree.getchildren():
+            value[child.tag] = xml_to_dict(child, represented_as_arrays)
+    else:
+        value = tree.text
+        if not value:
+            value = ''
+    return value

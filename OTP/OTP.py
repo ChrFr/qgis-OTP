@@ -31,17 +31,20 @@ import resources
 from OTP_dialog import OTPDialog
 import os
 from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
-                    DATETIME_FORMAT, DEFAULT_MODES, 
-                    AGGREGATION_MODES, ACCUMULATION_MODES, 
-                    MODE_PARAMS, DEFAULTS)
+                    DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES, 
+                    MODE_PARAMS)
 from dialogs import ExecCommandDialog, set_file
 from qgis._core import QgsVectorLayer, QgsVectorJoinInfo, QgsCoordinateReferenceSystem
 from qgis.core import QgsVectorFileWriter
 from time import strftime
+from config import Config
 import locale
 import tempfile
 import shutil
 import time
+
+config = Config()
+config.read()
 
 # result-modes
 ORIGIN_DESTINATION = 0
@@ -125,7 +128,7 @@ class OTP:
         self.dlg.start_orig_dest_button.clicked.connect(lambda: self.call_otp(ORIGIN_DESTINATION))
         self.dlg.start_aggregation_button.clicked.connect(lambda: self.call_otp(AGGREGATION))     
          
-        self.dlg.close_button.clicked.connect(self.dlg.close)
+        self.dlg.close_button.clicked.connect(self.dlg.close) #ToDo: save on close
         
         # available layers are stored in here                      
         self.layer_list = []    
@@ -148,8 +151,6 @@ class OTP:
         for mode in AVAILABLE_TRAVERSE_MODES:
             item = QListWidgetItem(self.dlg.mode_list_view)
             checkbox = QCheckBox(mode)
-            if mode in DEFAULT_MODES:
-                checkbox.setChecked(True)
             self.dlg.mode_list_view.setItemWidget(item, checkbox) 
            
         # combobox with modes
@@ -163,12 +164,9 @@ class OTP:
         self.dlg.aggregation_mode_combo.currentIndexChanged.connect(
             lambda: self.set_mode_params(ACCUMULATION))       
         
-        # defaults
-        self.dlg.max_time_edit.setValue(DEFAULTS['maxTimeMin'])
-        self.dlg.max_walk_dist_edit.setValue(DEFAULTS['maxWalkDistance'])
-        self.dlg.walk_speed_edit.setValue(DEFAULTS['walkSpeed'])
-        self.dlg.bike_speed_edit.setValue(DEFAULTS['bikeSpeed'])
-        self.dlg.clamp_edit.setValue(DEFAULTS['clampInitialWait'])
+        # settings
+        self.dlg.config_default_button.clicked(self.reset_config)
+        self.apply_config()
         
         # calendar
         self.set_date()
@@ -282,7 +280,19 @@ class OTP:
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
-        del self.toolbar        
+        del self.toolbar   
+        
+    def reset_config(self):
+        config.reset()
+        self.apply_config()
+        
+    def apply_config(self):
+        router_config = config.settings['router_config']
+        self.dlg.max_time_edit.setValue('maxTimeMin')
+        #self.dlg.max_walk_dist_edit.setValue(DEFAULTS['maxWalkDistance'])
+        #self.dlg.walk_speed_edit.setValue(DEFAULTS['walkSpeed'])
+        #self.dlg.bike_speed_edit.setValue(DEFAULTS['bikeSpeed'])
+        #self.dlg.clamp_edit.setValue(DEFAULTS['clampInitialWait'])
         
     def set_date(self):
         date = self.dlg.calendar_edit.selectedDate()
