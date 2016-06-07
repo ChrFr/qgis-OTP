@@ -41,14 +41,14 @@
         <item>
          <widget class="QPushButton" name="config_save_button">
           <property name="text">
-           <string>Speichern</string>
+           <string>Speichern unter</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QPushButton" name="config_default_button">
           <property name="text">
-           <string>Default</string>
+           <string>Zurücksetzen</string>
           </property>
          </widget>
         </item>
@@ -748,7 +748,7 @@
        <string>Datum</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_5">
-       <item row="2" column="0" colspan="4">
+       <item row="2" column="0" colspan="2">
         <widget class="QCalendarWidget" name="calendar_edit"/>
        </item>
        <item row="0" column="0">
@@ -758,39 +758,29 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="3">
-        <widget class="QLabel" name="current_date_label">
-         <property name="text">
-          <string>gewähltes Datum</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
        <item row="3" column="0" colspan="2">
-        <widget class="QCheckBox" name="time_batch_checkbox">
-         <property name="text">
-          <string>Zeitintervalle</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0" colspan="4">
-        <layout class="QHBoxLayout" name="horizontalLayout_4">
-         <item>
-          <widget class="QLabel" name="label_5">
-           <property name="text">
-            <string>Zeit</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-           </property>
+        <layout class="QGridLayout" name="gridLayout_8">
+         <item row="2" column="1">
+          <widget class="QWidget" name="time_step_widget" native="true">
+           <layout class="QHBoxLayout" name="time_step_layout">
+            <item>
+             <widget class="QSpinBox" name="time_step_edit">
+              <property name="maximum">
+               <number>3600</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_27">
+              <property name="text">
+               <string>min</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </widget>
          </item>
-         <item>
-          <widget class="QDateTimeEdit" name="time_edit"/>
-         </item>
-         <item>
+         <item row="1" column="2">
           <widget class="QWidget" name="to_time_widget" native="true">
            <layout class="QHBoxLayout" name="to_time_layout">
             <item>
@@ -806,44 +796,47 @@
            </layout>
           </widget>
          </item>
-         <item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>Zeit</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QDateTimeEdit" name="time_edit"/>
+         </item>
+         <item row="1" column="3">
           <widget class="QCheckBox" name="arrival_checkbox">
            <property name="text">
             <string>Ankunft</string>
            </property>
           </widget>
          </item>
+         <item row="2" column="0">
+          <widget class="QCheckBox" name="time_batch_checkbox">
+           <property name="text">
+            <string>Zeitintervalle</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="4">
+          <spacer name="horizontalSpacer_5">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
         </layout>
-       </item>
-       <item row="7" column="0" colspan="2">
-        <widget class="QWidget" name="time_step_widget" native="true">
-         <layout class="QHBoxLayout" name="time_step_layout">
-          <item>
-           <widget class="QLabel" name="label_26">
-            <property name="text">
-             <string>Intervall</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QSpinBox" name="time_step_edit">
-            <property name="maximum">
-             <number>3600</number>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_27">
-            <property name="text">
-             <string>min</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
        </item>
       </layout>
      </widget>
