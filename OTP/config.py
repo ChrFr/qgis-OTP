@@ -81,13 +81,11 @@ DEFAULT_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "otp_co
 setting_struct = OrderedDict([
     ('origin', {
         'layer': '',
-        'id_field': '',
-        'file': ''
+        'id_field': ''
     }),
     ('destination', {
         'layer': '',
-        'id_field': '',
-        'file': ''
+        'id_field': ''
     }),
     ('time', {
         'datetime': '', # == now,        

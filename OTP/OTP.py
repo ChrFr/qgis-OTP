@@ -429,7 +429,7 @@ class OTP:
         time_batch['time_step'] = step 
         
         is_arrival = self.dlg.arrival_checkbox.isChecked()
-        times['arrive_by'] = is_arrival
+        times['arrive_by'] = is_arrival        
         
     def save_config_as(self):        
         filename = str(
@@ -465,7 +465,6 @@ class OTP:
         
     def set_date(self):
         date = self.dlg.calendar_edit.selectedDate()
-        self.dlg.current_date_label.setText(date.toString())
         # ToDo: if focus of user was on to_time, only change value in this one
         # but way below won't work, because focus changes, when calendar is clicked
         #if self.dlg.to_time_edit.hasFocus():
@@ -606,7 +605,34 @@ class OTP:
                 params.append(str(widget.value()))
         return params
         
-    def call_otp(self, result_mode):                   
+    def call_otp(self, result_mode):   
+                
+        # update settings
+        self.update_config()
+                
+        # update postprocessing settings
+        postproc = config.settings['post_processing']
+        bestof = ''
+        if self.dlg.bestof_check.isChecked():
+            bestof = self.bestof_edit.value()
+        postproc['best_of'] = bestof               
+
+        agg_acc = postproc['aggregation_accumulation']
+        agg_acc['active'] = False
+        
+        if result_mode == AGGREGATION or result_mode == ACCUMULATION:            
+            agg_acc['active'] = True            
+            if result_mode == AGGREGATION:
+                field = self.dlg.aggregation_field_combo.currentText()
+                mode = self.dlg.aggregation_mode_combo.currentText()  
+            else:                
+                field = self.dlg.accumulation_field_combo.currentText()
+                mode = self.dlg.accumulation_mode_combo.currentText()  
+            agg_acc['mode'] = mode
+            agg_acc['processed_field'] = field
+            
+            agg_acc['params'] = self.get_mode_params(result_mode)
+            
         working_dir = os.path.dirname(__file__)       
         
         # LAYERS
@@ -625,7 +651,9 @@ class OTP:
         
         tmp_dir = tempfile.mkdtemp()
         orig_tmp_filename = os.path.join(tmp_dir, 'origins.csv')  
-        dest_tmp_filename = os.path.join(tmp_dir, 'destinations.csv')    
+        dest_tmp_filename = os.path.join(tmp_dir, 'destinations.csv')
+        config_xml = os.path.join(tmp_dir, 'config.xml')
+        config.write(config_xml)
         
         wgs84 = QgsCoordinateReferenceSystem(4326)
         QgsVectorFileWriter.writeAsVectorFormat(origin_layer, 
@@ -642,43 +670,14 @@ class OTP:
                                                 layerOptions=["GEOMETRY=AS_YX", "GEOMETRY_NAME=geom"])
         print 'wrote origins and destinations to temporary folder "{}"'.format(tmp_dir)
         
-        # MODES                
-        selected_modes = []
-        for index in xrange(self.dlg.mode_list_view.count()):
-            checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
-            if checkbox.checkState():
-                selected_modes.append(str(checkbox.text()))  
-                
-        router = self.dlg.router_combo.currentText()
-        oid = self.dlg.origins_id_combo.currentText()
-        did = self.dlg.destinations_id_combo.currentText()
-        
-        # TRAVEL TIME
-        d = self.dlg.calendar_edit.selectedDate()
-        t = self.dlg.time_edit.time()
-        dt = QDateTime(d)
-        dt.setTime(t)                
-        dt_string = dt.toPyDateTime().strftime(DATETIME_FORMAT)
-        
-        # MAX TIME
-        max_time = self.dlg.max_time_edit.value() * 60        
-        
-        # ARRIVAL
-        is_arrival = self.dlg.arrival_checkbox.checkState()
-        
-        # JOIN
-        do_join = False
-        if result_mode == AGGREGATION:
-            do_join = self.dlg.aggregation_join_check.isChecked()
-        elif result_mode == ACCUMULATION:
-            do_join = self.dlg.accumulation_join_check.isChecked()
-        
         # OUT FILE
         if result_mode == ORIGIN_DESTINATION and self.dlg.orig_dest_csv_check.checkState():
             target_file = self.dlg.orig_dest_file_edit.text()
+            config.write(os.path.splitext(target_file)[0] + '-config.xml', hide_inactive=True) # write config (as meta for future reconstruction)
             
         elif result_mode == AGGREGATION and self.dlg.aggregation_csv_check.checkState():
             target_file = self.dlg.aggregation_file_edit.text()
+            config.write(os.path.splitext(target_file)[0] + '-config.xml', hide_inactive=True) # write config (as meta for future reconstruction)
         
         # if saving is not explicitly wanted, file is written to temporary folder, so it will be removed later
         else:
@@ -697,58 +696,25 @@ class OTP:
         
         # basic cmd is same for all evaluations
         cmd = '''jython -Dpython.path="{jar}" {wd}/otp_batch.py 
- --router {router} --origins "{origins}" --destinations "{destinations}" 
- --oid {oid} --did {did} --target "{target}" --datetime {datetime} 
- --maxtime {max_time} --traverse_modes {modes} --nlines {nlines}'''
+        --config "{config_xml}" 
+        --origins "{origins}" --destinations "{destinations}" 
+        --target "{target}" --nlines {nlines}'''
         
         cmd = cmd.format(
             jar=OTP_JAR, 
             wd=working_dir, 
-            router=router, 
+            config_xml = config_xml,
             origins=orig_tmp_filename, 
             destinations=dest_tmp_filename, 
-            oid=oid,
-            did=did,
-            datetime=dt_string,
             target=target_file,
-            max_time=max_time,
-            modes=' '.join(selected_modes),
             nlines=PRINT_EVERY_N_LINES
         )    
-                    
-        if is_arrival:
-            cmd += ' --arrival'
+            
+        arrive_by = config['time']['arrive_by']       
+        if arrive_by == True or arrive_by == 'True':
             n_points = destination_layer.featureCount()       
         else:
             n_points = origin_layer.featureCount()     
-            
-        # PARAMETERS (for acc/agg)        
-        if result_mode == AGGREGATION or result_mode == ACCUMULATION:
-            if result_mode == AGGREGATION:
-                field = self.dlg.aggregation_field_combo.currentText()
-                mode_arg = self.dlg.aggregation_mode_combo.currentText()  
-                mode = 'aggregate'
-            else:                
-                field = self.dlg.accumulation_field_combo.currentText()
-                mode_arg = self.dlg.accumulation_mode_combo.currentText()  
-                mode = 'accumulate'                
-            
-            result_cmd = ' --{mode} {mode_arg} --field "{field}"'
-            result_cmd = result_cmd.format(
-                mode=mode,
-                field=field,
-                mode_arg=mode_arg
-            )
-            
-            params = self.get_mode_params(result_mode)
-            if len(params) > 0:
-                result_cmd += ' --mode_params {params}'.format(params=' '.join(params))
-                
-            cmd += result_cmd   
-            
-        if self.dlg.bestof_check.isChecked():
-            bestof = self.dlg.bestof_edit.value()
-            cmd += ' --bestof {}'.format(bestof)            
                 
         diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), 
                                  auto_start=True, 
@@ -756,6 +722,13 @@ class OTP:
                                  total_ticks=n_points/PRINT_EVERY_N_LINES)
         diag.exec_()
         
+        # JOIN
+        do_join = False
+        if result_mode == AGGREGATION:
+            do_join = self.dlg.aggregation_join_check.isChecked()
+        elif result_mode == ACCUMULATION:
+            do_join = self.dlg.accumulation_join_check.isChecked()      
+            
         if do_join or (result_mode == ORIGIN_DESTINATION and self.dlg.orig_dest_add_check.isChecked()):
             layer_name = 'results-' + self.dlg.router_combo.currentText()
             if result_mode == ORIGIN_DESTINATION:
