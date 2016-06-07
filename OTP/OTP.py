@@ -42,6 +42,7 @@ import locale
 import tempfile
 import shutil
 from datetime import datetime
+from PyQt4.QtCore import QLocale
 
 config = Config()
 config.read()
@@ -67,6 +68,7 @@ class OTP:
             application at run time.
         :type iface: QgsInterface
         """
+        QLocale.setDefault(QLocale('de'))
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
