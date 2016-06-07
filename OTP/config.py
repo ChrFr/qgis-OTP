@@ -1,6 +1,7 @@
 from lxml import etree
 import os, sys, copy
 from collections import OrderedDict
+import OTP
 
 OTP_JAR='/opt/repos/OpenTripPlanner/target/otp-0.20.0-SNAPSHOT-shaded.jar'
 GRAPH_PATH='/home/cfr/otp/graphs'
@@ -72,7 +73,9 @@ AVAILABLE_TRAVERSE_MODES = [
     'WALK'
 ]
 
-DEFAULT_FILE = os.path.join(os.path.split((sys.argv)[0])[0], "otp_config.xml")
+# QGIS can't handle this one on startup, but will work strangely anyhow. just annoying so different approach next line
+#DEFAULT_FILE = os.path.join(os.path.split((sys.argv)[0])[0], "otp_config.xml")
+DEFAULT_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "otp_config.xml")
 
 # structure of config-object, composition of xml is the same, contains default values 
 setting_struct = OrderedDict([
@@ -91,7 +94,7 @@ setting_struct = OrderedDict([
         'arrive_by': False,        
         'time_batch': {
             'active': False,
-            'end': '',
+            'datetime_end': '',
             'time_step': ''
         },        
     }),
@@ -199,7 +202,6 @@ def dict_to_xml(element, dictionary):
 def xml_to_dict(tree):
     '''
     convert a xml tree to a dictionary
-    represented_as_arrays: list of Strings, all XML Tags, which should be handled as arrays
     '''
     if len(tree.getchildren()) > 0:
         value = {}

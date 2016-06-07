@@ -37,12 +37,11 @@ from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES,
 from dialogs import ExecCommandDialog, set_file
 from qgis._core import QgsVectorLayer, QgsVectorJoinInfo, QgsCoordinateReferenceSystem
 from qgis.core import QgsVectorFileWriter
-from time import strftime
 from config import Config
 import locale
 import tempfile
 import shutil
-import time
+from datetime import datetime
 
 config = Config()
 config.read()
@@ -125,8 +124,7 @@ class OTP:
         )  
                 
         # set active tab (aggregation or accumulation depending on arrival checkbox)
-        self.arrival_check()
-        self.dlg.arrival_checkbox.clicked.connect(self.arrival_check)
+        self.dlg.arrival_checkbox.clicked.connect(self.toggle_arrival)
         
         self.dlg.start_orig_dest_button.clicked.connect(lambda: self.call_otp(ORIGIN_DESTINATION))
         self.dlg.start_aggregation_button.clicked.connect(lambda: self.call_otp(AGGREGATION))     
@@ -157,6 +155,7 @@ class OTP:
         for mode in AVAILABLE_TRAVERSE_MODES:
             item = QListWidgetItem(self.dlg.mode_list_view)
             checkbox = QCheckBox(mode)
+            checkbox.setTristate(False)
             self.dlg.mode_list_view.setItemWidget(item, checkbox) 
            
         # combobox with modes
@@ -173,15 +172,21 @@ class OTP:
         # router
         self.fill_router_combo()
         
+        # calendar
+        self.dlg.calendar_edit.clicked.connect(self.set_date)
+        
+        # time_step
+        self.dlg.time_batch_checkbox.clicked.connect(self.toggle_time_batch)
+              
         # settings
         self.dlg.config_default_button.clicked.connect(self.reset_config)
         self.dlg.config_read_button.clicked.connect(self.read_config)
         self.dlg.config_save_button.clicked.connect(self.save_config_as)
         self.apply_config()
         
-        # calendar
-        self.set_date()
-        self.dlg.calendar_edit.clicked.connect(self.set_date)       
+        # call checkbox toggle callbacks (settings loaded, but checkboxes not 'clicked' while loading)        
+        self.toggle_time_batch()
+        self.toggle_arrival()        
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -294,11 +299,16 @@ class OTP:
         del self.toolbar   
         
     def reset_config(self):
+        '''
+        reset Config.settings to default
+        '''
         config.reset()
         self.apply_config()
         
     def apply_config(self):
-        
+        '''
+        change state of UI (checkboxes, comboboxes) according to the Config.settings
+        '''
         # ORIGIN
         origin_config = config.settings['origin'] 
         layer_idx = self.dlg.origins_combo.findText(origin_config['layer'])
@@ -336,20 +346,44 @@ class OTP:
         self.dlg.walk_speed_edit.setValue(float(router_config['walkSpeed']))
         self.dlg.bike_speed_edit.setValue(float(router_config['bikeSpeed']))
         self.dlg.clamp_edit.setValue(int(router_config['clampInitialWaitSec']))    
-        self.dlg.banned_routes_edit.setText(router_config['banned_routes'])            
+        banned = router_config['banned_routes']
+        if isinstance(banned, list):
+            banned = ','.join(banned)
+        self.dlg.banned_routes_edit.setText(banned)            
                     
         # TRAVERSE MODES    
         modes = router_config['traverse_modes']
         for index in xrange(self.dlg.mode_list_view.count()):
             checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
-            print str(checkbox.text())
-            print modes
             if str(checkbox.text()) in modes :
-                checkbox.setCheckState(True) 
+                checkbox.setChecked(True) 
             else:
-                checkbox.setCheckState(False) 
+                checkbox.setChecked(False)                 
+                
+        # TIMES
+        times = config.settings['time']
+        if times['datetime']:
+            dt = datetime.strptime(times['datetime'], DATETIME_FORMAT)
+        else:
+            dt = datetime.now()
+        self.dlg.time_edit.setDateTime(dt)
+        self.dlg.calendar_edit.setSelectedDate(dt.date())
+        time_batch = times['time_batch']
+        if time_batch['datetime_end']:
+            dt = datetime.strptime(time_batch['datetime_end'], DATETIME_FORMAT)
+        self.dlg.to_time_edit.setDateTime(dt)
+        active = time_batch['active'] == 'True' or time_batch['active'] == True
+        self.dlg.time_batch_checkbox.setChecked(active)
+        if time_batch['time_step']:
+            self.dlg.time_step_edit.setValue(int(time_batch['time_step']))
             
-    def update_config(self):        
+        arrive_by = times['arrive_by'] == 'True' or times['arrive_by'] == True
+        self.dlg.arrival_checkbox.setChecked(arrive_by)
+            
+    def update_config(self):     
+        '''
+        update Config.settings according to the current state of the UI (checkboxes etc.)
+        '''
                 
         # LAYERS
         origin_config = config.settings['origin'] 
@@ -367,7 +401,7 @@ class OTP:
         router_config['walkSpeed'] = self.dlg.walk_speed_edit.value()      
         router_config['bikeSpeed'] = self.dlg.bike_speed_edit.value()   
         router_config['clampInitialWaitSec'] = self.dlg.clamp_edit.value() 
-        router_config['banned_routes'] = self.dlg.banned_routes_edit.text()         
+        router_config['banned_routes'] = self.dlg.banned_routes_edit.text().split(',')        
                 
         # TRAVERSE MODES    
         selected_modes = []
@@ -376,6 +410,24 @@ class OTP:
             if checkbox.checkState():
                 selected_modes.append(str(checkbox.text()))   
         router_config['traverse_modes'] = selected_modes
+        
+        # TIMES
+        times = config.settings['time']
+        dt = self.dlg.time_edit.dateTime()
+        times['datetime'] = dt.toPyDateTime().strftime(DATETIME_FORMAT)
+        time_batch = times['time_batch']
+        active = self.dlg.time_batch_checkbox.isChecked()
+        time_batch['active'] = active
+        end = step = ''
+        if active:            
+            dt = self.dlg.to_time_edit.dateTime()
+            end = dt.toPyDateTime().strftime(DATETIME_FORMAT)
+            step = self.dlg.time_step_edit.value()            
+        time_batch['datetime_end'] = end
+        time_batch['time_step'] = step 
+        
+        is_arrival = self.dlg.arrival_checkbox.isChecked()
+        times['arrive_by'] = is_arrival
         
     def save_config_as(self):        
         filename = str(
@@ -389,6 +441,9 @@ class OTP:
             config.write(filename)    
             
     def read_config(self):
+        '''
+        save config in selectable file
+        '''
         filename = str(
             QFileDialog.getOpenFileName(
                 self.dlg, u'Konfigurationsdatei wählen',
@@ -399,6 +454,9 @@ class OTP:
             self.apply_config()
     
     def close(self):
+        '''
+        save config and close UI
+        '''
         self.update_config()
         config.write()  
         self.dlg.close()
@@ -406,8 +464,19 @@ class OTP:
     def set_date(self):
         date = self.dlg.calendar_edit.selectedDate()
         self.dlg.current_date_label.setText(date.toString())
+        # ToDo: if focus of user was on to_time, only change value in this one
+        # but way below won't work, because focus changes, when calendar is clicked
+        #if self.dlg.to_time_edit.hasFocus():
+            #self.dlg.to_time_edit.setDate(date)
+        #else:
+            #self.dlg.time_edit.setDate(date)
+        self.dlg.to_time_edit.setDate(date)
+        self.dlg.time_edit.setDate(date)
         
-    def arrival_check(self):        
+    def toggle_arrival(self):
+        '''
+        show aggregation or accumulation tab, depending on arrival is checked or not
+        '''
         is_arrival = self.dlg.arrival_checkbox.checkState()         
         self.dlg.calculation_tabs.removeTab(self.dlg.calculation_tabs.indexOf(self.dlg.accumulation_tab))    
         self.dlg.calculation_tabs.removeTab(self.dlg.calculation_tabs.indexOf(self.dlg.aggregation_tab))
@@ -416,6 +485,11 @@ class OTP:
             self.dlg.calculation_tabs.addTab(self.dlg.accumulation_tab, "Akkumulation")
         else:
             self.dlg.calculation_tabs.addTab(self.dlg.aggregation_tab, "Aggregation")
+            
+    def toggle_time_batch(self):
+        active = self.dlg.time_batch_checkbox.isChecked()
+        self.dlg.time_step_widget.setVisible(active)
+        self.dlg.to_time_widget.setVisible(active)            
             
     def fill_router_combo(self):
         # try to keep old router selected
@@ -472,7 +546,7 @@ class OTP:
         '''
         fill a combo box (id_combo) with all fields of the currently selected layer in the given layer_combo
         tries to keep same field as selected before
-        WARNING: does not keep same field selected if layers changed and rerun
+        WARNING: does not keep same field selected if layers are changed and rerun
         '''        
         old_id_field = id_combo.currentText()
         id_combo.clear()
