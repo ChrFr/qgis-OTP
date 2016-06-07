@@ -769,7 +769,7 @@
         </widget>
        </item>
        <item row="3" column="0" colspan="2">
-        <widget class="QCheckBox" name="checkBox">
+        <widget class="QCheckBox" name="time_batch_checkbox">
          <property name="text">
           <string>Zeitintervalle</string>
          </property>
