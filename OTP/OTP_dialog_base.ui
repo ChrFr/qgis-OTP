@@ -71,7 +71,7 @@
      <item>
       <widget class="QPushButton" name="close_button">
        <property name="text">
-        <string>Schließen</string>
+        <string>Speichern und Schließen</string>
        </property>
       </widget>
      </item>
@@ -854,25 +854,37 @@
        </item>
        <item row="5" column="0">
         <widget class="QLabel" name="label_21">
+         <property name="toolTip">
+          <string>bei -1 wird die Wartezeit ignoriert</string>
+         </property>
          <property name="text">
           <string>max. initiale Wartezeit</string>
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
-        <widget class="QSpinBox" name="clamp_edit">
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       <item row="5" column="2">
+        <widget class="QLabel" name="label_22">
+         <property name="toolTip">
+          <string>bei -1 wird die Wartezeit ignoriert</string>
          </property>
-         <property name="maximum">
-          <number>1000000000</number>
+         <property name="text">
+          <string>s</string>
          </property>
         </widget>
        </item>
-       <item row="5" column="2">
-        <widget class="QLabel" name="label_22">
-         <property name="text">
-          <string>s</string>
+       <item row="5" column="1">
+        <widget class="QSpinBox" name="clamp_edit">
+         <property name="toolTip">
+          <string>bei -1 wird die Wartezeit ignoriert</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="minimum">
+          <number>-1</number>
+         </property>
+         <property name="maximum">
+          <number>1000000000</number>
          </property>
         </widget>
        </item>
@@ -880,6 +892,16 @@
         <widget class="QLabel" name="label_16">
          <property name="text">
           <string>m/s</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QDoubleSpinBox" name="bike_speed_edit">
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
          </property>
         </widget>
        </item>
@@ -900,16 +922,6 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
-        <widget class="QDoubleSpinBox" name="bike_speed_edit">
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-         <property name="singleStep">
-          <double>0.100000000000000</double>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="1">
         <widget class="QSpinBox" name="max_time_edit">
          <property name="minimumSize">
@@ -917,6 +929,9 @@
            <width>0</width>
            <height>20</height>
           </size>
+         </property>
+         <property name="toolTip">
+          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -929,15 +944,11 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="2">
-        <widget class="QLabel" name="label_8">
-         <property name="text">
-          <string>min</string>
-         </property>
-        </widget>
-       </item>
        <item row="2" column="1">
         <widget class="QSpinBox" name="max_walk_dist_edit">
+         <property name="toolTip">
+          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
+         </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
@@ -946,8 +957,21 @@
          </property>
         </widget>
        </item>
+       <item row="1" column="2">
+        <widget class="QLabel" name="label_8">
+         <property name="toolTip">
+          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
+         </property>
+         <property name="text">
+          <string>min</string>
+         </property>
+        </widget>
+       </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_17">
+         <property name="toolTip">
+          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
+         </property>
          <property name="text">
           <string>max. Laufdistanz</string>
          </property>
@@ -955,15 +979,11 @@
        </item>
        <item row="2" column="2">
         <widget class="QLabel" name="label_18">
+         <property name="toolTip">
+          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
+         </property>
          <property name="text">
           <string>m</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="2">
-        <widget class="QLabel" name="label_20">
-         <property name="text">
-          <string>m/s</string>
          </property>
         </widget>
        </item>
@@ -980,10 +1000,10 @@
          </property>
         </spacer>
        </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_7">
+       <item row="4" column="2">
+        <widget class="QLabel" name="label_20">
          <property name="text">
-          <string>maximale Reisezeit</string>
+          <string>m/s</string>
          </property>
         </widget>
        </item>
@@ -994,6 +1014,16 @@
          </property>
          <property name="text">
           <string>gebannte Routen</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_7">
+         <property name="toolTip">
+          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
+         </property>
+         <property name="text">
+          <string>maximale Reisezeit</string>
          </property>
         </widget>
        </item>
