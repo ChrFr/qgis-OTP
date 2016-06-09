@@ -184,7 +184,6 @@ class OTP:
         self.dlg.config_default_button.clicked.connect(self.reset_config)
         self.dlg.config_read_button.clicked.connect(self.read_config)
         self.dlg.config_save_button.clicked.connect(self.save_config_as)
-        self.apply_config()
         
         # call checkbox toggle callbacks (settings loaded, but checkboxes not 'clicked' while loading)        
         self.toggle_time_batch()
@@ -314,6 +313,8 @@ class OTP:
         # ORIGIN
         origin_config = config.settings['origin'] 
         layer_idx = self.dlg.origins_combo.findText(origin_config['layer'])
+        print origin_config['layer']
+        print layer_idx
         # layer found
         if layer_idx >= 0:  
             self.dlg.origins_combo.setCurrentIndex(layer_idx)    
@@ -761,6 +762,8 @@ class OTP:
         layers = self.iface.legendInterface().layers()     
         if layers != self.layers:
             self.fill_layer_combos(layers)
+        # apply settings (some unnessecary reloads, but layers are not known at startup of QGIS)
+        self.apply_config()
         
         # reload routers on every run (they might be changed outside)
         self.fill_router_combo()    
