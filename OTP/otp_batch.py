@@ -290,7 +290,7 @@ if __name__ == '__main__':
     postproc = config.getElementsByTagName('post_processing')[0]
     bestof = postproc.getElementsByTagName('best_of')[0].firstChild
     if bestof:
-        bestof = bestof.data
+        bestof = int(bestof.data)
         
     agg_acc = postproc.getElementsByTagName('aggregation_accumulation')[0]
     mode = field = params = None

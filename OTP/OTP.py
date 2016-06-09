@@ -612,7 +612,7 @@ class OTP:
         postproc = config.settings['post_processing']
         bestof = ''
         if self.dlg.bestof_check.isChecked():
-            bestof = self.bestof_edit.value()
+            bestof = self.dlg.bestof_edit.value()
         postproc['best_of'] = bestof               
 
         agg_acc = postproc['aggregation_accumulation']
