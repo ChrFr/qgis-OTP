@@ -1,16 +1,20 @@
-from lxml import etree
+try:
+    from lxml import etree
+    import OTP
+except:
+    pass
 import os, sys, copy
 from collections import OrderedDict
-import OTP
 
 OTP_JAR='/opt/repos/OpenTripPlanner/target/otp-0.20.0-SNAPSHOT-shaded.jar'
-GRAPH_PATH='/home/cfr/otp/graphs'
+GRAPH_PATH='/home/ggr/gis/otp_graphs'
 LATITUDE_COLUMN = 'Y'
 LONGITUDE_COLUMN = 'X'
 ID_COLUMN = 'id'
 DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S"
 AGGREGATION_MODES = ["THRESHOLD_SUM_AGGREGATOR", "WEIGHTED_AVERAGE_AGGREGATOR", "THRESHOLD_CUMMULATIVE_AGGREGATOR", "DECAY_AGGREGATOR"]
 ACCUMULATION_MODES = ["DECAY_ACCUMULATOR", "THRESHOLD_ACCUMULATOR"]
+MAX_VALUE = 1000000000 # represents indefinite, is quite small due to limitations of pyqt spin boxes
 
 # needed parameters for aggregation/accumulation modes (=keys) are listed here
 # order of parameters in list has to be the same, the specific mode requires them
@@ -108,16 +112,15 @@ setting_struct = OrderedDict([
             'TRANSIT',
             'WALK'
         ],
-        'maxWalkDistance': 1000000000,
+        'maxWalkDistance': MAX_VALUE,
         'bikeSpeed': 5,
         'walkSpeed': 1.33,
-        'clampInitialWaitSec': 1000000000, # -1?
-        'maxTimeMin': 1000000000,
+        'clampInitialWaitSec': -1,
+        'maxTimeMin': MAX_VALUE,
         'banned_routes': []
     }),
     ('post_processing', {
         'best_of': '',
-        'target_file': '',
         'aggregation_accumulation': {
             'active': False,
             'mode': '',
@@ -172,14 +175,16 @@ class Config(Borg):
         if not filename:
             filename = DEFAULT_FILE
 
-        settings = copy.deepcopy(self.settings)
+        run_set = copy.deepcopy(self.settings)
         if hide_inactive:
-            if not bool(settings['time']['timebatch']['active']):
-                del settings['time']['timebatch']
-            if not bool(settings['post_processing']['aggregation_accumulation']['active']):
-                del settings['post_processing']['aggregation_accumulation']
+            tb_active = run_set['time']['time_batch']['active']
+            if tb_active == 'False' or tb_active == False:
+                del run_set['time']['time_batch']
+            pp_active = run_set['post_processing']['aggregation_accumulation']['active']
+            if pp_active == 'False' or pp_active == False:
+                del run_set['post_processing']['aggregation_accumulation']
         xml_tree = etree.Element('CONFIG')
-        dict_to_xml(xml_tree, settings)
+        dict_to_xml(xml_tree, run_set)
         etree.ElementTree(xml_tree).write(str(filename), pretty_print=True)
 
 def dict_to_xml(element, dictionary):
@@ -187,7 +192,6 @@ def dict_to_xml(element, dictionary):
     append the entries of a dictionary as childs to the given xml tree element
     '''
     if isinstance(dictionary, list):
-        print dictionary
         element.text = ','.join(dictionary)
     elif not isinstance(dictionary, dict):
         element.text = str(dictionary)

@@ -33,11 +33,10 @@ from OTP_dialog import OTPDialog
 import os
 from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES, 
-                    MODE_PARAMS, DEFAULT_FILE)
+                    MODE_PARAMS, DEFAULT_FILE, Config)
 from dialogs import ExecCommandDialog, set_file
 from qgis._core import QgsVectorLayer, QgsVectorJoinInfo, QgsCoordinateReferenceSystem
 from qgis.core import QgsVectorFileWriter
-from config import Config
 import locale
 import tempfile
 import shutil
@@ -68,15 +67,13 @@ class OTP:
             application at run time.
         :type iface: QgsInterface
         """
-        QLocale.setDefault(QLocale('de'))
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
+        QLocale.setDefault(QLocale('de'))
         loc = QSettings().value('locale/userLocale')[0:2]
-        #locale.setlocale(locale.LC_ALL, 'de_DE')
-        #loc = locale.getlocale()
         locale_path = os.path.join(
             self.plugin_dir,
             'i18n',
@@ -313,8 +310,6 @@ class OTP:
         # ORIGIN
         origin_config = config.settings['origin'] 
         layer_idx = self.dlg.origins_combo.findText(origin_config['layer'])
-        print origin_config['layer']
-        print layer_idx
         # layer found
         if layer_idx >= 0:  
             self.dlg.origins_combo.setCurrentIndex(layer_idx)    
@@ -386,6 +381,8 @@ class OTP:
     def update_config(self):     
         '''
         update Config.settings according to the current state of the UI (checkboxes etc.)
+        post processing not included! only written to config before calling otp (in call_otp()),
+        because not relevant for UI (meaning it is set to default on startup)
         '''
                 
         # LAYERS
@@ -711,7 +708,7 @@ class OTP:
             nlines=PRINT_EVERY_N_LINES
         )    
             
-        arrive_by = config['time']['arrive_by']       
+        arrive_by = config.settings['time']['arrive_by']       
         if arrive_by == True or arrive_by == 'True':
             n_points = destination_layer.featureCount()       
         else:

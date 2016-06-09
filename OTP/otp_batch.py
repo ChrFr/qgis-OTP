@@ -9,12 +9,12 @@ from org.opentripplanner.routing.core import TraverseMode
 from org.opentripplanner.scripting.api import OtpsResultSet, OtpsAggregate
 from config import (GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, 
                     ID_COLUMN, DATETIME_FORMAT, AGGREGATION_MODES,
-                    ACCUMULATION_MODES)
+                    ACCUMULATION_MODES, MAX_VALUE)
 from argparse import ArgumentParser
-import time
+from datetime import datetime
 from java.lang import Double
-
-router_name = ''
+from java.lang import Long
+from xml.dom import minidom
 
 class OTPEvaluation(object):
     '''
@@ -23,34 +23,52 @@ class OTPEvaluation(object):
     
     Parameters
     ----------
+    router: name of the router to use for trip planning
     print_every_n_lines: optional, determines how often progress in processing origins/destination is written to stdout (default: 50)
     '''   
-    def __init__(self, print_every_n_lines = 50):
-        self.otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router_name ])
+    def __init__(self, router, print_every_n_lines = 50):
+        self.otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router])
         self.router = self.otp.getRouter()
         self.request = self.otp.createRequest()
     
-    def setup(self, date_time, max_time=1800, modes=None, arriveby=False):
+    def setup(self, date_time, max_time=1800, max_walk=None, walk_speed=None, bike_speed=None, clamp_wait=None, banned='', modes=None, arrive_by=False):
         '''
         sets up the routing request
         
         Parameters
         ----------
         date_time: time object (time.struct_time), start respectively arrival time (if arriveby == True)
-        modes: optional, list of traverse-modes to use
-        max_time: optional, maximum travel-time (the smaller this value, the smaller the shortest path tree, that has to be created; saves processing time) 
-        arriveby: optional, if True, given time is arrival time (reverts search tree)
+        modes: optional, string with comma-seperated traverse-modes to use
+        banned: optional, string with comma-separated route specs, each of the format[agencyId]_[routeName]_[routeId] 
+        max_time: optional, maximum travel-time in seconds (the smaller this value, the smaller the shortest path tree, that has to be created; saves processing time) 
+        arrive_by: optional, if True, given time is arrival time (reverts search tree)
+        max_walk: optional, maximum distance (in meters) the user is willing to walk 
+        walk_speed: optional, walking speed in m/s
+        bike_speed: optional, bike speed in m/s
+        clamp_wait: optional, maximum wait time in seconds the user is willing to delay trip start (-1 seems to mean it will be ignored)
         '''
-        self.request.setDateTime(date_time.tm_year, date_time.tm_mon, date_time.tm_mday, date_time.tm_hour, date_time.tm_min, date_time.tm_sec)         
-        self.request.setArriveBy(arriveby)
+#         epoch = datetime.utcfromtimestamp(0)
+#         epoch_seconds = (date_time - epoch).total_seconds() * 1000
+#         self.request.setDateTime(long(epoch_seconds))        
+        self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second) 
+        self.request.setArriveBy(arrive_by)
         # has to be set AFTER arriveby (request decides if negative weight or not by checking arriveby)
-        self.request.setMaxTimeSec(max_time)
-        #self.request.setMaxWalkDistance(1500)
-        
+        self.request.setMaxTimeSec(long(max_time))
+        if max_walk is not None:
+            self.request.setMaxWalkDistance(max_walk)
+        if walk_speed is not None:
+            self.request.setWalkSpeedMs(walk_speed)
+        if bike_speed is not None:
+            self.request.setBikeSpeedMs(bike_speed)
+        if clamp_wait is not None:
+            self.request.setClampInitialWait(clamp_wait)
+        if banned:
+            self.request.setBannedRoutes(banned)
+             
         if modes:          
-            self.request.setModes(','.join(modes))
+            self.request.setModes(modes)
 
-    def evaluate_departures(self, origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=None, mode=None, params=None, bestof=None):     
+    def evaluate_departures(self, origins_csv, destinations_csv, target_csv, oid, did, field=None, mode=None, params=None, bestof=None):     
         '''
         evaluate the shortest paths from origins to destinations
         uses the routing options set in setup() (run it first!)
@@ -62,7 +80,7 @@ class OTPEvaluation(object):
         target_csv: filename of the file to write to
         oid: name of the field of the origin ids
         did: name of the field of the destination ids
-        accumulate_field: the field to aggregate
+        field: the field to aggregate
         mode: the aggregation mode (see config.AGGREGATION_MODES)
         params: optional, params needed by the aggregation mode (e.g. threshold)
         '''   
@@ -73,10 +91,10 @@ class OTPEvaluation(object):
         i = -1                  
         
         header = [ 'origin_id' ]
-        if not aggregate_field or len(aggregate_field) == 0:
+        if not field or len(field) == 0:
             header += [ 'destination_id', 'travel_time', 'start_time', 'arrival_time','boardings', 'walk_distance'] 
         else:
-            header += [aggregate_field + '_aggregated']            
+            header += [field + '_aggregated']            
         out_csv = self.otp.createCSVOutput()
         out_csv.setHeader(header)
 
@@ -87,7 +105,7 @@ class OTPEvaluation(object):
             
             if spt is not None:
             
-                result_set = spt.getResultSet(destinations, aggregate_field)            
+                result_set = spt.getResultSet(destinations, field)            
                 
                 origin_id = origin.getStringData(oid)    
                 times = result_set.getTimes()
@@ -97,7 +115,7 @@ class OTPEvaluation(object):
                 starts = result_set.getStartTimes()
                 arrivals = result_set.getArrivalTimes()                        
                 
-                if aggregate_field:
+                if field:
                     result_set.setAggregationMode(mode)
                     aggregated = result_set.aggregate(params)
                     out_csv.addRow([origin_id, aggregated]) 
@@ -121,7 +139,7 @@ class OTPEvaluation(object):
         out_csv.save(target_csv)
         print 'results written to "{}"'.format(target_csv)  
     
-    def evaluate_arrival(self, origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=None, mode=None, params=None, bestof=None):   
+    def evaluate_arrival(self, origins_csv, destinations_csv, target_csv, oid, did, field=None, mode=None, params=None, bestof=None):   
         '''
         evaluate the shortest paths from destinations to origins (reverse search)
         uses the routing options set in setup() (run it first!), arriveby has to be set
@@ -133,7 +151,7 @@ class OTPEvaluation(object):
         target_csv: filename of the file to write to
         oid: name of the field of the origin ids
         did: name of the field of the destination ids
-        accumulate_field: the field to accumulate
+        field: the field to accumulate
         mode: the accumulation mode (see config.ACCUMULATION_MODES)
         params: optional,params needed by the accumulation mode (e.g. threshold)
         '''   
@@ -143,10 +161,10 @@ class OTPEvaluation(object):
         i = -1       
         
         header = [ 'origin_id' ]
-        if not accumulate_field or len(accumulate_field) == 0:
+        if not field or len(field) == 0:
             header += [ 'destination_id', 'travel_time', 'start_time', 'arrival_time','boardings', 'walk_distance'] 
         else:
-            header += [accumulate_field + '_accumulated']            
+            header += [field + '_accumulated']            
         out_csv = self.otp.createCSVOutput()
         out_csv.setHeader(header)
         
@@ -157,7 +175,7 @@ class OTPEvaluation(object):
             spt = self.router.plan(self.request)            
             
             if spt is not None:
-                result_set = spt.getResultSet(origins, accumulate_field)             
+                result_set = spt.getResultSet(origins, field)             
             
                 dest_id = destination.getStringData(did)    
                 times = result_set.getTimes()
@@ -168,7 +186,7 @@ class OTPEvaluation(object):
                 arrivals = result_set.getArrivalTimes()
             
                 # ToDo: accumulate with empty set
-                if accumulate_field:
+                if field:
                     pass
     #                 accumulated = resultSet.accumulate()
     #                 out_csv.addRow([origin_id, accumulated]) 
@@ -188,110 +206,120 @@ class OTPEvaluation(object):
     
 if __name__ == '__main__':
     parser = ArgumentParser(description="Batch Analysis with OpenTripPlanner")
-
-    parser.add_argument('-r', '--router', action="store",
-                        help='name of the router',
-                        dest="router", required=True)    
     
     parser.add_argument('--origins', action="store",
                         help="csv file containing the origin points with at least lat/lon and id",
                         dest="origins", required=True)    
     
-    parser.add_argument('--oid', action="store",
-                        help="id field in origins file",
-                        dest="oid", default=ID_COLUMN)    
-    
     parser.add_argument('--destinations', action="store",
                         help="csv file containing the destination points with at least lat/lon and id",
-                        dest="destinations", required=True)        
+                        dest="destinations", required=True)    
     
-    parser.add_argument('--did', action="store",
-                        help="id field in destinations file (Warning: if not given, resulting destination-ids are unknown)",
-                        dest="did", default=ID_COLUMN)   
+    parser.add_argument('--config', action="store",
+                        help="xml file containing the configuration for trip planning (for xml-structure see Config.setting_struct)",
+                        dest="config_file", required=True)       
     
     parser.add_argument('--target', action="store",
-                        help="target csv file the results will be saved in (overwrites existing file)",
-                        dest="target", default="otp_results.csv")      
-    
-    parser.add_argument('--datetime', action="store",
-                        help="departure/arrival time (format see config.py: day/month/year-hours:minutes:seconds)",
-                        dest="datetime", default=time.strftime(DATETIME_FORMAT))      
-    
-    parser.add_argument('--maxtime', action="store",
-                        help="max. travel time (in seconds)",
-                        dest="max_time", default=1800, type=int)  
-    
-    parser.add_argument('--traverse_modes', action="store",
-                        help="list of modes to use (e.g 'WALK' 'BUS' 'RAIL'",
-                        nargs='+',
-                        dest="modes")   
-    
-    parser.add_argument('--arrival', action="store_true",
-                        help="given time is arrival time",
-                        dest="arriveby")      
+                        help="target csv file the results will be written to (overwrites existing file)",
+                        dest="target", default="otp_results.csv")        
     
     parser.add_argument('--nlines', action="store",
                         help="determines how often progress in processing origins/destination is written to stdout (write every n results)",
                         dest="nlines", default=50, type=int)       
     
-    parser.add_argument('--aggregate', action="store",
-                        help="aggregate the results, available aggregation modes: " + str(AGGREGATION_MODES),
-                        dest="aggregation_mode", default=None)    
-    
-    parser.add_argument('--accumulate', action="store",
-                        help="aggregate the results, available aggregation modes: " + str(ACCUMULATION_MODES),
-                        dest="accumulation_mode", default=None)   
-    
-    parser.add_argument('--field', action="store",
-                        help="the name of the field you want to aggregate/accumulate",
-                        dest="field", default=None)  
-        
-    parser.add_argument('--mode_params', action="store",
-                        help="parameters needed for aggregation/accumulation (specific to mode)",
-                        nargs='+',
-                        dest="mode_params", type=float)
-    
-    parser.add_argument('--bestof', action="store",
-                        help="only take the n origin/destination results with the shortest travel times",
-                        dest="bestof", type=int)     
         
     parser.set_defaults(arriveby=False)
     
     options = parser.parse_args()
     
-    router_name = options.router
     origins_csv = options.origins
     destinations_csv = options.destinations
-    target_csv = options.target
-    oid = options.oid
-    did = options.did
-    date_time = time.strptime(options.datetime, DATETIME_FORMAT)
-    modes = options.modes
-    max_time = options.max_time
-    arriveby = options.arriveby
-    print_every_n_lines = options.nlines    
-    field = options.field
-    bestof = options.bestof
-    aggregation_mode = options.aggregation_mode
-    accumulation_mode = options.accumulation_mode
-    mode_params = options.mode_params
+    target_csv = options.target    
+    print_every_n_lines = options.nlines 
     
-    otpEval = OTPEvaluation(print_every_n_lines)    
-    otpEval.setup(date_time, max_time, modes, arriveby)    
+    # read configuration from xml-file
+    # unfortunately you can't use lxml in jython (because parts are compiled in c) as in Config (config.py)
+    # so i had to use xml.minidom instead (ugly but inevitable)
     
-    if aggregation_mode and arriveby:
-        raise ValueError('aggregation only works with departure analysis')
+    # config.read(options.config_file)
+    
+    dom = minidom.parse(options.config_file)
+    config = dom.firstChild
+    
+    # router
+    router_config = config.getElementsByTagName('router_config')[0]
+    router = router_config.getElementsByTagName('router')[0].firstChild.data
+    max_time = long(router_config.getElementsByTagName('maxTimeMin')[0].firstChild.data) * 60
+    if max_time >= MAX_VALUE:
+        max_time = Long.MAX_VALUE
+    max_walk = float(router_config.getElementsByTagName('maxWalkDistance')[0].firstChild.data)
+    if max_walk >= MAX_VALUE:
+        max_walk = Double.MAX_VALUE    
+    walk_speed = float(router_config.getElementsByTagName('walkSpeed')[0].firstChild.data)
+    bike_speed = float(router_config.getElementsByTagName('bikeSpeed')[0].firstChild.data)
+    clamp_wait = int(router_config.getElementsByTagName('clampInitialWaitSec')[0].firstChild.data) 
+    if clamp_wait >= MAX_VALUE:
+        clamp_wait = -1 # i think -1 initial waits are ignored (same like infinite)    
+    banned = router_config.getElementsByTagName('banned_routes')[0].firstChild # None if no text entry
+    if banned:
+        banned = banned.data   
+        
+    traverse_modes = router_config.getElementsByTagName('traverse_modes')[0].firstChild
+    if traverse_modes:
+        traverse_modes = traverse_modes.data
+    
+    # layer ids
+    origin = config.getElementsByTagName('origin')[0]
+    oid = origin.getElementsByTagName('id_field')[0].firstChild.data
+    destination = config.getElementsByTagName('destination')[0]
+    did = destination.getElementsByTagName('id_field')[0].firstChild.data
+    
+    # times
+    times = config.getElementsByTagName('time')[0]
+    dt = times.getElementsByTagName('datetime')[0].firstChild.data
+    date_time = datetime.strptime(dt, DATETIME_FORMAT)
+    ab = times.getElementsByTagName('arrive_by')[0].firstChild.data
+    arrive_by = ab == 'True' or ab == True
+    
+    # post processing
+    postproc = config.getElementsByTagName('post_processing')[0]
+    bestof = postproc.getElementsByTagName('best_of')[0].firstChild
+    if bestof:
+        bestof = bestof.data
+        
+    agg_acc = postproc.getElementsByTagName('aggregation_accumulation')[0]
+    mode = field = params = None
+    active = agg_acc.getElementsByTagName('active')[0].firstChild.data
+    if active == 'True' or active == True:
+        mode = agg_acc.getElementsByTagName('mode')[0].firstChild.data
+        params = agg_acc.getElementsByTagName('params')[0].firstChild.data
+        params = [float(x) for x in params.split(',')]
+        field = agg_acc.getElementsByTagName('processed_field')[0].firstChild.data
+        
+    otpEval = OTPEvaluation(router, print_every_n_lines)    
+    otpEval.setup(date_time, 
+                  max_time=max_time, 
+                  max_walk=max_walk, 
+                  walk_speed=walk_speed, 
+                  bike_speed=bike_speed, 
+                  clamp_wait=clamp_wait, 
+                  banned=banned, 
+                  modes=traverse_modes, 
+                  arrive_by=arrive_by)
+    
+    #if aggregation_mode and arrive_by:
+        #raise ValueError('aggregation only works with departure analysis')
             
-    if accumulation_mode and not arriveby:
-        raise ValueError('accumulation only works with arriveby analysis')   
+    #if accumulation_mode and not arrive_by:
+        #raise ValueError('accumulation only works with arriveby analysis')   
     
-    if aggregation_mode and accumulation_mode:
-        raise ValueError("you can't do aggregation and accumulation at the same time")    
+    #if aggregation_mode and accumulation_mode:
+        #raise ValueError("you can't do aggregation and accumulation at the same time")    
     
-    if (aggregation_mode or accumulation_mode) and not field:
-        raise ValueError("the name of the field you want to aggregate/accumulate is missing")  
+    #if (aggregation_mode or accumulation_mode) and not field:
+        #raise ValueError("the name of the field you want to aggregate/accumulate is missing")  
     
-    if arriveby:
-        otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, accumulate_field=field, mode=accumulation_mode, params=mode_params, bestof=bestof) 
+    if arrive_by:
+        otpEval.evaluate_arrival(origins_csv, destinations_csv, target_csv, oid, did, field=field, mode=mode, params=params, bestof=bestof) 
     else:
-        otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, aggregate_field=field, mode=aggregation_mode, params=mode_params, bestof=bestof)
+        otpEval.evaluate_departures(origins_csv, destinations_csv, target_csv, oid, did, field=field, mode=mode, params=params, bestof=bestof)
