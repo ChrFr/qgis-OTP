@@ -9,7 +9,7 @@ from org.opentripplanner.routing.core import TraverseMode
 from org.opentripplanner.scripting.api import OtpsResultSet, OtpsAggregate
 from config import (GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, 
                     ID_COLUMN, DATETIME_FORMAT, AGGREGATION_MODES,
-                    ACCUMULATION_MODES, MAX_VALUE)
+                    ACCUMULATION_MODES, INFINITE)
 from argparse import ArgumentParser
 from datetime import datetime
 from java.lang import Double
@@ -53,7 +53,8 @@ class OTPEvaluation(object):
         self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second) 
         self.request.setArriveBy(arrive_by)
         # has to be set AFTER arriveby (request decides if negative weight or not by checking arriveby)
-        self.request.setMaxTimeSec(long(max_time))
+        if max_time is not None:
+            self.request.setMaxTimeSec(long(max_time))
         if max_walk is not None:
             self.request.setMaxWalkDistance(max_walk)
         if walk_speed is not None:
@@ -249,17 +250,21 @@ if __name__ == '__main__':
     # router
     router_config = config.getElementsByTagName('router_config')[0]
     router = router_config.getElementsByTagName('router')[0].firstChild.data
-    max_time = long(router_config.getElementsByTagName('maxTimeMin')[0].firstChild.data) * 60
-    if max_time >= MAX_VALUE:
-        max_time = Long.MAX_VALUE
+    max_time = long(router_config.getElementsByTagName('maxTimeMin')[0].firstChild.data) 
+    # max value -> no need to set it up (is Long.MAX_VALUE in OTP by default), unfortunately you can't pass OTP Long.MAX_VALUE, messes up routing
+    if max_time >= INFINITE:
+        max_time = None 
+    else:
+        max_time *= 60 # OTP needs this one in seconds
     max_walk = float(router_config.getElementsByTagName('maxWalkDistance')[0].firstChild.data)
-    if max_walk >= MAX_VALUE:
-        max_walk = Double.MAX_VALUE    
+    # max value -> no need to set it up (is Double.MAX_VALUE in OTP by default), same as max_time
+    if max_walk >= INFINITE:
+        max_walk = None    
     walk_speed = float(router_config.getElementsByTagName('walkSpeed')[0].firstChild.data)
     bike_speed = float(router_config.getElementsByTagName('bikeSpeed')[0].firstChild.data)
     clamp_wait = int(router_config.getElementsByTagName('clampInitialWaitSec')[0].firstChild.data) 
-    if clamp_wait >= MAX_VALUE:
-        clamp_wait = -1 # i think -1 initial waits are ignored (same like infinite)    
+    if clamp_wait == -1:
+        clamp_wait = None # i think -1 initial waits are ignored (same like infinite), is -1 by default in OTP   
     banned = router_config.getElementsByTagName('banned_routes')[0].firstChild # None if no text entry
     if banned:
         banned = banned.data   
