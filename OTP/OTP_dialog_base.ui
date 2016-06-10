@@ -110,7 +110,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>Einstellungen für Berechnungen der kürzesten Wege</string>
+        <string/>
        </property>
        <property name="currentIndex">
         <number>0</number>
@@ -129,6 +129,12 @@
             <widget class="QSpinBox" name="bestof_edit">
              <property name="toolTip">
               <string>nur die n besten Ergebnisse je Quelle werden ausgegeben</string>
+             </property>
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>999999</number>
              </property>
             </widget>
            </item>
@@ -291,7 +297,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Berechnung der kürzesten Wege zwischen Quellen und Zielen</string>
+            <string>Kürzeste Wege zwischen Quellen und Zielen</string>
            </property>
           </widget>
          </item>
@@ -498,7 +504,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Berechnung der kürzesten Wege mit Aggregation aller erreichbaren Ziele</string>
+            <string>Kürzeste Wege mit Aggregation aller erreichbaren Ziele</string>
            </property>
           </widget>
          </item>
@@ -702,7 +708,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Berechnung der kürzesten Wege mit Akkumulation aller erreichbaren Quellen</string>
+            <string>Kürzeste Wege mit Akkumulation aller erreichbaren Quellen</string>
            </property>
           </widget>
          </item>
@@ -858,7 +864,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Berechnung der Anzahl der erreichbaren Ziele je Quelle</string>
+            <string>Anzahl der erreichbaren Ziele je Quelle</string>
            </property>
           </widget>
          </item>
@@ -1122,6 +1128,9 @@
              <widget class="QSpinBox" name="time_step_edit">
               <property name="toolTip">
                <string>Intervallschritt der Zeiten zu denen geroutet wird (alle n min)</string>
+              </property>
+              <property name="minimum">
+               <number>1</number>
               </property>
               <property name="maximum">
                <number>3600</number>
