@@ -62,7 +62,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="config_default_button_2">
+         <widget class="QPushButton" name="config_default_button">
           <property name="text">
            <string>Defaults</string>
           </property>
