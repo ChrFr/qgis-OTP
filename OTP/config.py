@@ -162,14 +162,21 @@ class Config(Borg):
         self.settings = copy.deepcopy(setting_struct)
         f_set = xml_to_dict(tree.getroot())
         for key, value in f_set.iteritems():
-            self.settings[key].update(value)
+            if self.settings.has_key(key):
+                self.settings[key].update(value)
             
     def reset(self):        
         self.settings = copy.deepcopy(setting_struct)        
 
-    def write(self, filename=None, hide_inactive=False):
+    def write(self, filename=None, hide_inactive=False, meta=None):
         '''
         write the config as xml to given file (default config.xml)
+        
+        Parameters
+        ----------
+        filename: file including path to write current settings to
+        hide_inactive: hides unused entries for better readability (e.g. don't write aggregation settings if not used)
+        meta: dictionary with additional meta-data to write to file
         '''
 
         if not filename:
@@ -183,6 +190,12 @@ class Config(Borg):
             pp_active = run_set['post_processing']['aggregation_accumulation']['active']
             if pp_active == 'False' or pp_active == False:
                 del run_set['post_processing']['aggregation_accumulation']
+            bestof = run_set['post_processing']['best_of']
+            if not bestof:
+                del run_set['post_processing']['best_of']
+                
+        if meta:
+            run_set['META'] = meta
         xml_tree = etree.Element('CONFIG')
         dict_to_xml(xml_tree, run_set)
         etree.ElementTree(xml_tree).write(str(filename), pretty_print=True)

@@ -284,22 +284,26 @@ if __name__ == '__main__':
     dt = times.getElementsByTagName('datetime')[0].firstChild.data
     date_time = datetime.strptime(dt, DATETIME_FORMAT)
     ab = times.getElementsByTagName('arrive_by')[0].firstChild.data
-    arrive_by = ab == 'True' or ab == True
+    arrive_by = ab == 'True'
     
     # post processing
     postproc = config.getElementsByTagName('post_processing')[0]
-    bestof = postproc.getElementsByTagName('best_of')[0].firstChild
-    if bestof:
-        bestof = int(bestof.data)
+    bestof = postproc.getElementsByTagName('best_of')
+    if len(bestof) > 0 and bestof[0].firstChild: # avoid error if key does not exist or data is empty
+        bestof = int(bestof[0].firstChild.data)
+    else:
+        bestof = None
         
-    agg_acc = postproc.getElementsByTagName('aggregation_accumulation')[0]
     mode = field = params = None
-    active = agg_acc.getElementsByTagName('active')[0].firstChild.data
-    if active == 'True' or active == True:
-        mode = agg_acc.getElementsByTagName('mode')[0].firstChild.data
-        params = agg_acc.getElementsByTagName('params')[0].firstChild.data
-        params = [float(x) for x in params.split(',')]
-        field = agg_acc.getElementsByTagName('processed_field')[0].firstChild.data
+    agg_acc = postproc.getElementsByTagName('aggregation_accumulation')
+    if len(agg_acc) > 0:  # avoid error if key does not exist
+        agg_acc = agg_acc[0]
+        active = agg_acc.getElementsByTagName('active')[0].firstChild.data
+        if active == 'True':
+            mode = agg_acc.getElementsByTagName('mode')[0].firstChild.data
+            params = agg_acc.getElementsByTagName('params')[0].firstChild.data
+            params = [float(x) for x in params.split(',')]
+            field = agg_acc.getElementsByTagName('processed_field')[0].firstChild.data
         
     otpEval = OTPEvaluation(router, print_every_n_lines)    
     otpEval.setup(date_time, 

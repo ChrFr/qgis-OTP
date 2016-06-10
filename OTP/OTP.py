@@ -40,6 +40,7 @@ from qgis.core import QgsVectorFileWriter
 import locale
 import tempfile
 import shutil
+import getpass
 from datetime import datetime
 from PyQt4.QtCore import QLocale
 
@@ -181,6 +182,8 @@ class OTP:
         self.dlg.config_default_button.clicked.connect(self.reset_config)
         self.dlg.config_read_button.clicked.connect(self.read_config)
         self.dlg.config_save_button.clicked.connect(self.save_config_as)
+        # apply settings to UI (the layers are unknown at QGIS startup, so don't expect them to be already selected)
+        self.apply_config()
         
         # call checkbox toggle callbacks (settings loaded, but checkboxes not 'clicked' while loading)        
         self.toggle_time_batch()
@@ -647,11 +650,18 @@ class OTP:
             if reply == QMessageBox.Cancel:
                 return                
         
+        # write config to temporary directory with additional meta infos
         tmp_dir = tempfile.mkdtemp()
+        config_xml = os.path.join(tmp_dir, 'config.xml')
+        meta = {
+            'date_of_creation': datetime.now().strftime(DATETIME_FORMAT),
+            'user': getpass.getuser()
+        }
+        config.write(config_xml, hide_inactive=True, meta=meta)
+        
+        # convert layers to csv and write them to temporary directory 
         orig_tmp_filename = os.path.join(tmp_dir, 'origins.csv')  
         dest_tmp_filename = os.path.join(tmp_dir, 'destinations.csv')
-        config_xml = os.path.join(tmp_dir, 'config.xml')
-        config.write(config_xml)
         
         wgs84 = QgsCoordinateReferenceSystem(4326)
         QgsVectorFileWriter.writeAsVectorFormat(origin_layer, 
@@ -671,16 +681,21 @@ class OTP:
         # OUT FILE
         if result_mode == ORIGIN_DESTINATION and self.dlg.orig_dest_csv_check.checkState():
             target_file = self.dlg.orig_dest_file_edit.text()
-            config.write(os.path.splitext(target_file)[0] + '-config.xml', hide_inactive=True) # write config (as meta for future reconstruction)
+            # copy config to file with similar name as results file
+            dst_config = os.path.splitext(target_file)[0] + '-config.xml'
+            shutil.copy(config_xml, dst_config)
             
         elif result_mode == AGGREGATION and self.dlg.aggregation_csv_check.checkState():
             target_file = self.dlg.aggregation_file_edit.text()
-            config.write(os.path.splitext(target_file)[0] + '-config.xml', hide_inactive=True) # write config (as meta for future reconstruction)
+            # copy config to file with similar name as results file
+            dst_config = os.path.splitext(target_file)[0] + '-config.xml'
+            shutil.copy(config_xml, dst_config)
         
         # if saving is not explicitly wanted, file is written to temporary folder, so it will be removed later
         else:
             target_file = os.path.join(tmp_dir, 'results.csv')                
-            
+                    
+        
         target_path = os.path.dirname(target_file)        
             
         if not os.path.exists(target_path):
@@ -759,8 +774,6 @@ class OTP:
         layers = self.iface.legendInterface().layers()     
         if layers != self.layers:
             self.fill_layer_combos(layers)
-        # apply settings (some unnessecary reloads, but layers are not known at startup of QGIS)
-        self.apply_config()
         
         # reload routers on every run (they might be changed outside)
         self.fill_router_combo()    
