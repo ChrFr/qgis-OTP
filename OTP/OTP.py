@@ -21,7 +21,8 @@
  ***************************************************************************/
 """
 from PyQt4.QtCore import (QSettings, QTranslator, qVersion, 
-                          QCoreApplication, QProcess, QDateTime)
+                          QCoreApplication, QProcess, QDateTime,
+                          QVariant)
 from PyQt4.QtGui import (QAction, QIcon, QListWidgetItem, 
                          QCheckBox, QMessageBox, QLabel,
                          QDoubleSpinBox, QFileDialog)
@@ -33,10 +34,11 @@ from OTP_dialog import OTPDialog
 import os
 from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES, 
-                    MODE_PARAMS, DEFAULT_FILE, Config)
+                    MODE_PARAMS, DEFAULT_FILE, CALC_REACHABILITY_MODE, Config)
 from dialogs import ExecCommandDialog, set_file
-from qgis._core import QgsVectorLayer, QgsVectorJoinInfo, QgsCoordinateReferenceSystem
-from qgis.core import QgsVectorFileWriter
+from qgis._core import (QgsVectorLayer, QgsVectorJoinInfo, 
+                        QgsCoordinateReferenceSystem, QgsField)
+from qgis.core import QgsVectorFileWriter, QgsMapLayerRegistry
 import locale
 import tempfile
 import shutil
@@ -51,11 +53,13 @@ config.read()
 ORIGIN_DESTINATION = 0
 AGGREGATION = 1
 ACCUMULATION = 2
+REACHABILITY = 3
 
 # how many results are written while running batch script
 PRINT_EVERY_N_LINES = 5
 
 XML_FILTER = u'XML-Dateien (*.xml)'
+CSV_FILTER = u'CSV-Dateien (*.csv)'
 
 class OTP:
     """QGIS Plugin Implementation."""
@@ -97,12 +101,13 @@ class OTP:
         self.toolbar = self.iface.addToolBar(u'OTP')
         self.toolbar.setObjectName(u'OTP')        
         
-        # PREFILL UI ELEMENTS AND CONNECT SLOTS TO SIGNALS
+        ### PREFILL UI ELEMENTS AND CONNECT SLOTS TO SIGNALS ###
         
+        # connect browse file buttons with 'smart'(?) naming of target files (that's the main reason why there are 4 seperate ones)
         self.dlg.orig_dest_browse_button.clicked.connect(
             lambda: set_file(self.dlg, 
                              self.dlg.orig_dest_file_edit,
-                             filters=['CSV-Dateien (*.csv)'],
+                             filters=[CSV_FILTER],
                              directory='{}-{}-{}.csv'.format(
                                  self.dlg.router_combo.currentText(),
                                  self.dlg.origins_combo.currentText(),
@@ -115,10 +120,33 @@ class OTP:
         self.dlg.aggregation_browse_button.clicked.connect(
             lambda: set_file(self.dlg, 
                              self.dlg.aggregation_file_edit,
-                             filters=['CSV-Dateien (*.csv)'],
+                             filters=[CSV_FILTER],
                              directory='{}-{}-aggregiert.csv'.format(
                                  self.dlg.router_combo.currentText(),
                                  self.dlg.origins_combo.currentText()
+                                  ),
+                             save=True)
+        )  
+        
+        self.dlg.accumulation_browse_button.clicked.connect(
+            lambda: set_file(self.dlg, 
+                             self.dlg.aggregation_file_edit,
+                             filters=[CSV_FILTER],
+                             directory='{}-{}-akkumuliert.csv'.format(
+                                 self.dlg.router_combo.currentText(),
+                                 self.dlg.origins_combo.currentText()
+                                  ),
+                             save=True)
+        )  
+        
+        self.dlg.reachability_browse_button.clicked.connect(
+            lambda: set_file(self.dlg, 
+                             self.dlg.reachability_file_edit,
+                             filters=[CSV_FILTER],
+                             directory='{}-{}-{}-Erreichbarkeit.csv'.format(
+                                 self.dlg.router_combo.currentText(),
+                                 self.dlg.origins_combo.currentText(),
+                                 self.dlg.destinations_combo.currentText()
                                   ),
                              save=True)
         )  
@@ -128,6 +156,7 @@ class OTP:
         
         self.dlg.start_orig_dest_button.clicked.connect(lambda: self.call_otp(ORIGIN_DESTINATION))
         self.dlg.start_aggregation_button.clicked.connect(lambda: self.call_otp(AGGREGATION))     
+        self.dlg.start_reachability_button.clicked.connect(lambda: self.call_otp(REACHABILITY))     
          
         self.dlg.close_button.clicked.connect(self.close) #ToDo: save on close
         
@@ -179,7 +208,8 @@ class OTP:
         self.dlg.time_batch_checkbox.clicked.connect(self.toggle_time_batch)
               
         # settings
-        self.dlg.config_default_button.clicked.connect(self.reset_config)
+        self.dlg.config_default_button.clicked.connect(self.reset_config_to_default)
+        self.dlg.config_reset_button.clicked.connect(self.apply_config)
         self.dlg.config_read_button.clicked.connect(self.read_config)
         self.dlg.config_save_button.clicked.connect(self.save_config_as)
         # apply settings to UI (the layers are unknown at QGIS startup, so don't expect them to be already selected)
@@ -299,7 +329,7 @@ class OTP:
         # remove the toolbar
         del self.toolbar   
         
-    def reset_config(self):
+    def reset_config_to_default(self):
         '''
         reset Config.settings to default
         '''
@@ -477,16 +507,23 @@ class OTP:
         
     def toggle_arrival(self):
         '''
-        show aggregation or accumulation tab, depending on arrival is checked or not
+        enable/disable tabs, depending on arrival is checked or not
         '''
-        is_arrival = self.dlg.arrival_checkbox.checkState()         
-        self.dlg.calculation_tabs.removeTab(self.dlg.calculation_tabs.indexOf(self.dlg.accumulation_tab))    
-        self.dlg.calculation_tabs.removeTab(self.dlg.calculation_tabs.indexOf(self.dlg.aggregation_tab))
+        is_arrival = self.dlg.arrival_checkbox.checkState()
+        acc_idx = self.dlg.calculation_tabs.indexOf(self.dlg.accumulation_tab)
+        agg_idx = self.dlg.calculation_tabs.indexOf(self.dlg.aggregation_tab)
+        reach_idx = self.dlg.calculation_tabs.indexOf(self.dlg.reachability_tab)
+        acc_enabled = agg_enabled = reach_enabled = False
         
         if is_arrival:
-            self.dlg.calculation_tabs.addTab(self.dlg.accumulation_tab, "Akkumulation")
+            acc_enabled = True
         else:
-            self.dlg.calculation_tabs.addTab(self.dlg.aggregation_tab, "Aggregation")
+            agg_enabled = reach_enabled = True
+            
+        self.dlg.calculation_tabs.setTabEnabled(acc_idx, acc_enabled)  
+        self.dlg.calculation_tabs.setTabEnabled(agg_idx, agg_enabled) 
+        self.dlg.calculation_tabs.setTabEnabled(reach_idx, reach_enabled) 
+            
             
     def toggle_time_batch(self):
         active = self.dlg.time_batch_checkbox.isChecked()
@@ -607,34 +644,10 @@ class OTP:
         return params
         
     def call_otp(self, result_mode):   
+        now_string = datetime.now().strftime(DATETIME_FORMAT)
                 
         # update settings
         self.update_config()
-                
-        # update postprocessing settings
-        postproc = config.settings['post_processing']
-        bestof = ''
-        if self.dlg.bestof_check.isChecked():
-            bestof = self.dlg.bestof_edit.value()
-        postproc['best_of'] = bestof               
-
-        agg_acc = postproc['aggregation_accumulation']
-        agg_acc['active'] = False
-        
-        if result_mode == AGGREGATION or result_mode == ACCUMULATION:            
-            agg_acc['active'] = True            
-            if result_mode == AGGREGATION:
-                field = self.dlg.aggregation_field_combo.currentText()
-                mode = self.dlg.aggregation_mode_combo.currentText()  
-            else:                
-                field = self.dlg.accumulation_field_combo.currentText()
-                mode = self.dlg.accumulation_mode_combo.currentText()  
-            agg_acc['mode'] = mode
-            agg_acc['processed_field'] = field
-            
-            agg_acc['params'] = self.get_mode_params(result_mode)
-            
-        working_dir = os.path.dirname(__file__)       
         
         # LAYERS
         origin_layer = self.layer_list[self.dlg.origins_combo.currentIndex()]
@@ -649,12 +662,58 @@ class OTP:
                                      QMessageBox.Ok, QMessageBox.Cancel)
             if reply == QMessageBox.Cancel:
                 return                
-        
+            
+            
+        # update postprocessing settings
+        postproc = config.settings['post_processing']
+        bestof = ''
+        if self.dlg.bestof_check.isChecked():
+            bestof = self.dlg.bestof_edit.value()
+        postproc['best_of'] = bestof               
+    
+        agg_acc = postproc['aggregation_accumulation']
+        agg_acc['active'] = False
+    
+        if result_mode == AGGREGATION or result_mode == ACCUMULATION:            
+            agg_acc['active'] = True            
+            if result_mode == AGGREGATION:
+                field = self.dlg.aggregation_field_combo.currentText()
+                mode = self.dlg.aggregation_mode_combo.currentText()  
+            else:                
+                field = self.dlg.accumulation_field_combo.currentText()
+                mode = self.dlg.accumulation_mode_combo.currentText()  
+            agg_acc['mode'] = mode
+            agg_acc['processed_field'] = field
+    
+            agg_acc['params'] = self.get_mode_params(result_mode)
+    
+        # calc. number of reachabe destinations is an aggregation with only 1s in field to aggregate
+        if result_mode == REACHABILITY:          
+            agg_acc['active'] = True   
+            # duplicate destination layer
+            destination_layer = self.iface.addVectorLayer(destination_layer.source(), 
+                                                          destination_layer.name(), 
+                                                          destination_layer.providerType())
+            # add virtual field with 1s as values
+            reach_field_name = 'erreichbare_Ziele'
+            agg_acc['mode'] = CALC_REACHABILITY_MODE       
+            # field already exists -> try to take unique name
+            if destination_layer.fieldNameIndex(reach_field_name) > -1:
+                reach_field_name += '_' + now_string
+            reach_field = QgsField(reach_field_name, QVariant.Int)
+            destination_layer.addExpressionField('1', reach_field)
+            agg_acc['processed_field'] = reach_field_name   
+            # take the set max travel time as the threshold (in seconds)
+            threshold = int(config.settings['router_config']['maxTimeMin']) * 60
+            agg_acc['params'] = [str(threshold)]
+    
+        working_dir = os.path.dirname(__file__)               
+
         # write config to temporary directory with additional meta infos
         tmp_dir = tempfile.mkdtemp()
         config_xml = os.path.join(tmp_dir, 'config.xml')
         meta = {
-            'date_of_creation': datetime.now().strftime(DATETIME_FORMAT),
+            'date_of_calculation': now_string,
             'user': getpass.getuser()
         }
         config.write(config_xml, hide_inactive=True, meta=meta)
@@ -678,22 +737,28 @@ class OTP:
                                                 layerOptions=["GEOMETRY=AS_YX", "GEOMETRY_NAME=geom"])
         print 'wrote origins and destinations to temporary folder "{}"'.format(tmp_dir)
         
+        do_copy = False
         # OUT FILE
         if result_mode == ORIGIN_DESTINATION and self.dlg.orig_dest_csv_check.checkState():
             target_file = self.dlg.orig_dest_file_edit.text()
-            # copy config to file with similar name as results file
-            dst_config = os.path.splitext(target_file)[0] + '-config.xml'
-            shutil.copy(config_xml, dst_config)
+            do_copy = True
             
         elif result_mode == AGGREGATION and self.dlg.aggregation_csv_check.checkState():
             target_file = self.dlg.aggregation_file_edit.text()
-            # copy config to file with similar name as results file
-            dst_config = os.path.splitext(target_file)[0] + '-config.xml'
-            shutil.copy(config_xml, dst_config)
+            do_copy = True
+            
+        elif result_mode == REACHABILITY and self.dlg.reachability_csv_check.checkState():
+            target_file = self.dlg.reachability_file_edit.text()
+            do_copy = True
         
         # if saving is not explicitly wanted, file is written to temporary folder, so it will be removed later
         else:
-            target_file = os.path.join(tmp_dir, 'results.csv')                
+            target_file = os.path.join(tmp_dir, 'results.csv')             
+        
+        if do_copy:            
+            # copy config to file with similar name as results file
+            dst_config = os.path.splitext(target_file)[0] + '-config.xml'
+            shutil.copy(config_xml, dst_config)            
                     
         
         target_path = os.path.dirname(target_file)        
@@ -735,20 +800,28 @@ class OTP:
                                  total_ticks=n_points/PRINT_EVERY_N_LINES)
         diag.exec_()
         
+        ### cleanup and QGIS operations after OTP is done ###
+        
+        # remove temporary duplicated layer
+        if result_mode == REACHABILITY: 
+            QgsMapLayerRegistry.instance().removeMapLayer(destination_layer.id())
+            
+                
         # JOIN
         do_join = False
         if result_mode == AGGREGATION:
             do_join = self.dlg.aggregation_join_check.isChecked()
         elif result_mode == ACCUMULATION:
-            do_join = self.dlg.accumulation_join_check.isChecked()      
+            do_join = self.dlg.accumulation_join_check.isChecked()    
+        elif result_mode == REACHABILITY:
+            do_join = self.dlg.reachability_join_check.isChecked()        
             
         if do_join or (result_mode == ORIGIN_DESTINATION and self.dlg.orig_dest_add_check.isChecked()):
-            layer_name = 'results-' + self.dlg.router_combo.currentText()
-            if result_mode == ORIGIN_DESTINATION:
-                layer_name += '-' + self.dlg.origins_combo.currentText()
-                layer_name += '-' + self.dlg.destinations_combo.currentText()
+            layer_name = 'results-{}-{}'.format(self.dlg.router_combo.currentText(),
+                                                   self.dlg.origins_combo.currentText())
             if result_mode == AGGREGATION:
-                layer_name += '-' + self.dlg.origins_combo.currentText() + '-aggregiert'
+                layer_name += '-aggregiert'
+            layer_name += '-' + 'now_string'
             result_layer = self.iface.addVectorLayer(target_file, 
                                                      layer_name, 
                                                      'delimitedtext')
@@ -760,7 +833,7 @@ class OTP:
             join = QgsVectorJoinInfo()
             join.joinLayerId = result_layer.id()
             join.joinFieldName = 'origin_id'  
-            join.targetFieldName = oid      
+            join.targetFieldName = config.settings['origin']['id_field']      
             origin_layer.addJoin(join)
             # TODO permanent join and remove result layer (origin_layer save as shape?)    
             # csv layer is only link to file, if temporary is removed you won't see anything later

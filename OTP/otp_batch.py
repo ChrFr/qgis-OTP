@@ -1,6 +1,9 @@
 '''
 Created on Mar 16, 2016
 
+Batch processing of routes in OpenTripPlanner
+to be used with Jython (Java Bindings!)
+
 @author: Christoph Franke
 '''
 #!/usr/bin/jython

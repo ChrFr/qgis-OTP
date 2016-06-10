@@ -13,8 +13,9 @@ LONGITUDE_COLUMN = 'X'
 ID_COLUMN = 'id'
 DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S"
 AGGREGATION_MODES = ["THRESHOLD_SUM_AGGREGATOR", "WEIGHTED_AVERAGE_AGGREGATOR", "THRESHOLD_CUMMULATIVE_AGGREGATOR", "DECAY_AGGREGATOR"]
+CALC_REACHABILITY_MODE = "THRESHOLD_SUM_AGGREGATOR" # agg. mode that is used to calculate number of reachable destinations (note: threshold is taken from set max travel time)
 ACCUMULATION_MODES = ["DECAY_ACCUMULATOR", "THRESHOLD_ACCUMULATOR"]
-INFINITE = 1000000000 # represents indefinite, is quite small due to limitations of pyqt spin boxes
+INFINITE = 1000000000 # represents indefinite in the UI, is quite small due to limitations of pyqt spin boxes
 
 # needed parameters for aggregation/accumulation modes (=keys) are listed here
 # order of parameters in list has to be the same, the specific mode requires them
