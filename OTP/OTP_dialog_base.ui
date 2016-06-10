@@ -1189,17 +1189,17 @@
               </property>
              </widget>
             </item>
-            <item>
-             <widget class="QCheckBox" name="arrival_checkbox">
-              <property name="toolTip">
-               <string>Abreise bzw. Ankunft an gegebenem Zeitpunkt</string>
-              </property>
-              <property name="text">
-               <string>Ankunft</string>
-              </property>
-             </widget>
-            </item>
            </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="arrival_checkbox">
+           <property name="toolTip">
+            <string>Abreise bzw. Ankunft an gegebenem Zeitpunkt</string>
+           </property>
+           <property name="text">
+            <string>Ankunft</string>
+           </property>
           </widget>
          </item>
          <item>
