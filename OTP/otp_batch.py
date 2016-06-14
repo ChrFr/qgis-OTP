@@ -14,7 +14,7 @@ from config import (GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN,
                     ID_COLUMN, DATETIME_FORMAT, AGGREGATION_MODES,
                     ACCUMULATION_MODES, INFINITE)
 from argparse import ArgumentParser
-from datetime import datetime
+from datetime import datetime, timedelta
 from java.lang import Double
 from java.lang import Long
 from xml.dom import minidom
@@ -285,9 +285,19 @@ if __name__ == '__main__':
     # times
     times = config.getElementsByTagName('time')[0]
     dt = times.getElementsByTagName('datetime')[0].firstChild.data
-    date_time = datetime.strptime(dt, DATETIME_FORMAT)
-    ab = times.getElementsByTagName('arrive_by')[0].firstChild.data
-    arrive_by = ab == 'True'
+    date_times = [datetime.strptime(dt, DATETIME_FORMAT)]
+    arrive_by = times.getElementsByTagName('arrive_by')[0].firstChild.data == 'True'
+    time_batch = times.getElementsByTagName('time_batch')
+    if len(time_batch) > 0 and time_batch[0].getElementsByTagName('active')[0].firstChild.data == 'True':
+       dt_end = time_batch[0].getElementsByTagName('datetime_end')[0].firstChild.data
+       date_time_end = datetime.strptime(dt_end, DATETIME_FORMAT)
+       time_step = int(time_batch[0].getElementsByTagName('time_step')[0].firstChild.data)
+       
+       dt = date_times[0]
+       step_delta = timedelta(0, time_step * 60) # days, seconds ...
+       while dt < date_time_end:
+           dt += step_delta
+           date_times.append(dt)        
     
     # post processing
     postproc = config.getElementsByTagName('post_processing')[0]
@@ -307,34 +317,24 @@ if __name__ == '__main__':
             params = agg_acc.getElementsByTagName('params')[0].firstChild.data
             params = [float(x) for x in params.split(',')]
             field = agg_acc.getElementsByTagName('processed_field')[0].firstChild.data
-        
-    otpEval = OTPEvaluation(router, print_every_n_lines)    
-    otpEval.setup(date_time, 
-                  max_time=max_time, 
-                  max_walk=max_walk, 
-                  walk_speed=walk_speed, 
-                  bike_speed=bike_speed, 
-                  clamp_wait=clamp_wait, 
-                  banned=banned, 
-                  modes=traverse_modes, 
-                  arrive_by=arrive_by)
-    
-    #if aggregation_mode and arrive_by:
-        #raise ValueError('aggregation only works with departure analysis')
             
-    #if accumulation_mode and not arrive_by:
-        #raise ValueError('accumulation only works with arriveby analysis')   
-    
-    #if aggregation_mode and accumulation_mode:
-        #raise ValueError("you can't do aggregation and accumulation at the same time")    
-    
-    #if (aggregation_mode or accumulation_mode) and not field:
-        #raise ValueError("the name of the field you want to aggregate/accumulate is missing")  
-    
-    if arrive_by:
-        results = otpEval.evaluate_arrival(origins_csv, destinations_csv)        
-        otpEval.results_to_csv(results, target_csv, oid, did, mode, field, params, bestof, arrive_by=True) 
-    else:
-        results = otpEval.evaluate_departures(origins_csv, destinations_csv)
-        otpEval.results_to_csv(results, target_csv, oid, did, mode, field, params, bestof)
+    results = []
+    for date_time in date_times:        
+        otpEval = OTPEvaluation(router, print_every_n_lines)    
+        otpEval.setup(date_time, 
+                      max_time=max_time, 
+                      max_walk=max_walk, 
+                      walk_speed=walk_speed, 
+                      bike_speed=bike_speed, 
+                      clamp_wait=clamp_wait, 
+                      banned=banned, 
+                      modes=traverse_modes, 
+                      arrive_by=arrive_by)                    
+        
+        if arrive_by:
+            results.extend(otpEval.evaluate_arrival(origins_csv, destinations_csv))        
+        else:
+            results.extend(otpEval.evaluate_departures(origins_csv, destinations_csv))
+                
+    otpEval.results_to_csv(results, target_csv, oid, did, mode, field, params, bestof, arrive_by=arrive_by) 
         
