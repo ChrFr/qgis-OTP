@@ -821,7 +821,7 @@ class OTP:
                                                    self.dlg.origins_combo.currentText())
             if result_mode == AGGREGATION:
                 layer_name += '-aggregiert'
-            layer_name += '-' + 'now_string'
+            layer_name += '-' + now_string
             result_layer = self.iface.addVectorLayer(target_file, 
                                                      layer_name, 
                                                      'delimitedtext')
