@@ -182,11 +182,11 @@ class ExecCommandDialog(ProgressDialog):
         def show_progress():
             out = str(self.process.readAllStandardOutput())
             err = str(self.process.readAllStandardError())
-            if len(out): 
+            if len(out):                 
                 self.show_status(out)
                 if total_ticks and out.startswith(progress_indicator):
                     self.ticks += 100. / total_ticks
-                    self.progress_bar.setValue(min(100, int(self.ticks)))
+                    self.progress_bar.setValue(min(100, int(self.ticks)))            
                 
             if len(err): self.show_status(err)
             

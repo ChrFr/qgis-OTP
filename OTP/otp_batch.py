@@ -340,8 +340,8 @@ if __name__ == '__main__':
         else:
             results.append(otpEval.evaluate_departures(origins_csv, destinations_csv))     
     
-    # merge results over time, if aggregation or accumulation is requested
-    if mode is not None:
+    # merge results over time, if aggregation or accumulation is requested or bestof
+    if mode is not None or bestof:
         merged_results = []
         for n_results_per_time in range(len(results[0])):
             merged_result = results[0][n_results_per_time]
