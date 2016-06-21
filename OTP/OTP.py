@@ -130,7 +130,7 @@ class OTP:
         
         self.dlg.accumulation_browse_button.clicked.connect(
             lambda: set_file(self.dlg, 
-                             self.dlg.aggregation_file_edit,
+                             self.dlg.accumulation_file_edit,
                              filters=[CSV_FILTER],
                              directory='{}-{}-akkumuliert.csv'.format(
                                  self.dlg.router_combo.currentText(),
@@ -156,7 +156,8 @@ class OTP:
         
         self.dlg.start_orig_dest_button.clicked.connect(lambda: self.call_otp(ORIGIN_DESTINATION))
         self.dlg.start_aggregation_button.clicked.connect(lambda: self.call_otp(AGGREGATION))     
-        self.dlg.start_reachability_button.clicked.connect(lambda: self.call_otp(REACHABILITY))     
+        self.dlg.start_reachability_button.clicked.connect(lambda: self.call_otp(REACHABILITY))    
+        self.dlg.start_accumulation_button.clicked.connect(lambda: self.call_otp(ACCUMULATION))    
          
         self.dlg.close_button.clicked.connect(self.close) #ToDo: save on close
         
@@ -749,6 +750,10 @@ class OTP:
             
         elif result_mode == REACHABILITY and self.dlg.reachability_csv_check.checkState():
             target_file = self.dlg.reachability_file_edit.text()
+            do_copy = True
+            
+        elif result_mode == ACCUMULATION and self.dlg.accumulation_csv_check.checkState():
+            target_file = self.dlg.accumulation_file_edit.text()
             do_copy = True
         
         # if saving is not explicitly wanted, file is written to temporary folder, so it will be removed later

@@ -170,8 +170,18 @@ class OTPEvaluation(object):
         
         out_csv = self.otp.createCSVOutput()
         out_csv.setHeader(header)
+        acc_result_set = None
         
         for result_set in result_sets: 
+                
+            if do_accumulate:
+                if acc_result_set is None:
+                    acc_result_set = result_set
+                else:
+                    result_set.setAccumulationMode(mode)
+                    result_set.accumulate(acc_result_set, params)
+                continue
+                    
             times = result_set.getTimes()
             
             if arrive_by:
@@ -203,6 +213,12 @@ class OTPEvaluation(object):
                     if time < Double.MAX_VALUE:
                         out_csv.addRow([origin_ids[j], dest_ids[j], times[j], starts[j], arrivals[j], boardings[j], walk_distances[j]])
         
+        if do_accumulate:
+            times = acc_result_set.getTimes()    
+            origin_ids = acc_result_set.getStringData(oid)   
+            for time in times:
+                out_csv.addRow(origin_ids[j], time)
+            
         out_csv.save(target_csv)
         print 'results written to "{}"'.format(target_csv)  
             
@@ -313,8 +329,10 @@ if __name__ == '__main__':
         active = agg_acc.getElementsByTagName('active')[0].firstChild.data
         if active == 'True':
             mode = agg_acc.getElementsByTagName('mode')[0].firstChild.data
-            params = agg_acc.getElementsByTagName('params')[0].firstChild.data
-            params = [float(x) for x in params.split(',')]
+            params = agg_acc.getElementsByTagName('params')[0].firstChild
+            if params:
+                params = params.data
+                params = [float(x) for x in params.split(',')]
             field = agg_acc.getElementsByTagName('processed_field')[0].firstChild.data
             
     # results will be stored 2 dimensional to determine to which time the results belong, flattened later
