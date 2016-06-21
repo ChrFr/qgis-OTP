@@ -787,17 +787,31 @@ class OTP:
             target=target_file,
             nlines=PRINT_EVERY_N_LINES
         )    
-            
-        arrive_by = config.settings['time']['arrive_by']       
+        
+        times = config.settings['time']
+        arrive_by = times['arrive_by']       
         if arrive_by == True or arrive_by == 'True':
             n_points = destination_layer.featureCount()       
         else:
             n_points = origin_layer.featureCount()     
+            
+        # how often will the stdout-indicator written before reaching 100%
+        ticks = n_points/PRINT_EVERY_N_LINES
+        time_batch = times['time_batch']
+        batch_active = time_batch['active']
+        if batch_active == 'True' or batch_active == True:
+            dt_begin = datetime.strptime(times['datetime'], DATETIME_FORMAT)
+            dt_end = datetime.strptime(time_batch['datetime_end'], DATETIME_FORMAT)
+            n_iterations = (dt_end - dt_begin).total_seconds() / (int(time_batch['time_step']) * 60)
+            ticks *= n_iterations + 1
+            print (dt_end - dt_begin).total_seconds() / 60
+            print n_iterations
+            print ticks
                 
         diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), 
                                  auto_start=True, 
                                  progress_indicator='Processing:', 
-                                 total_ticks=n_points/PRINT_EVERY_N_LINES)
+                                 total_ticks=ticks)
         diag.exec_()
         
         ### cleanup and QGIS operations after OTP is done ###

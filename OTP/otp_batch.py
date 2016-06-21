@@ -166,7 +166,7 @@ class OTPEvaluation(object):
             do_aggregate = True
         elif mode in ACCUMULATION_MODES:
             header += [field + '_accumulated']
-            do_accumulate = True                 
+            do_accumulate = True       
         
         out_csv = self.otp.createCSVOutput()
         out_csv.setHeader(header)
@@ -182,18 +182,17 @@ class OTPEvaluation(object):
                 origin_id = result_set.getSource().getStringData(oid)          
                 origin_ids = [origin_id for x in range(len(times))]  
                 dest_ids = result_set.getStringData(did)     
-            
-            boardings = result_set.getBoardings()
-            walk_distances = result_set.getWalkDistances()
-            starts = result_set.getStartTimes()
-            arrivals = result_set.getArrivalTimes()                        
-            
+             
             if do_aggregate:
                 result_set.setAggregationMode(mode)
                 aggregated = result_set.aggregate(params)
-                out_csv.addRow([origin_id, aggregated]) 
+                out_csv.addRow([origin_id, aggregated])  
             
-            else:          
+            else:            
+                boardings = result_set.getBoardings()
+                walk_distances = result_set.getWalkDistances()
+                starts = result_set.getStartTimes()
+                arrivals = result_set.getArrivalTimes()     
                 if bestof is not None:
                     indices = [t[0] for t in sorted(enumerate(times), key=lambda x:x[1])]
                     indices = indices[:bestof]
@@ -289,15 +288,15 @@ if __name__ == '__main__':
     arrive_by = times.getElementsByTagName('arrive_by')[0].firstChild.data == 'True'
     time_batch = times.getElementsByTagName('time_batch')
     if len(time_batch) > 0 and time_batch[0].getElementsByTagName('active')[0].firstChild.data == 'True':
-       dt_end = time_batch[0].getElementsByTagName('datetime_end')[0].firstChild.data
-       date_time_end = datetime.strptime(dt_end, DATETIME_FORMAT)
-       time_step = int(time_batch[0].getElementsByTagName('time_step')[0].firstChild.data)
-       
-       dt = date_times[0]
-       step_delta = timedelta(0, time_step * 60) # days, seconds ...
-       while dt < date_time_end:
-           dt += step_delta
-           date_times.append(dt)        
+        dt_end = time_batch[0].getElementsByTagName('datetime_end')[0].firstChild.data
+        date_time_end = datetime.strptime(dt_end, DATETIME_FORMAT)
+        time_step = int(time_batch[0].getElementsByTagName('time_step')[0].firstChild.data)
+        
+        dt = date_times[0]
+        step_delta = timedelta(0, time_step * 60) # days, seconds ...
+        while dt < date_time_end:
+            dt += step_delta
+            date_times.append(dt)        
     
     # post processing
     postproc = config.getElementsByTagName('post_processing')[0]
@@ -318,7 +317,10 @@ if __name__ == '__main__':
             params = [float(x) for x in params.split(',')]
             field = agg_acc.getElementsByTagName('processed_field')[0].firstChild.data
             
+    # results will be stored 2 dimensional to determine to which time the results belong, flattened later
     results = []
+    
+    # iterate over all times
     for date_time in date_times:        
         otpEval = OTPEvaluation(router, print_every_n_lines)    
         otpEval.setup(date_time, 
@@ -329,12 +331,28 @@ if __name__ == '__main__':
                       clamp_wait=clamp_wait, 
                       banned=banned, 
                       modes=traverse_modes, 
-                      arrive_by=arrive_by)                    
+                      arrive_by=arrive_by)       
+        
+        
         
         if arrive_by:
-            results.extend(otpEval.evaluate_arrival(origins_csv, destinations_csv))        
+            results.append(otpEval.evaluate_arrival(origins_csv, destinations_csv))        
         else:
-            results.extend(otpEval.evaluate_departures(origins_csv, destinations_csv))
+            results.append(otpEval.evaluate_departures(origins_csv, destinations_csv))     
+    
+    # merge results over time, if aggregation or accumulation is requested
+    if mode is not None:
+        merged_results = []
+        for n_results_per_time in range(len(results[0])):
+            merged_result = results[0][n_results_per_time]
+            for n_times in range(1, len(results)):
+                res = results[n_times][n_results_per_time]
+                merged_result = merged_result.merge(res)
+            merged_results.append(merged_result)
+        results = merged_results
+    else:            
+        # flatten the results
+        results = [r for res in results for r in res] 
                 
     otpEval.results_to_csv(results, target_csv, oid, did, mode, field, params, bestof, arrive_by=arrive_by) 
         
