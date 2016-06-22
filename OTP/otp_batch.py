@@ -98,7 +98,7 @@ class OTPEvaluation(object):
             
             if spt is not None:
             
-                result_set = spt.getResultSet(destinations, field)   
+                result_set = spt.getResultSet(destinations)   
                 result_set.setSource(origin)
                 result_sets.append(result_set)                                
                 
@@ -131,7 +131,7 @@ class OTPEvaluation(object):
             spt = self.router.plan(self.request)            
              
             if spt is not None:
-                result_set = spt.getResultSet(origins, field)            
+                result_set = spt.getResultSet(origins)            
                 result_set.setSource(destination) 
                 result_sets.append(result_set)
              
@@ -179,7 +179,7 @@ class OTPEvaluation(object):
                     acc_result_set = result_set
                 else:
                     result_set.setAccumulationMode(mode)
-                    result_set.accumulate(acc_result_set, params)
+                    result_set.accumulate(acc_result_set, field, params)
                 continue
                     
             times = result_set.getTimes()
@@ -195,7 +195,7 @@ class OTPEvaluation(object):
              
             if do_aggregate:
                 result_set.setAggregationMode(mode)
-                aggregated = result_set.aggregate(params)
+                aggregated = result_set.aggregate(field, params)
                 out_csv.addRow([origin_id, aggregated])  
             
             else:            
