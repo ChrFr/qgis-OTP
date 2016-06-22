@@ -216,8 +216,8 @@ class OTPEvaluation(object):
         if do_accumulate:
             times = acc_result_set.getTimes()    
             origin_ids = acc_result_set.getStringData(oid)   
-            for time in times:
-                out_csv.addRow(origin_ids[j], time)
+            for i, time in enumerate(times):
+                out_csv.addRow([origin_ids[i], time])
             
         out_csv.save(target_csv)
         print 'results written to "{}"'.format(target_csv)  
