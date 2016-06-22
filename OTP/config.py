@@ -20,6 +20,34 @@ INFINITE = 1000000000 # represents indefinite in the UI, is quite small due to l
 # needed parameters for aggregation/accumulation modes (=keys) are listed here
 # order of parameters in list has to be the same, the specific mode requires them
 MODE_PARAMS = {
+    "DECAY_ACCUMULATOR": [
+        {
+            "label": "Halbwertszeit (min)",
+            "min": 1,
+            "max": 180 * 60,
+            "default": 1,
+            "step": 1,
+            "decimals": 0
+        },    
+        {
+            "label": "lambda",
+            "min": -10,
+            "max": 0,
+            "default": -0.1,
+            "step": 0.01,
+            "decimals": 2
+        }   
+    ],
+    "THRESHOLD_ACCUMULATOR": [
+        {
+            "label": "Schwellwert (sek)", # label of the param (UI only)
+            "min": 0, # minimum value
+            "max": 180 * 60, # maximum value
+            "default": 3600, # default value
+            "step": 1, # size of steps between values (default 1) 
+            "decimals": 0 # number of decimals (default 2)
+        }
+    ],
     "THRESHOLD_SUM_AGGREGATOR": [
         {
             "label": "Schwellwert (sek)",
@@ -28,7 +56,7 @@ MODE_PARAMS = {
             "default": 3600, 
             "step": 1,
             "decimals": 0
-        }        
+        } 
     ],
     "THRESHOLD_CUMMULATIVE_AGGREGATOR": [
         {
@@ -39,7 +67,7 @@ MODE_PARAMS = {
             "step": 1, # size of steps between values (default 1) 
             "decimals": 0 # number of decimals (default 2)
         }
-        ],
+    ],
     "DECAY_AGGREGATOR": [
         {
             "label": "Schwellwert (sek)",
