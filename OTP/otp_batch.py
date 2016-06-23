@@ -118,20 +118,20 @@ class OTPEvaluation(object):
         origins_csv: file with origin points
         destinations_csv: file with destination points
         '''   
-        origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
-        destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)        
+        self.origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
+        self.destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)        
      
         i = -1       
         result_sets=[]
          
-        for i, destination in enumerate(destinations):
+        for i, destination in enumerate(self.destinations):
              
             # Set the origin of the request to this point and run a search
             self.request.setDestination(destination)
             spt = self.router.plan(self.request)            
              
             if spt is not None:
-                result_set = spt.getResultSet(origins)            
+                result_set = spt.getResultSet(self.origins)            
                 result_set.setSource(destination) 
                 result_sets.append(result_set)
              
@@ -170,7 +170,14 @@ class OTPEvaluation(object):
         
         out_csv = self.otp.createCSVOutput()
         out_csv.setHeader(header)
-        acc_result_set = None
+        
+        if do_accumulate:
+            acc_result_set = self.destinations.getEmptyResultSet()
+            
+        def sorter(a):
+            if a[1] is None:
+                return Long.MAX_VALUE
+            return a[1]
         
         for result_set in result_sets: 
                 
@@ -204,17 +211,17 @@ class OTPEvaluation(object):
                 starts = result_set.getStartTimes()
                 arrivals = result_set.getArrivalTimes()     
                 if bestof is not None:
-                    indices = [t[0] for t in sorted(enumerate(times), key=lambda x:x[1])]
+                    indices = [t[0] for t in sorted(enumerate(times), key=sorter)]
                     indices = indices[:bestof]
                 else:
                     indices = range(len(times))
                 for j in indices:
                     time = times[j]
-                    if time < Double.MAX_VALUE:
+                    if time is not None:
                         out_csv.addRow([origin_ids[j], dest_ids[j], times[j], starts[j], arrivals[j], boardings[j], walk_distances[j]])
         
         if do_accumulate:
-            times = acc_result_set.getTimes()    
+            results = acc_result_set.getTimes()
             origin_ids = acc_result_set.getStringData(oid)   
             for i, time in enumerate(times):
                 out_csv.addRow([origin_ids[i], time])

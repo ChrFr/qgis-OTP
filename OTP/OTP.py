@@ -154,10 +154,10 @@ class OTP:
         # set active tab (aggregation or accumulation depending on arrival checkbox)
         self.dlg.arrival_checkbox.clicked.connect(self.toggle_arrival)
         
-        self.dlg.start_orig_dest_button.clicked.connect(lambda: self.call_otp(ORIGIN_DESTINATION))
-        self.dlg.start_aggregation_button.clicked.connect(lambda: self.call_otp(AGGREGATION))     
-        self.dlg.start_reachability_button.clicked.connect(lambda: self.call_otp(REACHABILITY))    
-        self.dlg.start_accumulation_button.clicked.connect(lambda: self.call_otp(ACCUMULATION))    
+        self.dlg.start_orig_dest_button.clicked.connect(self.start_origin_destination)
+        self.dlg.start_aggregation_button.clicked.connect(self.start_aggregation)
+        self.dlg.start_reachability_button.clicked.connect(self.start_reachability)
+        self.dlg.start_accumulation_button.clicked.connect(self.start_accumulation)
          
         self.dlg.close_button.clicked.connect(self.close) #ToDo: save on close
         
@@ -632,14 +632,13 @@ class OTP:
                     edit.setDecimals(param["decimals"])
                 edit_layout.addRow(label, edit)
                 
-    def get_mode_params(self, result_mode):
+    def get_widget_values(self, layout):
+        '''
+        returns all currently set values in child widgets of given layout
+        '''
         params = []
-        if result_mode == AGGREGATION:
-            edit_layout = self.dlg.aggregation_value_edit
-        else:
-            edit_layout = self.dlg.accumulation_value_edit     
-        for i in range(edit_layout.count()):
-            widget = edit_layout.itemAt(i).widget()
+        for i in range(layout.count()):
+            widget = layout.itemAt(i).widget()
             if isinstance(widget, QDoubleSpinBox):
                 params.append(str(widget.value()))
         return params
@@ -647,10 +646,12 @@ class OTP:
     def start_origin_destination(self): 
         # update postprocessing settings
         postproc = config.settings['post_processing']
-        bestof = ''
+        agg_acc = postproc['aggregation_accumulation'] 
+        agg_acc['active'] = False  
+        best_of = ''
         if self.dlg.bestof_check.isChecked():
-            bestof = self.dlg.bestof_edit.value()
-        postproc['best_of'] = bestof          
+            best_of = self.dlg.bestof_edit.value()
+        postproc['best_of'] = best_of          
         if self.dlg.orig_dest_csv_check.checkState():
             target_file = self.dlg.orig_dest_file_edit.text()
         else:
@@ -660,11 +661,13 @@ class OTP:
         
     def start_aggregation(self):
         # update postprocessing settings
-        agg_acc = config.settings['post_processing']['aggregation_accumulation'] 
+        postproc = config.settings['post_processing']
+        postproc['best_of'] = ''          
+        agg_acc = postproc['aggregation_accumulation'] 
         agg_acc['active'] = True            
         agg_acc['mode'] = self.dlg.aggregation_mode_combo.currentText() 
         agg_acc['processed_field'] = self.dlg.aggregation_field_combo.currentText()    
-        agg_acc['params'] = self.get_mode_params(result_mode)
+        agg_acc['params'] = self.get_widget_values(self.dlg.aggregation_value_edit)
         
         if self.dlg.aggregation_csv_check.checkState():
             target_file = self.dlg.aggregation_file_edit.text()
@@ -676,11 +679,13 @@ class OTP:
         
     def start_accumulation(self):
         # update postprocessing settings   
-        agg_acc = config.settings['post_processing']['aggregation_accumulation']
+        postproc = config.settings['post_processing']
+        postproc['best_of'] = ''          
+        agg_acc = postproc['aggregation_accumulation'] 
         agg_acc['active'] = True            
         agg_acc['mode'] = self.dlg.accumulation_mode_combo.currentText() 
         agg_acc['processed_field'] = self.dlg.accumulation_field_combo.currentText()    
-        agg_acc['params'] = self.get_mode_params(result_mode)
+        agg_acc['params'] = self.get_widget_values(self.dlg.accumulation_value_edit)
         
         if self.dlg.accumulation_csv_check.checkState():
             target_file = self.dlg.accumulation_file_edit.text()
@@ -692,22 +697,24 @@ class OTP:
         
     def start_reachability(self):        
         # update postprocessing settings
-        agg_acc = config.settings['post_processing']['aggregation_accumulation']
+        postproc = config.settings['post_processing']
+        postproc['best_of'] = ''          
+        agg_acc = postproc['aggregation_accumulation'] 
         agg_acc['active'] = True      
         
-        destination_layer = self.layer_list[self.dlg.destinations_combo.currentIndex()]            
+        temp_dest_layer = self.layer_list[self.dlg.destinations_combo.currentIndex()]            
         # duplicate destination layer
-        destination_layer = self.iface.addVectorLayer(destination_layer.source(), 
-                                                      destination_layer.name(), 
-                                                      destination_layer.providerType())
+        temp_dest_layer = self.iface.addVectorLayer(temp_dest_layer.source(), 
+                                                    temp_dest_layer.name(), 
+                                                    temp_dest_layer.providerType())
         # add virtual field with 1s as values
         reach_field_name = 'erreichbare_Ziele'
         agg_acc['mode'] = CALC_REACHABILITY_MODE       
         # field already exists -> try to take unique name
-        if destination_layer.fieldNameIndex(reach_field_name) > -1:
+        if temp_dest_layer.fieldNameIndex(reach_field_name) > -1:
             reach_field_name += '_' + now_string
         reach_field = QgsField(reach_field_name, QVariant.Int)
-        destination_layer.addExpressionField('1', reach_field)
+        temp_dest_layer.addExpressionField('1', reach_field)
         agg_acc['processed_field'] = reach_field_name   
         # take the set max travel time as the threshold (in seconds)
         threshold = int(config.settings['router_config']['maxTimeMin']) * 60
@@ -719,7 +726,10 @@ class OTP:
             target_file = None
             
         do_join = self.dlg.reachability_join_check.isChecked() 
-        self.call_otp(target_file=target_file, destination_layer=destination_layer, join_results=do_join)  
+        self.call_otp(target_file=target_file, destination_layer=temp_dest_layer, join_results=do_join)  
+        
+        #remove temporary layer
+        QgsMapLayerRegistry.instance().removeMapLayer(temp_dest_layer.id())   
         
     def call_otp(self, target_file=None, origin_layer=None, destination_layer=None, add_results=False, join_results=False):   
         now_string = datetime.now().strftime(DATETIME_FORMAT)
@@ -833,21 +843,14 @@ class OTP:
                                  total_ticks=ticks)
         diag.exec_()
         
-        ### cleanup and QGIS operations after OTP is done ###
+        ### cleanup and QGIS operations after OTP is done ### 
         
-        # remove temporary duplicated layer
-        if result_mode == REACHABILITY: 
-            QgsMapLayerRegistry.instance().removeMapLayer(destination_layer.id())            
-              
-            
         if not add_results and not join_results:
             # tmp files are no longer needed, if not added to qgis
             shutil.rmtree(tmp_dir) 
         else:
             layer_name = 'results-{}-{}'.format(self.dlg.router_combo.currentText(),
                                                    self.dlg.origins_combo.currentText())
-            if result_mode == AGGREGATION:
-                layer_name += '-aggregiert'
             layer_name += '-' + now_string
             result_layer = self.iface.addVectorLayer(target_file, 
                                                      layer_name, 
