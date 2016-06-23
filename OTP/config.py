@@ -11,6 +11,7 @@ GRAPH_PATH='/home/ggr/gis/otp_graphs'
 LATITUDE_COLUMN = 'Y'
 LONGITUDE_COLUMN = 'X'
 ID_COLUMN = 'id'
+VM_MEMORY_RESERVED = 3
 DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S"
 AGGREGATION_MODES = ["THRESHOLD_SUM_AGGREGATOR", "WEIGHTED_AVERAGE_AGGREGATOR", "THRESHOLD_CUMMULATIVE_AGGREGATOR", "DECAY_AGGREGATOR"]
 CALC_REACHABILITY_MODE = "THRESHOLD_SUM_AGGREGATOR" # agg. mode that is used to calculate number of reachable destinations (note: threshold is taken from set max travel time)

@@ -184,10 +184,24 @@ class ExecCommandDialog(ProgressDialog):
             err = str(self.process.readAllStandardError())
             if len(out):                 
                 self.show_status(out)
-                if total_ticks and out.startswith(progress_indicator):
-                    self.ticks += 100. / total_ticks
-                    self.progress_bar.setValue(min(100, int(self.ticks)))            
-                
+                if out.startswith(progress_indicator):
+                    if(total_ticks):
+                        self.ticks += 100. / total_ticks
+                        self.progress_bar.setValue(min(100, int(self.ticks)))       
+                        
+                '''  this approach shows progress more accurately, but may cause extreme lags -> deactivated (alternative: thread this)
+                if out.startswith(progress_indicator):
+                    # sometimes the stdout comes in too fast, you have to split it (don't split other than progress messages, warnings tend to be very long with multiple breaks, bad performance)
+                    for out_split in out.split("\n"):    
+                        if (len(out_split) == 0):
+                            continue
+                        self.show_status(out_split)                        
+                        if(total_ticks and out_split.startswith(progress_indicator)):
+                            self.ticks += 100. / total_ticks
+                            self.progress_bar.setValue(min(100, int(self.ticks)))       
+                else:                  
+                    self.show_status(out)                                        
+                '''
             if len(err): self.show_status(err)
             
         self.process.readyReadStandardOutput.connect(show_progress)

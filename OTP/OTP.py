@@ -34,7 +34,8 @@ from OTP_dialog import OTPDialog
 import os
 from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES, 
-                    MODE_PARAMS, DEFAULT_FILE, CALC_REACHABILITY_MODE, Config)
+                    MODE_PARAMS, DEFAULT_FILE, CALC_REACHABILITY_MODE, 
+                    VM_MEMORY_RESERVED, Config)
 from dialogs import ExecCommandDialog, set_file
 from qgis._core import (QgsVectorLayer, QgsVectorJoinInfo, 
                         QgsCoordinateReferenceSystem, QgsField)
@@ -56,7 +57,7 @@ ACCUMULATION = 2
 REACHABILITY = 3
 
 # how many results are written while running batch script
-PRINT_EVERY_N_LINES = 5
+PRINT_EVERY_N_LINES = 50
 
 XML_FILTER = u'XML-Dateien (*.xml)'
 CSV_FILTER = u'CSV-Dateien (*.csv)'
@@ -189,15 +190,20 @@ class OTP:
             self.dlg.mode_list_view.setItemWidget(item, checkbox) 
            
         # combobox with modes
+        
         self.dlg.aggregation_mode_combo.addItems(AGGREGATION_MODES)
-        self.set_mode_params(AGGREGATION)
-        self.dlg.aggregation_mode_combo.currentIndexChanged.connect(
-            lambda: self.set_mode_params(AGGREGATION))   
+        mode_combo = self.dlg.aggregation_mode_combo
+        layout = self.dlg.aggregation_value_edit
+        self.set_mode_params(mode_combo, layout)
+        mode_combo.currentIndexChanged.connect(
+            lambda: self.set_mode_params(mode_combo, layout))   
         
         self.dlg.accumulation_mode_combo.addItems(ACCUMULATION_MODES)
-        self.set_mode_params(ACCUMULATION)
-        self.dlg.aggregation_mode_combo.currentIndexChanged.connect(
-            lambda: self.set_mode_params(ACCUMULATION))       
+        mode_combo = self.dlg.accumulation_mode_combo
+        layout = self.dlg.accumulation_value_edit
+        self.set_mode_params(mode_combo, layout)
+        mode_combo.currentIndexChanged.connect(
+            lambda: self.set_mode_params(mode_combo, layout))   
         
         # router
         self.fill_router_combo()
@@ -601,13 +607,8 @@ class OTP:
             id_combo.addItem(field.name())
         id_combo.setCurrentIndex(old_idx)
         
-    def set_mode_params(self, result_mode):
-        if result_mode == AGGREGATION:
-            selected = self.dlg.aggregation_mode_combo.currentText()
-            edit_layout = self.dlg.aggregation_value_edit
-        else:
-            selected = self.dlg.accumulation_mode_combo.currentText()
-            edit_layout = self.dlg.accumulation_value_edit     
+    def set_mode_params(self, mode_combo, edit_layout):
+        selected = mode_combo.currentText()  
         
         # clear layout
         for i in reversed(range(edit_layout.count())):
@@ -802,7 +803,8 @@ class OTP:
             return    
         
         # basic cmd is same for all evaluations
-        cmd = '''jython -Dpython.path="{jar}" {wd}/otp_batch.py 
+        cmd = '''jython -J-Xmx{ram_GB}G -Dpython.path="{jar}" 
+        {wd}/otp_batch.py         
         --config "{config_xml}" 
         --origins "{origins}" --destinations "{destinations}" 
         --target "{target}" --nlines {nlines}'''
@@ -810,6 +812,7 @@ class OTP:
         cmd = cmd.format(
             jar=OTP_JAR, 
             wd=working_dir, 
+            ram_GB=VM_MEMORY_RESERVED,
             config_xml = config_xml,
             origins=orig_tmp_filename, 
             destinations=dest_tmp_filename, 

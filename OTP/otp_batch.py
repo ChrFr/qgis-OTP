@@ -15,8 +15,7 @@ from config import (GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN,
                     ACCUMULATION_MODES, INFINITE)
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
-from java.lang import Double
-from java.lang import Long
+import sys
 from xml.dom import minidom
 
 class OTPEvaluation(object):
@@ -172,11 +171,11 @@ class OTPEvaluation(object):
         out_csv.setHeader(header)
         
         if do_accumulate:
-            acc_result_set = self.destinations.getEmptyResultSet()
+            acc_result_set = self.origins.getEmptyResultSet()
             
         def sorter(a):
             if a[1] is None:
-                return Long.MAX_VALUE
+                return sys.maxint
             return a[1]
         
         for result_set in result_sets: 
@@ -221,10 +220,10 @@ class OTPEvaluation(object):
                         out_csv.addRow([origin_ids[j], dest_ids[j], times[j], starts[j], arrivals[j], boardings[j], walk_distances[j]])
         
         if do_accumulate:
-            results = acc_result_set.getTimes()
+            results = acc_result_set.getResults()
             origin_ids = acc_result_set.getStringData(oid)   
-            for i, time in enumerate(times):
-                out_csv.addRow([origin_ids[i], time])
+            for i, res in enumerate(results):
+                out_csv.addRow([origin_ids[i], res])
             
         out_csv.save(target_csv)
         print 'results written to "{}"'.format(target_csv)  
