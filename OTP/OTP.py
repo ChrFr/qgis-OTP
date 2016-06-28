@@ -211,6 +211,11 @@ class OTP:
         # calendar
         self.dlg.calendar_edit.clicked.connect(self.set_date)
         
+        def set_now():
+            self.dlg.calendar_edit.setSelectedDate(datetime.now())
+            self.set_date() # no idea how to manually emit "clicked"-signal, so calling connected function directly
+        self.dlg.date_now_button.clicked.connect(set_now)
+        
         # time_step
         self.dlg.time_batch_checkbox.clicked.connect(self.toggle_time_batch)
               
