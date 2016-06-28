@@ -151,6 +151,7 @@ setting_struct = OrderedDict([
     }),
     ('post_processing', {
         'best_of': '',
+        'details': False,
         'aggregation_accumulation': {
             'active': False,
             'mode': '',

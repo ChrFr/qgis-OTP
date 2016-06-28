@@ -28,10 +28,11 @@ class OTPEvaluation(object):
     router: name of the router to use for trip planning
     print_every_n_lines: optional, determines how often progress in processing origins/destination is written to stdout (default: 50)
     '''   
-    def __init__(self, router, print_every_n_lines = 50):
+    def __init__(self, router, print_every_n_lines = 50, calculate_details = False):
         self.otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router])
         self.router = self.otp.getRouter()
         self.request = self.otp.createRequest()
+        self.calculate_details = calculate_details
     
     def setup(self, date_time, max_time=1800, max_walk=None, walk_speed=None, bike_speed=None, clamp_wait=None, banned='', modes=None, arrive_by=False):
         '''
@@ -97,7 +98,7 @@ class OTPEvaluation(object):
             
             if spt is not None:
             
-                result_set = spt.getResultSet(destinations)   
+                result_set = spt.getResultSet(destinations, self.calculate_details)   
                 result_set.setSource(origin)
                 result_sets.append(result_set)                                
                 
@@ -130,7 +131,7 @@ class OTPEvaluation(object):
             spt = self.router.plan(self.request)            
              
             if spt is not None:
-                result_set = spt.getResultSet(self.origins)            
+                result_set = spt.getResultSet(self.origins, self.calculate_details)            
                 result_set.setSource(destination) 
                 result_sets.append(result_set)
              
@@ -328,6 +329,9 @@ if __name__ == '__main__':
     else:
         bestof = None
         
+    details = postproc.getElementsByTagName('details')[0].firstChild.data
+    calculate_details = details == 'True' # avoid error if key does not exist or data is empty
+        
     mode = field = params = None
     agg_acc = postproc.getElementsByTagName('aggregation_accumulation')
     if len(agg_acc) > 0:  # avoid error if key does not exist
@@ -346,7 +350,7 @@ if __name__ == '__main__':
     
     # iterate over all times
     for date_time in date_times:        
-        otpEval = OTPEvaluation(router, print_every_n_lines)    
+        otpEval = OTPEvaluation(router, print_every_n_lines, calculate_details)    
         otpEval.setup(date_time, 
                       max_time=max_time, 
                       max_walk=max_walk, 

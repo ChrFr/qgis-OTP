@@ -658,6 +658,8 @@ class OTP:
         if self.dlg.bestof_check.isChecked():
             best_of = self.dlg.bestof_edit.value()
         postproc['best_of'] = best_of          
+        details = self.dlg.details_check.isChecked()
+        postproc['details'] = details
         if self.dlg.orig_dest_csv_check.checkState():
             target_file = self.dlg.orig_dest_file_edit.text()
         else:
@@ -669,6 +671,7 @@ class OTP:
         # update postprocessing settings
         postproc = config.settings['post_processing']
         postproc['best_of'] = ''          
+        postproc['details'] = False
         agg_acc = postproc['aggregation_accumulation'] 
         agg_acc['active'] = True            
         agg_acc['mode'] = self.dlg.aggregation_mode_combo.currentText() 
@@ -686,7 +689,8 @@ class OTP:
     def start_accumulation(self):
         # update postprocessing settings   
         postproc = config.settings['post_processing']
-        postproc['best_of'] = ''          
+        postproc['best_of'] = ''        
+        postproc['details'] = False    
         agg_acc = postproc['aggregation_accumulation'] 
         agg_acc['active'] = True            
         agg_acc['mode'] = self.dlg.accumulation_mode_combo.currentText() 
@@ -704,7 +708,8 @@ class OTP:
     def start_reachability(self):        
         # update postprocessing settings
         postproc = config.settings['post_processing']
-        postproc['best_of'] = ''          
+        postproc['best_of'] = ''       
+        postproc['details'] = False     
         agg_acc = postproc['aggregation_accumulation'] 
         agg_acc['active'] = True      
         
