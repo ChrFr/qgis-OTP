@@ -123,6 +123,41 @@
          <string>Routing zwischen Quellen und Zielen (Ankunft oder Abfahrt)</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_2">
+         <item row="9" column="2">
+          <widget class="QPushButton" name="orig_dest_browse_button">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>23</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Zieldatei für Ergebnisse wählen</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+         <item row="11" column="0">
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
          <item row="3" column="0">
           <layout class="QHBoxLayout" name="horizontalLayout_2">
            <item>
@@ -160,29 +195,20 @@
            </item>
           </layout>
          </item>
-         <item row="8" column="2">
-          <widget class="QPushButton" name="orig_dest_browse_button">
+         <item row="9" column="0" colspan="2">
+          <widget class="QLineEdit" name="orig_dest_file_edit">
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>23</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>30</width>
-             <height>16777215</height>
+             <height>20</height>
             </size>
            </property>
            <property name="toolTip">
-            <string>Zieldatei für Ergebnisse wählen</string>
-           </property>
-           <property name="text">
-            <string>...</string>
+            <string>Speicherort</string>
            </property>
           </widget>
          </item>
-         <item row="9" column="0">
+         <item row="10" column="0">
           <spacer name="verticalSpacer_8">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
@@ -198,55 +224,13 @@
            </property>
           </spacer>
          </item>
-         <item row="8" column="0" colspan="2">
-          <widget class="QLineEdit" name="orig_dest_file_edit">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>20</height>
-            </size>
-           </property>
+         <item row="7" column="0" colspan="2">
+          <widget class="QCheckBox" name="orig_dest_csv_check">
            <property name="toolTip">
-            <string>Speicherort</string>
-           </property>
-          </widget>
-         </item>
-         <item row="10" column="0">
-          <spacer name="horizontalSpacer_3">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item row="10" column="1" colspan="2">
-          <widget class="QPushButton" name="start_orig_dest_button">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>23</height>
-            </size>
-           </property>
-           <property name="toolTip">
-            <string>Berechnungen starten</string>
+            <string>Ergebnisse werden am gewählten Ort gespeichert (inkl. xml mit den genutzten Einstellungen im selben Ordner!)</string>
            </property>
            <property name="text">
-            <string>Berechnen</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0" colspan="2">
-          <widget class="QCheckBox" name="bestof_check">
-           <property name="toolTip">
-            <string>nur die n besten Ergebnisse je Quelle werden ausgegeben</string>
-           </property>
-           <property name="text">
-            <string>nur die n besten Ergebnisse</string>
+            <string>Ergebnisse als CSV speichern</string>
            </property>
           </widget>
          </item>
@@ -263,6 +247,32 @@
            </property>
           </widget>
          </item>
+         <item row="2" column="0" colspan="2">
+          <widget class="QCheckBox" name="bestof_check">
+           <property name="toolTip">
+            <string>nur die n besten Ergebnisse je Quelle werden ausgegeben</string>
+           </property>
+           <property name="text">
+            <string>nur die n besten Ergebnisse</string>
+           </property>
+          </widget>
+         </item>
+         <item row="11" column="1" colspan="2">
+          <widget class="QPushButton" name="start_orig_dest_button">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>23</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Berechnungen starten</string>
+           </property>
+           <property name="text">
+            <string>Berechnen</string>
+           </property>
+          </widget>
+         </item>
          <item row="4" column="0">
           <spacer name="verticalSpacer_4">
            <property name="orientation">
@@ -275,16 +285,6 @@
             </size>
            </property>
           </spacer>
-         </item>
-         <item row="7" column="0" colspan="2">
-          <widget class="QCheckBox" name="orig_dest_csv_check">
-           <property name="toolTip">
-            <string>Ergebnisse werden am gewählten Ort gespeichert (inkl. xml mit den genutzten Einstellungen im selben Ordner!)</string>
-           </property>
-           <property name="text">
-            <string>Ergebnisse als CSV speichern</string>
-           </property>
-          </widget>
          </item>
          <item row="0" column="0" colspan="3">
           <widget class="QLabel" name="label_26">
@@ -316,6 +316,16 @@
             </size>
            </property>
           </spacer>
+         </item>
+         <item row="8" column="0">
+          <widget class="QCheckBox" name="details_check">
+           <property name="toolTip">
+            <string>zeigt Routendetails in den Ergebnissen an (inkl. Start-, Endzeiten etc.) -&gt; benötigt mehr Rechenzeit</string>
+           </property>
+           <property name="text">
+            <string>Details ausgeben</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
