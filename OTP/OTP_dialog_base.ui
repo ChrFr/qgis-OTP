@@ -738,41 +738,6 @@
          <string>Berechnung wieviele Ziele je Quelle erreichbar sind</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_9">
-         <item row="4" column="2">
-          <widget class="QPushButton" name="reachability_browse_button">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>23</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>30</width>
-             <height>16777215</height>
-            </size>
-           </property>
-           <property name="toolTip">
-            <string>Zieldatei für Ergebnisse wählen</string>
-           </property>
-           <property name="text">
-            <string>...</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="0" colspan="2">
-          <widget class="QLineEdit" name="reachability_file_edit">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>20</height>
-            </size>
-           </property>
-           <property name="toolTip">
-            <string>Speicherort</string>
-           </property>
-          </widget>
-         </item>
          <item row="6" column="1" colspan="2">
           <widget class="QPushButton" name="start_reachability_button">
            <property name="minimumSize">
@@ -786,16 +751,6 @@
            </property>
            <property name="text">
             <string>Berechnen</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0" colspan="2">
-          <widget class="QCheckBox" name="reachability_csv_check">
-           <property name="toolTip">
-            <string>Ergebnisse werden am gewählten Ort gespeichert (inkl. xml mit den genutzten Einstellungen im selben Ordner!)</string>
-           </property>
-           <property name="text">
-            <string>Ergebnisse als CSV speichern</string>
            </property>
           </widget>
          </item>
@@ -868,6 +823,51 @@
            </property>
           </widget>
          </item>
+         <item row="4" column="2">
+          <widget class="QPushButton" name="reachability_browse_button">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>23</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Zieldatei für Ergebnisse wählen</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0" colspan="2">
+          <widget class="QCheckBox" name="reachability_csv_check">
+           <property name="toolTip">
+            <string>Ergebnisse werden am gewählten Ort gespeichert (inkl. xml mit den genutzten Einstellungen im selben Ordner!)</string>
+           </property>
+           <property name="text">
+            <string>Ergebnisse als CSV speichern</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0" colspan="2">
+          <widget class="QLineEdit" name="reachability_file_edit">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Speicherort</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </widget>
@@ -906,7 +906,7 @@
    <item row="1" column="0">
     <widget class="QTabWidget" name="tabWidget_2">
      <property name="toolTip">
-      <string>Einstellungen für Routing und Eingangsdaten</string>
+      <string/>
      </property>
      <property name="currentIndex">
       <number>0</number>
@@ -1109,7 +1109,7 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="0">
+       <item row="6" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_5">
          <item>
           <widget class="QCheckBox" name="time_batch_checkbox">
@@ -1162,7 +1162,7 @@
          </item>
         </layout>
        </item>
-       <item row="3" column="0">
+       <item row="5" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <item>
           <widget class="QLabel" name="label_5">
@@ -1223,6 +1223,30 @@
             </size>
            </property>
           </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="3" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <item>
+          <spacer name="horizontalSpacer_10">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="date_now_button">
+           <property name="text">
+            <string>jetzt</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
