@@ -8,15 +8,15 @@ from collections import OrderedDict
 
 OTP_JAR='/opt/repos/OpenTripPlanner/target/otp-0.20.0-SNAPSHOT-shaded.jar'
 GRAPH_PATH='/home/ggr/gis/otp_graphs'
-LATITUDE_COLUMN = 'Y'
-LONGITUDE_COLUMN = 'X'
-ID_COLUMN = 'id'
-VM_MEMORY_RESERVED = 3
-DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S"
+LATITUDE_COLUMN = 'Y' # field-name used for storing lat values in csv files
+LONGITUDE_COLUMN = 'X' # field-name used for storing lon values in csv files
+ID_COLUMN = 'id' # field-name used for storing the ids in csv files
+VM_MEMORY_RESERVED = 3 # max. memory the virtual machine running OTP can allocate
+DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S" # format of time stored in csv files
 AGGREGATION_MODES = ["THRESHOLD_SUM_AGGREGATOR", "WEIGHTED_AVERAGE_AGGREGATOR", "THRESHOLD_CUMMULATIVE_AGGREGATOR", "DECAY_AGGREGATOR"]
 CALC_REACHABILITY_MODE = "THRESHOLD_SUM_AGGREGATOR" # agg. mode that is used to calculate number of reachable destinations (note: threshold is taken from set max travel time)
 ACCUMULATION_MODES = ["DECAY_ACCUMULATOR", "THRESHOLD_ACCUMULATOR"]
-INFINITE = 1000000000 # represents indefinite in the UI, is quite small due to limitations of pyqt spin boxes
+INFINITE = 2147483647 # represents indefinite values in the UI, pyqt spin boxes limit this to max int32
 
 # needed parameters for aggregation/accumulation modes (=keys) are listed here
 # order of parameters in list has to be the same, the specific mode requires them
@@ -111,7 +111,8 @@ AVAILABLE_TRAVERSE_MODES = [
 #DEFAULT_FILE = os.path.join(os.path.split((sys.argv)[0])[0], "otp_config.xml")
 DEFAULT_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "otp_config.xml")
 
-# structure of config-object, composition of xml is the same, contains default values 
+# structure of config-object, composition of xml is the same
+# contains the DEFAULT values as presets for the UI
 setting_struct = OrderedDict([
     ('origin', {
         'layer': '',
@@ -133,21 +134,18 @@ setting_struct = OrderedDict([
     ('router_config', {
         'router': '', 
         'traverse_modes': [
-            'BUS',
-            'BUSISH',
-            'RAIL',
-            'SUBWAY',
-            'TRAINISH',
-            'TRAM',
             'TRANSIT',
             'WALK'
         ],
-        'maxWalkDistance': INFINITE,
-        'bikeSpeed': 5,
-        'walkSpeed': 1.33,
-        'clampInitialWaitSec': -1,
-        'maxTimeMin': INFINITE,
-        'banned_routes': []
+        'max_walk_distance': INFINITE,
+        'bike_speed': 5,
+        'walk_speed': 1.33,
+        'clamp_initial_wait_min': -1,
+        'max_time_min': 7200,
+        'pre_transit_time_min': 30,
+        'max_transfers': 5,
+        'wheel_chair_accessible': False,
+        'max_slope': 0.0833333333333
     }),
     ('post_processing', {
         'best_of': '',

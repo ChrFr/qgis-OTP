@@ -384,15 +384,16 @@ class OTP:
         idx = max(self.dlg.router_combo.findText(router_config['router']), 0)
         self.dlg.router_combo.setCurrentIndex(idx)    
         
-        self.dlg.max_time_edit.setValue(int(router_config['maxTimeMin']))
-        self.dlg.max_walk_dist_edit.setValue(int(router_config['maxWalkDistance']))
-        self.dlg.walk_speed_edit.setValue(float(router_config['walkSpeed']))
-        self.dlg.bike_speed_edit.setValue(float(router_config['bikeSpeed']))
-        self.dlg.clamp_edit.setValue(int(router_config['clampInitialWaitSec']))    
-        banned = router_config['banned_routes']
-        if isinstance(banned, list):
-            banned = ','.join(banned)
-        self.dlg.banned_routes_edit.setText(banned)            
+        self.dlg.max_time_edit.setValue(int(router_config['max_time_min']))
+        self.dlg.max_walk_dist_edit.setValue(int(router_config['max_walk_distance']))
+        self.dlg.walk_speed_edit.setValue(float(router_config['walk_speed']))
+        self.dlg.bike_speed_edit.setValue(float(router_config['bike_speed']))
+        self.dlg.clamp_edit.setValue(int(router_config['clamp_initial_wait_min']))   
+        self.dlg.transfers_edit.setValue(int(router_config['max_transfers']))    
+        self.dlg.pre_transit_edit.setValue(int(router_config['pre_transit_time_min'])) 
+        wheelchair = router_config['wheel_chair_accessible'] == 'True' or router_config['wheel_chair_accessible'] == True  
+        self.dlg.wheelchair_check.setChecked(wheelchair)   
+        self.dlg.max_slope_edit.setValue(float(router_config['max_slope']))   
                     
         # TRAVERSE MODES    
         modes = router_config['traverse_modes']
@@ -441,18 +442,20 @@ class OTP:
         # ROUTER
         router_config = config.settings['router_config']
         router_config['router'] = self.dlg.router_combo.currentText()
-        router_config['maxTimeMin'] = self.dlg.max_time_edit.value()
-        router_config['maxWalkDistance'] = self.dlg.max_walk_dist_edit.value()      
-        router_config['walkSpeed'] = self.dlg.walk_speed_edit.value()      
-        router_config['bikeSpeed'] = self.dlg.bike_speed_edit.value()   
-        router_config['clampInitialWaitSec'] = self.dlg.clamp_edit.value() 
-        router_config['banned_routes'] = self.dlg.banned_routes_edit.text().split(',')        
+        router_config['max_time_min'] = self.dlg.max_time_edit.value()
+        router_config['max_walk_distance'] = self.dlg.max_walk_dist_edit.value()      
+        router_config['walk_speed'] = self.dlg.walk_speed_edit.value()      
+        router_config['bike_speed'] = self.dlg.bike_speed_edit.value()   
+        router_config['max_transfers'] = self.dlg.transfers_edit.value() 
+        router_config['pre_transit_time_min'] = self.dlg.pre_transit_edit.value() 
+        router_config['wheel_chair_accessible'] = self.dlg.wheelchair_check.isChecked() 
+        router_config['max_slope'] = self.dlg.max_slope_edit.value()      
                 
         # TRAVERSE MODES    
         selected_modes = []
         for index in xrange(self.dlg.mode_list_view.count()):
             checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
-            if checkbox.checkState():
+            if checkbox.isChecked():
                 selected_modes.append(str(checkbox.text()))   
         router_config['traverse_modes'] = selected_modes
         

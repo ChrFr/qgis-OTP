@@ -34,13 +34,17 @@ class OTPEvaluation(object):
         self.request = self.otp.createRequest()
         self.calculate_details = calculate_details
     
-    def setup(self, date_time, max_time=1800, max_walk=None, walk_speed=None, bike_speed=None, clamp_wait=None, banned='', modes=None, arrive_by=False):
+    def setup(self, 
+              date_time, max_time=1800, max_walk=None, walk_speed=None, 
+              bike_speed=None, clamp_wait=None, banned='', modes=None, 
+              arrive_by=False, max_transfers=None, max_pre_transit_time=None,
+              wheel_chair_accessible=False, max_slope=None):
         '''
         sets up the routing request
         
         Parameters
         ----------
-        date_time: time object (time.struct_time), start respectively arrival time (if arriveby == True)
+        date_time: datetime object, start respectively arrival time (if arriveby == True)
         modes: optional, string with comma-seperated traverse-modes to use
         banned: optional, string with comma-separated route specs, each of the format[agencyId]_[routeName]_[routeId] 
         max_time: optional, maximum travel-time in seconds (the smaller this value, the smaller the shortest path tree, that has to be created; saves processing time) 
@@ -49,6 +53,10 @@ class OTPEvaluation(object):
         walk_speed: optional, walking speed in m/s
         bike_speed: optional, bike speed in m/s
         clamp_wait: optional, maximum wait time in seconds the user is willing to delay trip start (-1 seems to mean it will be ignored)
+        max_transfers: optional, maximum number of transfers (= boardings - 1)
+        max_pre_transit_time: optional, maximum time in seconds of pre-transit travel when using drive-to-transit (park andride or kiss and ride)
+        wheel_chair_accessible: optional, if True, the trip must be wheelchair accessible (defaults to False)
+        max_slope: optional, maximum slope of streets for wheelchair trips
         '''
 #         epoch = datetime.utcfromtimestamp(0)
 #         epoch_seconds = (date_time - epoch).total_seconds() * 1000
@@ -56,6 +64,7 @@ class OTPEvaluation(object):
         self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second) 
         
         self.request.setArriveBy(arrive_by)
+        self.request.setWheelChairAccessible(wheel_chair_accessible)
         # has to be set AFTER arriveby (request decides if negative weight or not by checking arriveby)
         if max_time is not None:
             self.request.setMaxTimeSec(long(max_time))
@@ -69,6 +78,12 @@ class OTPEvaluation(object):
             self.request.setClampInitialWait(clamp_wait)
         if banned:
             self.request.setBannedRoutes(banned)
+        if max_slope is not None:
+            self.request.setMaxSlope(max_slope)
+        if max_transfers is not None:
+            self.request.setMaxTransfers(max_transfers)
+        if max_pre_transit_time is not None:
+            self.request.setMaxPreTransitTime(max_pre_transit_time)
              
         if modes:          
             self.request.setModes(modes)
@@ -160,7 +175,7 @@ class OTPEvaluation(object):
         header = [ 'origin_id' ]
         do_aggregate = do_accumulate = False
         if not mode:
-            header += [ 'destination_id', 'travel_time', 'start_time', 'arrival_time','boardings', 'walk_distance'] 
+            header += [ 'destination_id', 'travel_time', 'start_time', 'arrival_time','boardings', 'walk_distance', 'traverse_modes'] 
         elif mode in AGGREGATION_MODES:
             header += [field + '_aggregated']   
             do_aggregate = True
@@ -210,6 +225,7 @@ class OTPEvaluation(object):
                 walk_distances = result_set.getWalkDistances()
                 starts = result_set.getStartTimes()
                 arrivals = result_set.getArrivalTimes()     
+                modes = result_set.getTraverseModes()
                 if bestof is not None:
                     indices = [t[0] for t in sorted(enumerate(times), key=sorter)]
                     indices = indices[:bestof]
@@ -218,7 +234,7 @@ class OTPEvaluation(object):
                 for j in indices:
                     time = times[j]
                     if time is not None:
-                        out_csv.addRow([origin_ids[j], dest_ids[j], times[j], starts[j], arrivals[j], boardings[j], walk_distances[j]])
+                        out_csv.addRow([origin_ids[j], dest_ids[j], times[j], starts[j], arrivals[j], boardings[j], walk_distances[j], modes[j]])
         
         if do_accumulate:
             results = acc_result_set.getResults()
@@ -275,24 +291,26 @@ if __name__ == '__main__':
     # router
     router_config = config.getElementsByTagName('router_config')[0]
     router = router_config.getElementsByTagName('router')[0].firstChild.data
-    max_time = long(router_config.getElementsByTagName('maxTimeMin')[0].firstChild.data) 
+    max_time = long(router_config.getElementsByTagName('max_time_min')[0].firstChild.data) 
     # max value -> no need to set it up (is Long.MAX_VALUE in OTP by default), unfortunately you can't pass OTP Long.MAX_VALUE, messes up routing
     if max_time >= INFINITE:
         max_time = None 
     else:
         max_time *= 60 # OTP needs this one in seconds
-    max_walk = float(router_config.getElementsByTagName('maxWalkDistance')[0].firstChild.data)
+    max_walk = float(router_config.getElementsByTagName('max_walk_distance')[0].firstChild.data)
     # max value -> no need to set it up (is Double.MAX_VALUE in OTP by default), same as max_time
     if max_walk >= INFINITE:
         max_walk = None    
-    walk_speed = float(router_config.getElementsByTagName('walkSpeed')[0].firstChild.data)
-    bike_speed = float(router_config.getElementsByTagName('bikeSpeed')[0].firstChild.data)
-    clamp_wait = int(router_config.getElementsByTagName('clampInitialWaitSec')[0].firstChild.data) 
-    if clamp_wait == -1:
-        clamp_wait = None # i think -1 initial waits are ignored (same like infinite), is -1 by default in OTP   
-    banned = router_config.getElementsByTagName('banned_routes')[0].firstChild # None if no text entry
-    if banned:
-        banned = banned.data   
+    walk_speed = float(router_config.getElementsByTagName('walk_speed')[0].firstChild.data)
+    bike_speed = float(router_config.getElementsByTagName('bike_speed')[0].firstChild.data)
+    clamp_wait = int(router_config.getElementsByTagName('clamp_initial_wait_min')[0].firstChild.data) 
+    if clamp_wait > 0:
+        clamp_wait *= 60   
+    pre_transit_time = int(router_config.getElementsByTagName('pre_transit_time_min')[0].firstChild.data) 
+    pre_transit_time *= 60
+    max_transfers = int(router_config.getElementsByTagName('max_transfers')[0].firstChild.data) 
+    wheel_chair_accessible = router_config.getElementsByTagName('wheel_chair_accessible')[0].firstChild.data == 'True'
+    max_slope = float(router_config.getElementsByTagName('max_slope')[0].firstChild.data) 
         
     traverse_modes = router_config.getElementsByTagName('traverse_modes')[0].firstChild
     if traverse_modes:
@@ -357,9 +375,12 @@ if __name__ == '__main__':
                       walk_speed=walk_speed, 
                       bike_speed=bike_speed, 
                       clamp_wait=clamp_wait, 
-                      banned=banned, 
                       modes=traverse_modes, 
-                      arrive_by=arrive_by)       
+                      arrive_by=arrive_by,
+                      max_transfers=max_transfers,
+                      max_pre_transit_time=pre_transit_time,
+                      wheel_chair_accessible=wheel_chair_accessible,
+                      max_slope=max_slope)       
         
         
         
