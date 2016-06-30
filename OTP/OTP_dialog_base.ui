@@ -1270,37 +1270,26 @@
        <string>zusätzliche Parameter der Routensuche</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_7">
-       <item row="3" column="0">
-        <widget class="QLabel" name="label_15">
-         <property name="text">
-          <string>max. Laufgeschwindigkeit</string>
-         </property>
-        </widget>
-       </item>
        <item row="5" column="0">
         <widget class="QLabel" name="label_21">
          <property name="toolTip">
-          <string>bei -1 wird die Wartezeit ignoriert</string>
+          <string>maximale Wartezeit zu Beginn der Route 
+-1: Wartezeit wird ignoriert 
+ 0: Wartezeit wird zu Reisezeit addiert 
+ &gt;0: maximale Wartezeit zu Beginn der Reise</string>
          </property>
          <property name="text">
           <string>max. initiale Wartezeit</string>
          </property>
         </widget>
        </item>
-       <item row="5" column="2">
-        <widget class="QLabel" name="label_22">
-         <property name="toolTip">
-          <string>bei -1 wird die Wartezeit ignoriert</string>
-         </property>
-         <property name="text">
-          <string>s</string>
-         </property>
-        </widget>
-       </item>
        <item row="5" column="1">
         <widget class="QSpinBox" name="clamp_edit">
          <property name="toolTip">
-          <string>bei -1 wird die Wartezeit ignoriert</string>
+          <string>maximale Wartezeit zu Beginn der Route 
+-1: Wartezeit wird ignoriert 
+ 0: Wartezeit wird zu Reisezeit addiert 
+ &gt;0: maximale Wartezeit zu Beginn der Reise</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1313,37 +1302,23 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="2">
-        <widget class="QLabel" name="label_16">
+       <item row="5" column="2">
+        <widget class="QLabel" name="label_22">
+         <property name="toolTip">
+          <string/>
+         </property>
          <property name="text">
-          <string>m/s</string>
+          <string>min</string>
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
-        <widget class="QDoubleSpinBox" name="bike_speed_edit">
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       <item row="1" column="2">
+        <widget class="QLabel" name="label_8">
+         <property name="toolTip">
+          <string/>
          </property>
-         <property name="singleStep">
-          <double>0.100000000000000</double>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QDoubleSpinBox" name="walk_speed_edit">
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-         <property name="singleStep">
-          <double>0.100000000000000</double>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="label_19">
          <property name="text">
-          <string>max. Fahrradgeschw.</string>
+          <string>min</string>
          </property>
         </widget>
        </item>
@@ -1356,46 +1331,42 @@
           </size>
          </property>
          <property name="toolTip">
-          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
+          <string>maximale Zeit, die für eine Route benötigt werden darf
+maximal einstellbarer Wert entspricht unendlich</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
+         <property name="minimum">
+          <number>0</number>
+         </property>
          <property name="maximum">
-          <number>1000000000</number>
+          <number>2147483647</number>
          </property>
          <property name="value">
-          <number>99</number>
+          <number>0</number>
          </property>
         </widget>
        </item>
        <item row="2" column="1">
         <widget class="QSpinBox" name="max_walk_dist_edit">
          <property name="toolTip">
-          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
+          <string>maximale Distanz, die auf der Route zu Fuß zurückgelegt werden darf 
+maximal einstellbarer Wert entspricht unendlich</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
          <property name="maximum">
-          <number>1000000000</number>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="2">
-        <widget class="QLabel" name="label_8">
-         <property name="toolTip">
-          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
-         </property>
-         <property name="text">
-          <string>min</string>
+          <number>2147483647</number>
          </property>
         </widget>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_17">
          <property name="toolTip">
-          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
+          <string>maximale Distanz, die auf der Route zu Fuß zurückgelegt werden darf 
+maximal einstellbarer Wert entspricht unendlich</string>
          </property>
          <property name="text">
           <string>max. Laufdistanz</string>
@@ -1405,14 +1376,14 @@
        <item row="2" column="2">
         <widget class="QLabel" name="label_18">
          <property name="toolTip">
-          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
+          <string/>
          </property>
          <property name="text">
           <string>m</string>
          </property>
         </widget>
        </item>
-       <item row="7" column="1">
+       <item row="18" column="1">
         <spacer name="verticalSpacer_14">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -1425,37 +1396,14 @@
          </property>
         </spacer>
        </item>
-       <item row="4" column="2">
-        <widget class="QLabel" name="label_20">
-         <property name="text">
-          <string>m/s</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="label_23">
-         <property name="toolTip">
-          <string>komma-sperarierte Liste von Routen, jede mit dem Format [agencyId]_[routeName]_[routeId]</string>
-         </property>
-         <property name="text">
-          <string>gebannte Routen</string>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="0">
         <widget class="QLabel" name="label_7">
          <property name="toolTip">
-          <string>maximaler Wert von 1000000000 entspricht unendlich</string>
+          <string>maximale Zeit, die für eine Route benötigt werden darf
+maximal einstellbarer Wert entspricht unendlich</string>
          </property>
          <property name="text">
           <string>maximale Reisezeit</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="1" colspan="2">
-        <widget class="QLineEdit" name="banned_routes_edit">
-         <property name="toolTip">
-          <string>komma-sperarierte Liste von Routen, jede mit dem Format [agencyId]_[routeName]_[routeId]</string>
          </property>
         </widget>
        </item>
@@ -1468,6 +1416,176 @@
           <size>
            <width>20</width>
            <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="15" column="0">
+        <widget class="QLabel" name="label_33">
+         <property name="toolTip">
+          <string>Berücksichtung der Zugänglichkeit für Rollstühle an/aus</string>
+         </property>
+         <property name="text">
+          <string>Zugänglichkeit Rollstuhl </string>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="1">
+        <widget class="QDoubleSpinBox" name="walk_speed_edit">
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QLabel" name="label_31">
+         <property name="toolTip">
+          <string>Park &amp; Ride / Kiss &amp; Ride: maximale Anfahrtszeit zum Bahnhof</string>
+         </property>
+         <property name="text">
+          <string>max. Prä-Transit-Zeit</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_23">
+         <property name="toolTip">
+          <string>maximale Anzahl der Umstiege auf der Route</string>
+         </property>
+         <property name="text">
+          <string>max. Anzahl Umstiege</string>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="0">
+        <widget class="QLabel" name="label_15">
+         <property name="text">
+          <string>max. Laufgeschwindigkeit</string>
+         </property>
+        </widget>
+       </item>
+       <item row="14" column="1">
+        <spacer name="verticalSpacer_21">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="13" column="1">
+        <widget class="QDoubleSpinBox" name="bike_speed_edit">
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="16" column="0">
+        <widget class="QLabel" name="label_34">
+         <property name="toolTip">
+          <string>maximale Steigung, bis zu der ein Routenabschnitt als für Rollstühle zugänglich gilt</string>
+         </property>
+         <property name="text">
+          <string>max. Steigung für Rollstühle</string>
+         </property>
+        </widget>
+       </item>
+       <item row="13" column="0">
+        <widget class="QLabel" name="label_19">
+         <property name="text">
+          <string>max. Fahrradgeschw.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="13" column="2">
+        <widget class="QLabel" name="label_20">
+         <property name="text">
+          <string>m/s</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="2">
+        <widget class="QLabel" name="label_32">
+         <property name="text">
+          <string>min</string>
+         </property>
+        </widget>
+       </item>
+       <item row="16" column="1">
+        <widget class="QDoubleSpinBox" name="max_slope_edit">
+         <property name="toolTip">
+          <string>maximale Steigung, bis zu der ein Routenabschnitt als für Rollstühle zugänglich gilt</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="singleStep">
+          <double>0.010000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="QSpinBox" name="pre_transit_edit">
+         <property name="toolTip">
+          <string>Park &amp; Ride / Kiss &amp; Ride: maximale Anfahrtszeit zum Bahnhof</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QSpinBox" name="transfers_edit">
+         <property name="toolTip">
+          <string>maximale Anzahl der Umstiege auf der Route</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="15" column="1">
+        <widget class="QCheckBox" name="wheelchair_check">
+         <property name="toolTip">
+          <string>Berücksichtung der Zugänglichkeit für Rollstühle an/aus</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="2">
+        <widget class="QLabel" name="label_16">
+         <property name="text">
+          <string>m/s</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <spacer name="verticalSpacer_22">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
           </size>
          </property>
         </spacer>
