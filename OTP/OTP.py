@@ -192,18 +192,18 @@ class OTP:
         # combobox with modes
         
         self.dlg.aggregation_mode_combo.addItems(AGGREGATION_MODES)
-        mode_combo = self.dlg.aggregation_mode_combo
-        layout = self.dlg.aggregation_value_edit
-        self.set_mode_params(mode_combo, layout)
-        mode_combo.currentIndexChanged.connect(
-            lambda: self.set_mode_params(mode_combo, layout))   
+        agg_mode_combo = self.dlg.aggregation_mode_combo
+        agg_layout = self.dlg.aggregation_value_edit
+        self.set_mode_params(agg_mode_combo, agg_layout)
+        agg_mode_combo.currentIndexChanged.connect(
+            lambda: self.set_mode_params(agg_mode_combo, agg_layout))   
         
         self.dlg.accumulation_mode_combo.addItems(ACCUMULATION_MODES)
-        mode_combo = self.dlg.accumulation_mode_combo
-        layout = self.dlg.accumulation_value_edit
-        self.set_mode_params(mode_combo, layout)
-        mode_combo.currentIndexChanged.connect(
-            lambda: self.set_mode_params(mode_combo, layout))   
+        acc_mode_combo = self.dlg.accumulation_mode_combo
+        acc_layout = self.dlg.accumulation_value_edit
+        self.set_mode_params(acc_mode_combo, acc_layout)
+        acc_mode_combo.currentIndexChanged.connect(
+            lambda: self.set_mode_params(acc_mode_combo, acc_layout))   
         
         # router
         self.fill_router_combo()
