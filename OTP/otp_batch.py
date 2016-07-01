@@ -172,15 +172,15 @@ class OTPEvaluation(object):
         '''   
         print 'post processing results...'
         
-        header = [ 'origin_id' ]
+        header = [ 'origin-id' ]
         do_aggregate = do_accumulate = False
         if not mode:
-            header += [ 'destination_id', 'travel_time', 'start_time', 'arrival_time','boardings', 'walk_distance', 'traverse_modes'] 
+            header += [ 'destination-id', 'travel-time (sec)', 'boardings', 'walk-distance (m)', 'start-time', 'arrival-time', 'traverse-modes', 'waiting-time (sec)'] 
         elif mode in AGGREGATION_MODES:
-            header += [field + '_aggregated']   
+            header += [field + '-aggregated']   
             do_aggregate = True
         elif mode in ACCUMULATION_MODES:
-            header += [field + '_accumulated']
+            header += [field + '-accumulated']
             do_accumulate = True       
         
         out_csv = self.otp.createCSVOutput()
@@ -226,6 +226,7 @@ class OTPEvaluation(object):
                 starts = result_set.getStartTimes()
                 arrivals = result_set.getArrivalTimes()     
                 modes = result_set.getTraverseModes()
+                waiting_times = result_set.getWaitingTimes()
                 if bestof is not None:
                     indices = [t[0] for t in sorted(enumerate(times), key=sorter)]
                     indices = indices[:bestof]
@@ -234,8 +235,8 @@ class OTPEvaluation(object):
                 for j in indices:
                     time = times[j]
                     if time is not None:
-                        out_csv.addRow([origin_ids[j], dest_ids[j], times[j], starts[j], arrivals[j], boardings[j], walk_distances[j], modes[j]])
-        
+                        out_csv.addRow([origin_ids[j], dest_ids[j], times[j], boardings[j], walk_distances[j], starts[j], arrivals[j], modes[j], waiting_times[j]])
+    
         if do_accumulate:
             results = acc_result_set.getResults()
             origin_ids = acc_result_set.getStringData(oid)   
