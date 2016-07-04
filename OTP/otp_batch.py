@@ -175,7 +175,7 @@ class OTPEvaluation(object):
         header = [ 'origin-id' ]
         do_aggregate = do_accumulate = False
         if not mode:
-            header += [ 'destination-id', 'travel-time (sec)', 'boardings', 'walk-distance (m)', 'start-time', 'arrival-time', 'traverse-modes', 'waiting-time (sec)'] 
+            header += [ 'destination-id', 'travel-time (sec)', 'boardings', 'walk/bike-distance (m)', 'start-time', 'arrival-time', 'traverse-modes', 'waiting-time (sec)', 'elevation-gained', 'elevation-lost'] 
         elif mode in AGGREGATION_MODES:
             header += [field + '-aggregated']   
             do_aggregate = True
@@ -227,6 +227,9 @@ class OTPEvaluation(object):
                 arrivals = result_set.getArrivalTimes()     
                 modes = result_set.getTraverseModes()
                 waiting_times = result_set.getWaitingTimes()
+                elevationGained = result_set.getElevationGained()
+                elevationLost = result_set.getElevationLost()
+                
                 if bestof is not None:
                     indices = [t[0] for t in sorted(enumerate(times), key=sorter)]
                     indices = indices[:bestof]
@@ -235,7 +238,7 @@ class OTPEvaluation(object):
                 for j in indices:
                     time = times[j]
                     if time is not None:
-                        out_csv.addRow([origin_ids[j], dest_ids[j], times[j], boardings[j], walk_distances[j], starts[j], arrivals[j], modes[j], waiting_times[j]])
+                        out_csv.addRow([origin_ids[j], dest_ids[j], times[j], boardings[j], walk_distances[j], starts[j], arrivals[j], modes[j], waiting_times[j], elevationGained[j], elevationLost[j]])
     
         if do_accumulate:
             results = acc_result_set.getResults()
