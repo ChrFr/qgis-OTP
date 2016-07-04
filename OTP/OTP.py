@@ -578,7 +578,7 @@ class OTP:
             if isinstance(layer, QgsVectorLayer):
                 if layer == old_origin_layer:
                     old_origin_idx = i
-                if layer == old_destination_idx:
+                if layer == old_destination_layer:
                     old_destination_idx = i
                 self.layer_list.append(layer)
                 self.dlg.origins_combo.addItem(layer.name())   

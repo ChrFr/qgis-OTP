@@ -172,10 +172,10 @@ class OTPEvaluation(object):
         '''   
         print 'post processing results...'
         
-        header = [ 'origin-id' ]
+        header = [ 'origin id' ]
         do_aggregate = do_accumulate = False
         if not mode:
-            header += [ 'destination-id', 'travel-time (sec)', 'boardings', 'walk/bike-distance (m)', 'start-time', 'arrival-time', 'traverse-modes', 'waiting-time (sec)', 'elevation-gained', 'elevation-lost'] 
+            header += [ 'destination id', 'travel time (sec)', 'boardings', 'walk/bike distance (m)', 'start time', 'arrival time', 'traverse modes', 'waiting time (sec)', 'elevation gained (m)', 'elevation lost (m)'] 
         elif mode in AGGREGATION_MODES:
             header += [field + '-aggregated']   
             do_aggregate = True
@@ -370,7 +370,7 @@ if __name__ == '__main__':
     # results will be stored 2 dimensional to determine to which time the results belong, flattened later
     results = []
     
-    # iterate over all times
+    # iterate all times
     for date_time in date_times:        
         otpEval = OTPEvaluation(router, print_every_n_lines, calculate_details)    
         otpEval.setup(date_time, 
