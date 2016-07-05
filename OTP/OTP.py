@@ -859,18 +859,19 @@ class OTP:
                                  total_ticks=ticks)
         diag.exec_()
         
-        ### cleanup and QGIS operations after OTP is done ### 
+        # not successful or no need to add layers to QGIS -> just remove temporary files
+        if not diag.success or (not add_results and not join_results):
+            shutil.rmtree(tmp_dir)
+            return
         
-        if not add_results and not join_results:
-            # tmp files are no longer needed, if not added to qgis
-            shutil.rmtree(tmp_dir) 
-        else:
-            layer_name = 'results-{}-{}'.format(self.dlg.router_combo.currentText(),
-                                                   self.dlg.origins_combo.currentText())
-            layer_name += '-' + now_string
-            result_layer = self.iface.addVectorLayer(target_file, 
-                                                     layer_name, 
-                                                     'delimitedtext')
+        ### add/join layers in QGIS after OTP is done ### 
+        
+        layer_name = 'results-{}-{}'.format(self.dlg.router_combo.currentText(),
+                                               self.dlg.origins_combo.currentText())
+        layer_name += '-' + now_string
+        result_layer = self.iface.addVectorLayer(target_file, 
+                                                 layer_name, 
+                                                 'delimitedtext')
             
         if join_results:
             join = QgsVectorJoinInfo()

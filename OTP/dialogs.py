@@ -168,6 +168,8 @@ class ExecCommandDialog(ProgressDialog):
         self.auto_close = auto_close
         self.command = command
         self.start_time = 0
+        
+        self.success = False
 
         # aux. variable to determine if process was killed, because exit code of killed process can't be distinguished from normal exit in linux
         self.killed = False
@@ -226,8 +228,10 @@ class ExecCommandDialog(ProgressDialog):
         if self.process.exitCode() == QtCore.QProcess.NormalExit and not self.killed:
             self.progress_bar.setValue(100)
             self.progress_bar.setStyleSheet(FINISHED_STYLE)
+            self.success = True
         else:
             self.progress_bar.setStyleSheet(ABORTED_STYLE)
+            self.success = False
         self.stopped()
 
     def kill(self):
@@ -236,6 +240,7 @@ class ExecCommandDialog(ProgressDialog):
         self.process.kill()
         self.log_edit.insertHtml('<b> Vorgang abgebrochen </b> <br>')
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
+        self.success = False
         
     def run(self):       
         self.killed = False
