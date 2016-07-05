@@ -176,10 +176,10 @@ class OTPEvaluation(object):
         do_aggregate = do_accumulate = False
         if not mode:
             header += [ 'destination id', 'travel time (sec)', 'boardings', 'walk/bike distance (m)', 'start time', 'arrival time', 'traverse modes', 'waiting time (sec)', 'elevation gained (m)', 'elevation lost (m)'] 
-        elif mode in AGGREGATION_MODES:
+        elif mode in AGGREGATION_MODES.keys():
             header += [field + '-aggregated']   
             do_aggregate = True
-        elif mode in ACCUMULATION_MODES:
+        elif mode in ACCUMULATION_MODES.keys():
             header += [field + '-accumulated']
             do_accumulate = True       
         

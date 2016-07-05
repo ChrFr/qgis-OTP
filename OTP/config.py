@@ -13,42 +13,12 @@ LONGITUDE_COLUMN = 'X' # field-name used for storing lon values in csv files
 ID_COLUMN = 'id' # field-name used for storing the ids in csv files
 VM_MEMORY_RESERVED = 3 # max. memory the virtual machine running OTP can allocate
 DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S" # format of time stored in csv files
-AGGREGATION_MODES = ["THRESHOLD_SUM_AGGREGATOR", "WEIGHTED_AVERAGE_AGGREGATOR", "THRESHOLD_CUMMULATIVE_AGGREGATOR", "DECAY_AGGREGATOR"]
 CALC_REACHABILITY_MODE = "THRESHOLD_SUM_AGGREGATOR" # agg. mode that is used to calculate number of reachable destinations (note: threshold is taken from set max travel time)
-ACCUMULATION_MODES = ["DECAY_ACCUMULATOR", "THRESHOLD_ACCUMULATOR"]
 INFINITE = 2147483647 # represents indefinite values in the UI, pyqt spin boxes limit this to max int32
 
 # needed parameters for aggregation/accumulation modes (=keys) are listed here
 # order of parameters in list has to be the same, the specific mode requires them
-MODE_PARAMS = {
-    "DECAY_ACCUMULATOR": [
-        {
-            "label": "Halbwertszeit (min)",
-            "min": 1,
-            "max": 180 * 60,
-            "default": 1,
-            "step": 1,
-            "decimals": 0
-        },    
-        {
-            "label": "lambda",
-            "min": -10,
-            "max": 0,
-            "default": -0.1,
-            "step": 0.01,
-            "decimals": 2
-        }   
-    ],
-    "THRESHOLD_ACCUMULATOR": [
-        {
-            "label": "Schwellwert (sek)", # label of the param (UI only)
-            "min": 0, # minimum value
-            "max": 180 * 60, # maximum value
-            "default": 3600, # default value
-            "step": 1, # size of steps between values (default 1) 
-            "decimals": 0 # number of decimals (default 2)
-        }
-    ],
+AGGREGATION_MODES = {
     "THRESHOLD_SUM_AGGREGATOR": [
         {
             "label": "Schwellwert (sek)",
@@ -87,6 +57,37 @@ MODE_PARAMS = {
             "decimals": 2
         }
         ],
+}
+
+ACCUMULATION_MODES = {    
+    "DECAY_ACCUMULATOR": [
+        {
+            "label": "Halbwertszeit (min)",
+            "min": 1,
+            "max": 180 * 60,
+            "default": 1,
+            "step": 1,
+            "decimals": 0
+        },    
+        {
+            "label": "lambda",
+            "min": -10,
+            "max": 0,
+            "default": -0.1,
+            "step": 0.01,
+            "decimals": 2
+        }   
+    ],
+    "THRESHOLD_ACCUMULATOR": [
+        {
+            "label": "Schwellwert (sek)", # label of the param (UI only)
+            "min": 0, # minimum value
+            "max": 180 * 60, # maximum value
+            "default": 3600, # default value
+            "step": 1, # size of steps between values (default 1) 
+            "decimals": 0 # number of decimals (default 2)
+        }
+    ]    
 }
 
 AVAILABLE_TRAVERSE_MODES = [

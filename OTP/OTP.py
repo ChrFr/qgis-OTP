@@ -34,7 +34,7 @@ from OTP_dialog import OTPDialog
 import os
 from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES, 
-                    MODE_PARAMS, DEFAULT_FILE, CALC_REACHABILITY_MODE, 
+                    DEFAULT_FILE, CALC_REACHABILITY_MODE, 
                     VM_MEMORY_RESERVED, Config)
 from dialogs import ExecCommandDialog, set_file
 from qgis._core import (QgsVectorLayer, QgsVectorJoinInfo, 
@@ -191,19 +191,19 @@ class OTP:
            
         # combobox with modes
         
-        self.dlg.aggregation_mode_combo.addItems(AGGREGATION_MODES)
+        self.dlg.aggregation_mode_combo.addItems(AGGREGATION_MODES.keys())
         agg_mode_combo = self.dlg.aggregation_mode_combo
         agg_layout = self.dlg.aggregation_value_edit
-        self.set_mode_params(agg_mode_combo, agg_layout)
+        self.set_mode_params(AGGREGATION_MODES, agg_mode_combo, agg_layout)
         agg_mode_combo.currentIndexChanged.connect(
-            lambda: self.set_mode_params(agg_mode_combo, agg_layout))   
+            lambda: self.set_mode_params(AGGREGATION_MODES, agg_mode_combo, agg_layout))   
         
-        self.dlg.accumulation_mode_combo.addItems(ACCUMULATION_MODES)
+        self.dlg.accumulation_mode_combo.addItems(ACCUMULATION_MODES.keys())
         acc_mode_combo = self.dlg.accumulation_mode_combo
         acc_layout = self.dlg.accumulation_value_edit
-        self.set_mode_params(acc_mode_combo, acc_layout)
+        self.set_mode_params(ACCUMULATION_MODES, acc_mode_combo, acc_layout)
         acc_mode_combo.currentIndexChanged.connect(
-            lambda: self.set_mode_params(acc_mode_combo, acc_layout))   
+            lambda: self.set_mode_params(ACCUMULATION_MODES, acc_mode_combo, acc_layout))   
         
         # router
         self.fill_router_combo()
@@ -615,7 +615,7 @@ class OTP:
             id_combo.addItem(field.name())
         id_combo.setCurrentIndex(old_idx)
         
-    def set_mode_params(self, mode_combo, edit_layout):
+    def set_mode_params(self, modes, mode_combo, edit_layout):
         selected = mode_combo.currentText()  
         
         # clear layout
@@ -625,8 +625,8 @@ class OTP:
             widget.setParent(None)
             
         # only this one needs a value as an argument at the moment
-        if selected in MODE_PARAMS.keys():
-            for param in MODE_PARAMS[selected]:
+        if selected in modes.keys():
+            for param in modes[selected]:
                 label = QLabel(param["label"])
                 edit = QDoubleSpinBox()
                 step = param["step"] if param.has_key("step") else 1
@@ -731,7 +731,7 @@ class OTP:
         temp_dest_layer.addExpressionField('1', reach_field)
         agg_acc['processed_field'] = reach_field_name   
         # take the set max travel time as the threshold (in seconds)
-        threshold = int(config.settings['router_config']['maxTimeMin']) * 60
+        threshold = int(config.settings['router_config']['max_time_min']) * 60
         agg_acc['params'] = [str(threshold)]   
         
         if self.dlg.reachability_csv_check.checkState():
