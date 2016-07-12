@@ -370,9 +370,10 @@ if __name__ == '__main__':
     # results will be stored 2 dimensional to determine to which time the results belong, flattened later
     results = []
     
+    otpEval = OTPEvaluation(router, print_every_n_lines, calculate_details)    
     # iterate all times
     for date_time in date_times:        
-        otpEval = OTPEvaluation(router, print_every_n_lines, calculate_details)    
+        print 'Starting evaluation of routes at ' + date_time.strftime(DATETIME_FORMAT) + '\n'
         otpEval.setup(date_time, 
                       max_time=max_time, 
                       max_walk=max_walk, 
