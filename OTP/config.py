@@ -110,7 +110,8 @@ AVAILABLE_TRAVERSE_MODES = [
 
 # QGIS can't handle this one on startup, but will work strangely anyhow. just annoying so different approach next line
 #DEFAULT_FILE = os.path.join(os.path.split((sys.argv)[0])[0], "otp_config.xml")
-DEFAULT_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "otp_config.xml")
+#DEFAULT_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "otp_config.xml")
+DEFAULT_FILE = os.path.join(os.environ['HOME'], '.qgis2', 'otp_config.xml')
 
 # structure of config-object, composition of xml is the same
 # contains the DEFAULT values as presets for the UI

@@ -22,7 +22,7 @@
 """
 from PyQt4.QtCore import (QSettings, QTranslator, qVersion, 
                           QCoreApplication, QProcess, QDateTime,
-                          QVariant)
+                          QVariant, QLocale)
 from PyQt4.QtGui import (QAction, QIcon, QListWidgetItem, 
                          QCheckBox, QMessageBox, QLabel,
                          QDoubleSpinBox, QFileDialog)
@@ -45,7 +45,6 @@ import tempfile
 import shutil
 import getpass
 from datetime import datetime
-from PyQt4.QtCore import QLocale
 
 config = Config()
 config.read()
