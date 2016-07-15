@@ -372,8 +372,13 @@ if __name__ == '__main__':
     
     otpEval = OTPEvaluation(router, print_every_n_lines, calculate_details)    
     # iterate all times
-    for date_time in date_times:        
-        print 'Starting evaluation of routes at ' + date_time.strftime(DATETIME_FORMAT) + '\n'
+    if arrive_by:        
+        time_note = 'arrival time '
+    else:
+        time_note = 'start time ' 
+    for date_time in date_times:     
+           
+        print 'Starting evaluation of routes with ' +time_note + date_time.strftime(DATETIME_FORMAT) + '\n'
         otpEval.setup(date_time, 
                       max_time=max_time, 
                       max_walk=max_walk, 

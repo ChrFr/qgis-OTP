@@ -36,7 +36,7 @@ from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES,
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES, 
                     DEFAULT_FILE, CALC_REACHABILITY_MODE, 
                     VM_MEMORY_RESERVED, Config)
-from dialogs import ExecCommandDialog, set_file
+from dialogs import ExecCommandDialog
 from qgis._core import (QgsVectorLayer, QgsVectorJoinInfo, 
                         QgsCoordinateReferenceSystem, QgsField)
 from qgis.core import QgsVectorFileWriter, QgsMapLayerRegistry
@@ -94,6 +94,9 @@ class OTP:
         # Create the dialog (after translation) and keep reference
         self.dlg = OTPDialog()   
         
+        # store last used directory for saving files
+        self.prev_directory = os.environ['HOME']        
+        
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&OTP')
@@ -103,54 +106,6 @@ class OTP:
         
         ### PREFILL UI ELEMENTS AND CONNECT SLOTS TO SIGNALS ###
         
-        # connect browse file buttons with 'smart'(?) naming of target files (that's the main reason why there are 4 seperate ones)
-        self.dlg.orig_dest_browse_button.clicked.connect(
-            lambda: set_file(self.dlg, 
-                             self.dlg.orig_dest_file_edit,
-                             filters=[CSV_FILTER],
-                             directory='{}-{}-{}.csv'.format(
-                                 self.dlg.router_combo.currentText(),
-                                 self.dlg.origins_combo.currentText(),
-                                 self.dlg.destinations_combo.currentText()
-                                  # '-'+strftime('%d-%m-%Y-%H:%M')
-                                  ),
-                             save=True)
-        )            
-
-        self.dlg.aggregation_browse_button.clicked.connect(
-            lambda: set_file(self.dlg, 
-                             self.dlg.aggregation_file_edit,
-                             filters=[CSV_FILTER],
-                             directory='{}-{}-aggregiert.csv'.format(
-                                 self.dlg.router_combo.currentText(),
-                                 self.dlg.origins_combo.currentText()
-                                  ),
-                             save=True)
-        )  
-        
-        self.dlg.accumulation_browse_button.clicked.connect(
-            lambda: set_file(self.dlg, 
-                             self.dlg.accumulation_file_edit,
-                             filters=[CSV_FILTER],
-                             directory='{}-{}-akkumuliert.csv'.format(
-                                 self.dlg.router_combo.currentText(),
-                                 self.dlg.origins_combo.currentText()
-                                  ),
-                             save=True)
-        )  
-        
-        self.dlg.reachability_browse_button.clicked.connect(
-            lambda: set_file(self.dlg, 
-                             self.dlg.reachability_file_edit,
-                             filters=[CSV_FILTER],
-                             directory='{}-{}-{}-Erreichbarkeit.csv'.format(
-                                 self.dlg.router_combo.currentText(),
-                                 self.dlg.origins_combo.currentText(),
-                                 self.dlg.destinations_combo.currentText()
-                                  ),
-                             save=True)
-        )  
-                
         # set active tab (aggregation or accumulation depending on arrival checkbox)
         self.dlg.arrival_checkbox.clicked.connect(self.toggle_arrival)
         
@@ -650,6 +605,22 @@ class OTP:
             if isinstance(widget, QDoubleSpinBox):
                 params.append(str(widget.value()))
         return params
+        
+    def browse_results_file(self, file_preset):
+        directory = os.path.join(self.prev_directory, file_preset)
+        
+        filename = str(
+            QFileDialog.getSaveFileName(
+                parent=self.dlg, 
+                caption=u'Ergebnisse speichern unter',
+                directory=directory,
+                filter=CSV_FILTER
+            )
+        )
+        
+        if filename:            
+            self.prev_directory = os.path.split(filename)[0]               
+        return filename     
     
     def start_origin_destination(self): 
         # update postprocessing settings
@@ -663,7 +634,15 @@ class OTP:
         details = self.dlg.details_check.isChecked()
         postproc['details'] = details
         if self.dlg.orig_dest_csv_check.checkState():
-            target_file = self.dlg.orig_dest_file_edit.text()
+            file_preset = '{}-{}-{}.csv'.format(
+                self.dlg.router_combo.currentText(),
+                self.dlg.origins_combo.currentText(),
+                self.dlg.destinations_combo.currentText()
+                )
+            
+            target_file = self.browse_results_file(file_preset)
+            if not target_file:
+                return             
         else:
             target_file = None
         add_results = self.dlg.orig_dest_add_check.isChecked()
@@ -681,7 +660,14 @@ class OTP:
         agg_acc['params'] = self.get_widget_values(self.dlg.aggregation_value_edit)
         
         if self.dlg.aggregation_csv_check.checkState():
-            target_file = self.dlg.aggregation_file_edit.text()
+            file_preset = '{}-{}-aggregiert.csv'.format(
+                self.dlg.router_combo.currentText(),
+                self.dlg.origins_combo.currentText()
+                )
+            
+            target_file = self.browse_results_file(file_preset)
+            if not target_file:
+                return                         
         else:
             target_file = None
             
@@ -700,7 +686,14 @@ class OTP:
         agg_acc['params'] = self.get_widget_values(self.dlg.accumulation_value_edit)
         
         if self.dlg.accumulation_csv_check.checkState():
-            target_file = self.dlg.accumulation_file_edit.text()
+            file_preset = '{}-{}-akkumuliert.csv'.format(
+                self.dlg.router_combo.currentText(),
+                self.dlg.origins_combo.currentText()
+                )
+            
+            target_file = self.browse_results_file(file_preset)
+            if not target_file:
+                return                         
         else:
             target_file = None
                 
@@ -734,7 +727,15 @@ class OTP:
         agg_acc['params'] = [str(threshold)]   
         
         if self.dlg.reachability_csv_check.checkState():
-            target_file = self.dlg.reachability_file_edit.text()
+            file_preset = '{}-{}-{}-Erreichbarkeit.csv'.format(
+                self.dlg.router_combo.currentText(),
+                self.dlg.origins_combo.currentText(),
+                self.dlg.destinations_combo.currentText()
+                )
+            
+            target_file = self.browse_results_file(file_preset)
+            if not target_file:
+                return             
         else:
             target_file = None
             

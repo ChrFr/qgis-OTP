@@ -52,60 +52,6 @@ QProgressBar::chunk {
 }
 """
 
-ALL_FILES_FILTER = 'Alle Dateien (*.*)'
-
-def browse_file(parent, directory=None, filters=[ALL_FILES_FILTER], selected_filter_idx=0, save=False):
-    filter = _fromUtf8(';;'.join(filters))
-    # disabled because autocast of QString to str in QGIS, but selected filter of QFileDialogs expect QString   
-    #selected_filter = _fromUtf8(filters[selected_filter_idx]
-    selected_filter=None
-    if save:
-        filename = str(
-            QtGui.QFileDialog.getSaveFileName(
-                parent=parent, 
-                caption=u'Datei speichern',
-                directory=directory,
-                filter=filter
-            ))
-    else:        
-        filename = str(
-            QtGui.QFileDialog.getOpenFileName(
-                parent=parent, 
-                caption=u'Datei öffnen',
-                directory=directory,
-                filter=filter,
-                selectedFilter=selected_filter
-            ))        
-    return filename 
-    
-def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER], selected_filter_idx=0, do_split=False, save=False):
-    '''
-    open a file browser to put a path to a file into the given line edit
-    '''    
-    # set directory to directory of current entry if not given
-    if not directory:
-        try:
-            directory = os.path.split(str(line_edit.text()))[0]
-        except:
-            directory = ''
-
-    filename = browse_file(parent, directory=directory, filters=filters,
-                          selected_filter_idx=selected_filter_idx, save=save)
-
-    if do_split:
-        filename = os.path.split(filename)[0]
-
-    # filename is '' if canceled
-    if len(filename) > 0:
-        line_edit.setText(filename)
-
-def set_directory(parent, line_edit):
-    dirname = str(
-            QtGui.QFileDialog.getExistingDirectory(
-                parent, u'Zielverzeichnis wählen'))
-    # dirname is '' if canceled
-    if len(dirname) > 0:
-        line_edit.setText(dirname)
                     
 class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
     """
