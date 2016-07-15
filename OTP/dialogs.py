@@ -52,60 +52,6 @@ QProgressBar::chunk {
 }
 """
 
-ALL_FILES_FILTER = 'Alle Dateien (*.*)'
-
-def browse_file(parent, directory=None, filters=[ALL_FILES_FILTER], selected_filter_idx=0, save=False):
-    filter = _fromUtf8(';;'.join(filters))
-    # disabled because autocast of QString to str in QGIS, but selected filter of QFileDialogs expect QString   
-    #selected_filter = _fromUtf8(filters[selected_filter_idx]
-    selected_filter=None
-    if save:
-        filename = str(
-            QtGui.QFileDialog.getSaveFileName(
-                parent=parent, 
-                caption=u'Datei speichern',
-                directory=directory,
-                filter=filter
-            ))
-    else:        
-        filename = str(
-            QtGui.QFileDialog.getOpenFileName(
-                parent=parent, 
-                caption=u'Datei öffnen',
-                directory=directory,
-                filter=filter,
-                selectedFilter=selected_filter
-            ))        
-    return filename 
-    
-def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER], selected_filter_idx=0, do_split=False, save=False):
-    '''
-    open a file browser to put a path to a file into the given line edit
-    '''    
-    # set directory to directory of current entry if not given
-    if not directory:
-        try:
-            directory = os.path.split(str(line_edit.text()))[0]
-        except:
-            directory = ''
-
-    filename = browse_file(parent, directory=directory, filters=filters,
-                          selected_filter_idx=selected_filter_idx, save=save)
-
-    if do_split:
-        filename = os.path.split(filename)[0]
-
-    # filename is '' if canceled
-    if len(filename) > 0:
-        line_edit.setText(filename)
-
-def set_directory(parent, line_edit):
-    dirname = str(
-            QtGui.QFileDialog.getExistingDirectory(
-                parent, u'Zielverzeichnis wählen'))
-    # dirname is '' if canceled
-    if len(dirname) > 0:
-        line_edit.setText(dirname)
                     
 class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
     """
@@ -168,6 +114,8 @@ class ExecCommandDialog(ProgressDialog):
         self.auto_close = auto_close
         self.command = command
         self.start_time = 0
+        
+        self.success = False
 
         # aux. variable to determine if process was killed, because exit code of killed process can't be distinguished from normal exit in linux
         self.killed = False
@@ -182,12 +130,26 @@ class ExecCommandDialog(ProgressDialog):
         def show_progress():
             out = str(self.process.readAllStandardOutput())
             err = str(self.process.readAllStandardError())
-            if len(out): 
+            if len(out):                 
                 self.show_status(out)
-                if total_ticks and out.startswith(progress_indicator):
-                    self.ticks += 100. / total_ticks
-                    self.progress_bar.setValue(min(100, int(self.ticks)))
-                
+                if out.startswith(progress_indicator):
+                    if(total_ticks):
+                        self.ticks += 100. / total_ticks
+                        self.progress_bar.setValue(min(100, int(self.ticks)))       
+                        
+                '''  this approach shows progress more accurately, but may cause extreme lags -> deactivated (alternative: thread this)
+                if out.startswith(progress_indicator):
+                    # sometimes the stdout comes in too fast, you have to split it (don't split other than progress messages, warnings tend to be very long with multiple breaks, bad performance)
+                    for out_split in out.split("\n"):    
+                        if (len(out_split) == 0):
+                            continue
+                        self.show_status(out_split)                        
+                        if(total_ticks and out_split.startswith(progress_indicator)):
+                            self.ticks += 100. / total_ticks
+                            self.progress_bar.setValue(min(100, int(self.ticks)))       
+                else:                  
+                    self.show_status(out)                                        
+                '''
             if len(err): self.show_status(err)
             
         self.process.readyReadStandardOutput.connect(show_progress)
@@ -212,8 +174,10 @@ class ExecCommandDialog(ProgressDialog):
         if self.process.exitCode() == QtCore.QProcess.NormalExit and not self.killed:
             self.progress_bar.setValue(100)
             self.progress_bar.setStyleSheet(FINISHED_STYLE)
+            self.success = True
         else:
             self.progress_bar.setStyleSheet(ABORTED_STYLE)
+            self.success = False
         self.stopped()
 
     def kill(self):
@@ -222,6 +186,7 @@ class ExecCommandDialog(ProgressDialog):
         self.process.kill()
         self.log_edit.insertHtml('<b> Vorgang abgebrochen </b> <br>')
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
+        self.success = False
         
     def run(self):       
         self.killed = False
