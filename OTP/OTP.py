@@ -403,7 +403,8 @@ class OTP:
         router_config['max_transfers'] = self.dlg.transfers_edit.value() 
         router_config['pre_transit_time_min'] = self.dlg.pre_transit_edit.value() 
         router_config['wheel_chair_accessible'] = self.dlg.wheelchair_check.isChecked() 
-        router_config['max_slope'] = self.dlg.max_slope_edit.value()      
+        router_config['max_slope'] = self.dlg.max_slope_edit.value()    
+        router_config['clamp_initial_wait_min'] = self.dlg.clamp_edit.value()
                 
         # TRAVERSE MODES    
         selected_modes = []
