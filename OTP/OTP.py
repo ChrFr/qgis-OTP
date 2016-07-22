@@ -417,14 +417,15 @@ class OTP:
         # TIMES
         times = config.settings['time']
         dt = self.dlg.time_edit.dateTime()
-        times['datetime'] = dt.toPyDateTime().strftime(DATETIME_FORMAT)
+        # truncate seconds and microseconds and build string with defined format 
+        times['datetime'] = dt.toPyDateTime().replace(second=0, microsecond=0).strftime(DATETIME_FORMAT)
         time_batch = times['time_batch']
         active = self.dlg.time_batch_checkbox.isChecked()
         time_batch['active'] = active
         end = step = ''
         if active:            
             dt = self.dlg.to_time_edit.dateTime()
-            end = dt.toPyDateTime().strftime(DATETIME_FORMAT)
+            end = dt.toPyDateTime().replace(second=0, microsecond=0).strftime(DATETIME_FORMAT)
             step = self.dlg.time_step_edit.value()            
         time_batch['datetime_end'] = end
         time_batch['time_step'] = step 
