@@ -36,7 +36,7 @@ from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES,
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES, 
                     DEFAULT_FILE, CALC_REACHABILITY_MODE, 
                     VM_MEMORY_RESERVED, Config)
-from dialogs import ExecCommandDialog
+from dialogs import ExecOTPDialog
 from qgis._core import (QgsVectorLayer, QgsVectorJoinInfo, 
                         QgsCoordinateReferenceSystem, QgsField)
 from qgis.core import QgsVectorFileWriter, QgsMapLayerRegistry
@@ -56,7 +56,7 @@ ACCUMULATION = 2
 REACHABILITY = 3
 
 # how many results are written while running batch script
-PRINT_EVERY_N_LINES = 50
+PRINT_EVERY_N_LINES = 100
 
 XML_FILTER = u'XML-Dateien (*.xml)'
 CSV_FILTER = u'CSV-Dateien (*.csv)'
@@ -841,23 +841,19 @@ class OTP:
         else:
             n_points = origin_layer.featureCount()     
             
-        # how often will the stdout-indicator written before reaching 100%
-        ticks = n_points/PRINT_EVERY_N_LINES
         time_batch = times['time_batch']
         batch_active = time_batch['active']
         if batch_active == 'True' or batch_active == True:
             dt_begin = datetime.strptime(times['datetime'], DATETIME_FORMAT)
             dt_end = datetime.strptime(time_batch['datetime_end'], DATETIME_FORMAT)
-            n_iterations = (dt_end - dt_begin).total_seconds() / (int(time_batch['time_step']) * 60)
-            ticks *= n_iterations + 1
-            print (dt_end - dt_begin).total_seconds() / 60
-            print n_iterations
-            print ticks
+            n_iterations = (dt_end - dt_begin).total_seconds() / (int(time_batch['time_step']) * 60) + 1
                 
-        diag = ExecCommandDialog(cmd, parent=self.dlg.parent(), 
-                                 auto_start=True, 
-                                 progress_indicator='Processing:', 
-                                 total_ticks=ticks)
+        diag = ExecOTPDialog(cmd, 
+                             parent=self.dlg.parent(), 
+                             auto_start=True, 
+                             n_points=n_points,
+                             n_iterations=n_iterations,
+                             points_per_tick=PRINT_EVERY_N_LINES)
         diag.exec_()
         
         # not successful or no need to add layers to QGIS -> just remove temporary files

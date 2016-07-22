@@ -97,17 +97,18 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
         pass
 
 
-class ExecCommandDialog(ProgressDialog):
+class ExecOTPDialog(ProgressDialog):
     """
     ProgressDialog extented by an executable external process
     
     Parameters
     ----------
-    progress_indicator: string indicating that process progressed (read from stdout, it has to start with this string to indicate progress)
-    total_ticks: times the progress_indicator appears in stdout until you reach 100 percent
+    n_iterations: number of iterations (like multiple time windows)
+    n_points: number of points to calculate in one iteration
+    points_per_tick: how many points are calculated before showing progress
     """
-    def __init__(self, command, parent=None, auto_close=False, auto_start=False, progress_indicator='', total_ticks=0):
-        super(ExecCommandDialog, self).__init__(parent=parent, auto_close=auto_close)
+    def __init__(self, command, parent=None, auto_close=False, auto_start=False, n_iterations=1, n_points=0, points_per_tick=50):
+        super(ExecOTPDialog, self).__init__(parent=parent, auto_close=auto_close)
 
         # QProcess object for external app
         self.process = QtCore.QProcess(self)
@@ -121,21 +122,31 @@ class ExecCommandDialog(ProgressDialog):
         self.killed = False
         
         self.ticks = 0.
+        self.iterations = 0
 
         # Just to prevent accidentally running multiple times
         # Disable the button when process starts, and enable it when it finishes
         self.process.started.connect(self.running)
         self.process.finished.connect(self.finished)
         
+        # how often will the stdout-indicator written before reaching 100%
+        n_ticks = n_points / points_per_tick       
+        print n_iterations
+        n_ticks *= n_iterations
+        tick_indicator = 'Processing:'
+        iteration_finished_indicator = 'A total of'
+        
         def show_progress():
             out = str(self.process.readAllStandardOutput())
             err = str(self.process.readAllStandardError())
             if len(out):                 
                 self.show_status(out)
-                if out.startswith(progress_indicator):
-                    if(total_ticks):
-                        self.ticks += 100. / total_ticks
-                        self.progress_bar.setValue(min(100, int(self.ticks)))       
+                if out.startswith(tick_indicator) and n_ticks:
+                    self.ticks += 100. / n_ticks
+                    self.progress_bar.setValue(min(100, int(self.ticks)))      
+                elif out.startswith(iteration_finished_indicator):
+                    self.iterations += 1                      
+                    self.progress_bar.setValue(self.iterations * 100 / n_iterations)  
                         
                 '''  this approach shows progress more accurately, but may cause extreme lags -> deactivated (alternative: thread this)
                 if out.startswith(progress_indicator):
@@ -163,11 +174,11 @@ class ExecCommandDialog(ProgressDialog):
 
     def running(self):
         self.cancelButton.clicked.connect(self.kill)
-        super(ExecCommandDialog, self).running()
+        super(ExecOTPDialog, self).running()
 
     def stopped(self):
         self.cancelButton.clicked.disconnect(self.kill)
-        super(ExecCommandDialog, self).stopped()
+        super(ExecOTPDialog, self).stopped()
 
     def finished(self):
         self.timer.stop()

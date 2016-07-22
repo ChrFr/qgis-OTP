@@ -378,7 +378,7 @@ if __name__ == '__main__':
         time_note = 'start time ' 
     for date_time in date_times:     
            
-        print 'Starting evaluation of routes with ' +time_note + date_time.strftime(DATETIME_FORMAT) + '\n'
+        print 'Starting evaluation of routes with ' + time_note + date_time.strftime(DATETIME_FORMAT) + '\n'
         otpEval.setup(date_time, 
                       max_time=max_time, 
                       max_walk=max_walk, 
