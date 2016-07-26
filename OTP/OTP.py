@@ -430,6 +430,8 @@ class OTP:
         time_batch['datetime_end'] = end
         time_batch['time_step'] = step 
         
+        time_batch['smart_search'] = False
+        
         is_arrival = self.dlg.arrival_checkbox.isChecked()
         times['arrive_by'] = is_arrival        
         
