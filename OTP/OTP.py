@@ -170,9 +170,6 @@ class OTP:
             self.set_date() # no idea how to manually emit "clicked"-signal, so calling connected function directly
         self.dlg.date_now_button.clicked.connect(set_now)
         
-        # time_step
-        self.dlg.time_batch_checkbox.clicked.connect(self.toggle_time_batch)
-              
         # settings
         self.dlg.config_default_button.clicked.connect(self.reset_config_to_default)
         self.dlg.config_reset_button.clicked.connect(self.apply_config)
@@ -181,8 +178,7 @@ class OTP:
         # apply settings to UI (the layers are unknown at QGIS startup, so don't expect them to be already selected)
         self.apply_config()
         
-        # call checkbox toggle callbacks (settings loaded, but checkboxes not 'clicked' while loading)        
-        self.toggle_time_batch()
+        # call checkbox toggle callbacks (settings loaded, but checkboxes not 'clicked' while loading) 
         self.toggle_arrival()        
 
     # noinspection PyMethodMayBeStatic
@@ -345,9 +341,9 @@ class OTP:
         self.dlg.clamp_edit.setValue(int(router_config['clamp_initial_wait_min']))   
         self.dlg.transfers_edit.setValue(int(router_config['max_transfers']))    
         self.dlg.pre_transit_edit.setValue(int(router_config['pre_transit_time_min'])) 
-        wheelchair = router_config['wheel_chair_accessible'] == 'True' or router_config['wheel_chair_accessible'] == True  
+        wheelchair = router_config['wheel_chair_accessible'] in ['True', True]  
         self.dlg.wheelchair_check.setChecked(wheelchair)   
-        self.dlg.max_slope_edit.setValue(float(router_config['max_slope']))   
+        self.dlg.max_slope_edit.setValue(float(router_config['max_slope']))    
                     
         # TRAVERSE MODES    
         modes = router_config['traverse_modes']
@@ -360,22 +356,28 @@ class OTP:
                 
         # TIMES
         times = config.settings['time']
+        
         if times['datetime']:
             dt = datetime.strptime(times['datetime'], DATETIME_FORMAT)
         else:
             dt = datetime.now()
         self.dlg.time_edit.setDateTime(dt)
         self.dlg.calendar_edit.setSelectedDate(dt.date())
+        
         time_batch = times['time_batch']
+        
+        smart_search = time_batch['smart_search'] in ['True', True]
+        self.dlg.smart_search_checkbox.setChecked(True)  
+        
         if time_batch['datetime_end']:
             dt = datetime.strptime(time_batch['datetime_end'], DATETIME_FORMAT)
         self.dlg.to_time_edit.setDateTime(dt)
-        active = time_batch['active'] == 'True' or time_batch['active'] == True
+        active = time_batch['active'] in ['True', True]
         self.dlg.time_batch_checkbox.setChecked(active)
         if time_batch['time_step']:
             self.dlg.time_step_edit.setValue(int(time_batch['time_step']))
             
-        arrive_by = times['arrive_by'] == 'True' or times['arrive_by'] == True
+        arrive_by = times['arrive_by'] in ['True', True]
         self.dlg.arrival_checkbox.setChecked(arrive_by)
             
     def update_config(self):     
@@ -418,6 +420,10 @@ class OTP:
         dt = self.dlg.time_edit.dateTime()
         times['datetime'] = dt.toPyDateTime().strftime(DATETIME_FORMAT)
         time_batch = times['time_batch']
+        
+        smart_search = self.dlg.smart_search_checkbox.isChecked()
+        time_batch['smart_search'] = smart_search
+        
         active = self.dlg.time_batch_checkbox.isChecked()
         time_batch['active'] = active
         end = step = ''
@@ -492,12 +498,6 @@ class OTP:
         self.dlg.calculation_tabs.setTabEnabled(acc_idx, acc_enabled)  
         self.dlg.calculation_tabs.setTabEnabled(agg_idx, agg_enabled) 
         self.dlg.calculation_tabs.setTabEnabled(reach_idx, reach_enabled) 
-            
-            
-    def toggle_time_batch(self):
-        active = self.dlg.time_batch_checkbox.isChecked()
-        self.dlg.time_step_widget.setVisible(active)
-        self.dlg.to_time_widget.setVisible(active)            
             
     def fill_router_combo(self):
         # try to keep old router selected

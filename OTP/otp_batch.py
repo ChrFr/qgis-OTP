@@ -95,6 +95,17 @@ class OTPEvaluation(object):
             self.request.setModes(modes)
             
     def evaluate(self, times, origins_csv, destinations_csv, do_merge=False):
+        '''
+        evaluate the shortest paths between origins and destinations
+        uses the routing options set in setup() (run it first!)
+        
+        Parameters
+        ----------
+        times: list of date times, the desired start/arrival times for evaluation
+        origins_csv: file with origin points
+        destinations_csv: file with destination points
+        do_merge: merge the results over time, only keeping the best connections                
+        '''   
         
         if arrive_by:        
             time_note = 'arrival time '
@@ -102,6 +113,7 @@ class OTPEvaluation(object):
             time_note = 'start time ' 
             
         next_time = None
+        results = []
         # iterate all times
         for date_time in times:    
             self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second)
@@ -110,16 +122,17 @@ class OTPEvaluation(object):
                 epoch = datetime.utcfromtimestamp(0)
                 if (date_time - epoch).total_seconds() < next_time.getTime() / 1000:
                     continue
+                
             print 'Starting evaluation of routes with ' + time_note + date_time.strftime(DATETIME_FORMAT) + '\n'
               
             min_times = []
                           
             if self.arrive_by:
-                results_dt = evaluate_arrival(origins_csv, destinations_csv)
+                results_dt = self._evaluate_arrival(origins_csv, destinations_csv)
                 for result in results_dt:
                     min_times.append(result.getMinArrivalTime())
             else:
-                results_dt = evaluate_departures(origins_csv, destinations_csv)   
+                results_dt = self._evaluate_departures(origins_csv, destinations_csv)   
                 for result in results_dt:
                     min_times.append(result.getMinStartTime())   
             
@@ -146,7 +159,7 @@ class OTPEvaluation(object):
         return results
         
 
-    def evaluate_departures(self, origins_csv, destinations_csv):     
+    def _evaluate_departures(self, origins_csv, destinations_csv):     
         '''
         evaluate the shortest paths from origins to destinations
         uses the routing options set in setup() (run it first!)
@@ -181,7 +194,7 @@ class OTPEvaluation(object):
         print "A total of {} origins processed".format(i+1)   
         return result_sets
     
-    def evaluate_arrival(self, origins_csv, destinations_csv):   
+    def _evaluate_arrival(self, origins_csv, destinations_csv):   
         '''
         evaluate the shortest paths from destinations to origins (reverse search)
         uses the routing options set in setup() (run it first!), arriveby has to be set
@@ -450,7 +463,7 @@ if __name__ == '__main__':
     # merge results over time, if aggregation or accumulation is requested or bestof
     do_merge = True if mode is not None or bestof else False
     
-    results = otpEval.evaluate(date_times, origins_csv, destinations_csv, arrival=arrive_by, do_merge=do_merge)
+    results = otpEval.evaluate(date_times, origins_csv, destinations_csv, do_merge=do_merge)
                 
     otpEval.results_to_csv(results, target_csv, oid, did, mode, field, params, bestof, arrive_by=arrive_by) 
         
