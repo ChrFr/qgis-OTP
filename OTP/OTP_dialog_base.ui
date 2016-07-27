@@ -1503,5 +1503,54 @@ maximal einstellbarer Wert entspricht unendlich</string>
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>time_batch_checkbox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>to_time_widget</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>65</x>
+     <y>525</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>183</x>
+     <y>494</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>time_batch_checkbox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>time_step_widget</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>97</x>
+     <y>529</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>148</x>
+     <y>539</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>smart_search_checkbox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>time_step_edit</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>250</x>
+     <y>523</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>153</x>
+     <y>525</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
