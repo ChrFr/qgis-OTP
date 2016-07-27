@@ -17,6 +17,7 @@ from argparse import ArgumentParser
 from datetime import datetime, timedelta
 import sys
 from xml.dom import minidom
+from java.util import Calendar 
 
 class OTPEvaluation(object):
     '''
@@ -260,6 +261,7 @@ class OTPEvaluation(object):
         if do_accumulate:
             acc_result_set = self.origins.getEmptyResultSet()
             
+        # used for sorting times, times not set will be treated as max values
         def sorter(a):
             if a[1] is None:
                 return sys.maxint
@@ -295,6 +297,7 @@ class OTPEvaluation(object):
                 boardings = result_set.getBoardings()
                 walk_distances = result_set.getWalkDistances()
                 starts = result_set.getStartTimes()
+                timesToItineraries = result_set.getTimesToItineraries()
                 arrivals = result_set.getArrivalTimes()     
                 modes = result_set.getTraverseModes()
                 waiting_times = result_set.getWaitingTimes()
@@ -309,7 +312,8 @@ class OTPEvaluation(object):
                 for j in indices:
                     time = times[j]
                     if time is not None:
-                        out_csv.addRow([origin_ids[j], dest_ids[j], times[j], boardings[j], walk_distances[j], starts[j], arrivals[j], modes[j], waiting_times[j], elevationGained[j], elevationLost[j]])
+                        starts[j].add(Calendar.SECOND, -timesToItineraries[j]);
+                        out_csv.addRow([origin_ids[j], dest_ids[j], times[j], boardings[j], walk_distances[j], starts[j].getTime(), arrivals[j].getTime(), modes[j], waiting_times[j], elevationGained[j], elevationLost[j]])
     
         if do_accumulate:
             results = acc_result_set.getResults()
@@ -403,6 +407,7 @@ if __name__ == '__main__':
     date_times = [datetime.strptime(dt, DATETIME_FORMAT)]
     arrive_by = times.getElementsByTagName('arrive_by')[0].firstChild.data == 'True'
     time_batch = times.getElementsByTagName('time_batch')
+    smart_search = False
     if len(time_batch) > 0 and time_batch[0].getElementsByTagName('active')[0].firstChild.data == 'True':
         smart_search = time_batch[0].getElementsByTagName('smart_search')[0].firstChild.data == 'True'
         

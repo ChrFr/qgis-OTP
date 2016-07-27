@@ -127,6 +127,9 @@ class ExecCommandDialog(ProgressDialog):
         self.process.started.connect(self.running)
         self.process.finished.connect(self.finished)
         
+        # set maximum progress to 98 to leave space for postprocessing
+        max_progress = 98.
+        
         def show_progress():
             out = str(self.process.readAllStandardOutput())
             err = str(self.process.readAllStandardError())
@@ -134,8 +137,8 @@ class ExecCommandDialog(ProgressDialog):
                 self.show_status(out)
                 if out.startswith(progress_indicator):
                     if(total_ticks):
-                        self.ticks += 100. / total_ticks
-                        self.progress_bar.setValue(min(100, int(self.ticks)))       
+                        self.ticks += max_progress / total_ticks
+                        self.progress_bar.setValue(min(max_progress, int(self.ticks)))       
                         
                 '''  this approach shows progress more accurately, but may cause extreme lags -> deactivated (alternative: thread this)
                 if out.startswith(progress_indicator):
