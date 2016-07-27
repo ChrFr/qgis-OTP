@@ -785,7 +785,7 @@
       <string/>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab_3">
       <attribute name="title">
@@ -995,6 +995,9 @@
            <property name="text">
             <string>Zeitintervalle</string>
            </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
           </widget>
          </item>
          <item>
@@ -1003,7 +1006,7 @@
             <item>
              <widget class="QSpinBox" name="time_step_edit">
               <property name="enabled">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="toolTip">
                <string>Intervallschritt der Zeiten zu denen geroutet wird (alle n min)</string>
@@ -1505,15 +1508,47 @@ maximal einstellbarer Wert entspricht unendlich</string>
    <sender>smart_search_checkbox</sender>
    <signal>toggled(bool)</signal>
    <receiver>time_step_edit</receiver>
-   <slot>setEnabled(bool)</slot>
+   <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>210</x>
-     <y>532</y>
+     <x>216</x>
+     <y>524</y>
     </hint>
     <hint type="destinationlabel">
-     <x>149</x>
-     <y>529</y>
+     <x>138</x>
+     <y>524</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>time_batch_checkbox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>to_time_widget</receiver>
+   <slot>setShown(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>47</x>
+     <y>530</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>186</x>
+     <y>496</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>time_batch_checkbox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>time_step_widget</receiver>
+   <slot>setShown(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>66</x>
+     <y>528</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>172</x>
+     <y>539</y>
     </hint>
    </hints>
   </connection>
