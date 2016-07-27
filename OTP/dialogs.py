@@ -130,11 +130,13 @@ class ExecOTPDialog(ProgressDialog):
         self.process.finished.connect(self.finished)
         
         # how often will the stdout-indicator written before reaching 100%
-        n_ticks = n_points / points_per_tick       
-        print n_iterations
+        n_ticks = float(n_points) / points_per_tick    
         n_ticks *= n_iterations
         tick_indicator = 'Processing:'
         iteration_finished_indicator = 'A total of'
+        
+        # leave some space for post processing
+        max_progress = 98.
         
         def show_progress():
             out = str(self.process.readAllStandardOutput())
@@ -142,11 +144,11 @@ class ExecOTPDialog(ProgressDialog):
             if len(out):                 
                 self.show_status(out)
                 if out.startswith(tick_indicator) and n_ticks:
-                    self.ticks += 100. / n_ticks
-                    self.progress_bar.setValue(min(100, int(self.ticks)))      
+                    self.ticks += max_progress / n_ticks
+                    self.progress_bar.setValue(min(max_progress, int(self.ticks)))      
                 elif out.startswith(iteration_finished_indicator):
                     self.iterations += 1                      
-                    self.progress_bar.setValue(self.iterations * 100 / n_iterations)  
+                    self.progress_bar.setValue(self.iterations * max_progress / n_iterations)  
                         
                 '''  this approach shows progress more accurately, but may cause extreme lags -> deactivated (alternative: thread this)
                 if out.startswith(progress_indicator):

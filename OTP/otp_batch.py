@@ -51,8 +51,7 @@ class OTPEvaluation(object):
         ----------
         date_time: datetime object, start respectively arrival time (if arriveby == True)
         modes: optional, string with comma-seperated traverse-modes to use
-        banned: optional, string with comma-separated route specs, each of the format[agencyId]_[routeName]_[routeId] 
-        max_time: optional, maximum travel-time in seconds (the smaller this value, the smaller the shortest path tree, that has to be created; saves processing time) 
+        banned: optional, string with comma-separated route specs, each of the format[agencyId]_[routeName]_[routeId]  
         arrive_by: optional, if True, given time is arrival time (reverts search tree)
         max_walk: optional, maximum distance (in meters) the user is willing to walk 
         walk_speed: optional, walking speed in m/s
@@ -72,9 +71,6 @@ class OTPEvaluation(object):
         self.request.setArriveBy(arrive_by)
         self.arrive_by = arrive_by
         self.request.setWheelChairAccessible(wheel_chair_accessible)
-        # has to be set AFTER arriveby (request decides if negative weight or not by checking arriveby)
-        if max_time is not None:
-            self.request.setMaxTimeSec(long(max_time))
         if max_walk is not None:
             self.request.setMaxWalkDistance(max_walk)
         if walk_speed is not None:
@@ -95,7 +91,7 @@ class OTPEvaluation(object):
         if modes:          
             self.request.setModes(modes)
             
-    def evaluate(self, times, origins_csv, destinations_csv, do_merge=False):
+    def evaluate(self, times, max_time, origins_csv, destinations_csv, do_merge=False):
         '''
         evaluate the shortest paths between origins and destinations
         uses the routing options set in setup() (run it first!)
@@ -105,7 +101,8 @@ class OTPEvaluation(object):
         times: list of date times, the desired start/arrival times for evaluation
         origins_csv: file with origin points
         destinations_csv: file with destination points
-        do_merge: merge the results over time, only keeping the best connections                
+        do_merge: merge the results over time, only keeping the best connections    
+        max_time: maximum travel-time in seconds (the smaller this value, the smaller the shortest path tree, that has to be created; saves processing time)
         '''   
         
         if arrive_by:        
@@ -117,7 +114,9 @@ class OTPEvaluation(object):
         results = []
         # iterate all times
         for date_time in times:    
-            self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second)
+            self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second)            
+            # has to be set every time after setting datetime (and also AFTER setting arriveby)
+            self.request.setMaxTimeSec(max_time)
             if smart_search and next_time is not None:
                 # compare seconds since epoch (different ways to get it from java/python date)
                 epoch = datetime.utcfromtimestamp(0)
@@ -312,8 +311,22 @@ class OTPEvaluation(object):
                 for j in indices:
                     time = times[j]
                     if time is not None:
-                        starts[j].add(Calendar.SECOND, -timesToItineraries[j]);
-                        out_csv.addRow([origin_ids[j], dest_ids[j], times[j], boardings[j], walk_distances[j], starts[j].getTime(), arrivals[j].getTime(), modes[j], waiting_times[j], elevationGained[j], elevationLost[j]])
+                        start = starts[j]
+                        if start is not None:
+                            start.add(Calendar.SECOND, -timesToItineraries[j])
+                            start = start.getTime()
+                        arrival = arrivals[j].getTime() if arrivals[j] else None
+                        out_csv.addRow([origin_ids[j], 
+                                        dest_ids[j], 
+                                        times[j], 
+                                        boardings[j], 
+                                        walk_distances[j],
+                                        start, 
+                                        arrival, 
+                                        modes[j], 
+                                        waiting_times[j], 
+                                        elevationGained[j], 
+                                        elevationLost[j]])
     
         if do_accumulate:
             results = acc_result_set.getResults()
@@ -453,8 +466,7 @@ if __name__ == '__main__':
     
     otpEval = OTPEvaluation(router, print_every_n_lines, calculate_details, smart_search)    
     
-    otpEval.setup(max_time=max_time, 
-                  max_walk=max_walk, 
+    otpEval.setup(max_walk=max_walk, 
                   walk_speed=walk_speed, 
                   bike_speed=bike_speed, 
                   clamp_wait=clamp_wait, 
@@ -468,7 +480,7 @@ if __name__ == '__main__':
     # merge results over time, if aggregation or accumulation is requested or bestof
     do_merge = True if mode is not None or bestof else False
     
-    results = otpEval.evaluate(date_times, origins_csv, destinations_csv, do_merge=do_merge)
+    results = otpEval.evaluate(date_times, long(max_time), origins_csv, destinations_csv, do_merge=do_merge)
                 
     otpEval.results_to_csv(results, target_csv, oid, did, mode, field, params, bestof, arrive_by=arrive_by) 
         
