@@ -28,14 +28,18 @@ class OTPEvaluation(object):
     router: name of the router to use for trip planning
     print_every_n_lines: optional, determines how often progress in processing origins/destination is written to stdout (default: 50)
     '''   
-    def __init__(self, router, print_every_n_lines = 50, calculate_details = False):
+    def __init__(self, router, print_every_n_lines = 50, calculate_details = False, smart_search = False):
         self.otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router])
         self.router = self.otp.getRouter()
         self.request = self.otp.createRequest()
+        if smart_search:
+            calculate_details = True
         self.calculate_details = calculate_details
+        self.smart_search = smart_search     
+        self.arrive_by = False   
     
     def setup(self, 
-              date_time, max_time=1800, max_walk=None, walk_speed=None, 
+              date_time=None, max_time=None, max_walk=None, walk_speed=None, 
               bike_speed=None, clamp_wait=None, banned='', modes=None, 
               arrive_by=False, max_transfers=None, max_pre_transit_time=None,
               wheel_chair_accessible=False, max_slope=None):
@@ -61,9 +65,11 @@ class OTPEvaluation(object):
 #         epoch = datetime.utcfromtimestamp(0)
 #         epoch_seconds = (date_time - epoch).total_seconds() * 1000
 #         self.request.setDateTime(long(epoch_seconds))  
-        self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second) 
+        if date_time is not None:
+            self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second) 
         
         self.request.setArriveBy(arrive_by)
+        self.arrive_by = arrive_by
         self.request.setWheelChairAccessible(wheel_chair_accessible)
         # has to be set AFTER arriveby (request decides if negative weight or not by checking arriveby)
         if max_time is not None:
@@ -87,6 +93,58 @@ class OTPEvaluation(object):
              
         if modes:          
             self.request.setModes(modes)
+            
+    def evaluate(self, times, origins_csv, destinations_csv, do_merge=False):
+        
+        if arrive_by:        
+            time_note = 'arrival time '
+        else:
+            time_note = 'start time ' 
+            
+        next_time = None
+        # iterate all times
+        for date_time in times:    
+            self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second)
+            if smart_search and next_time is not None:
+                # compare seconds since epoch (different ways to get it from java/python date)
+                epoch = datetime.utcfromtimestamp(0)
+                if (date_time - epoch).total_seconds() < next_time.getTime() / 1000:
+                    continue
+            print 'Starting evaluation of routes with ' + time_note + date_time.strftime(DATETIME_FORMAT) + '\n'
+              
+            min_times = []
+                          
+            if self.arrive_by:
+                results_dt = evaluate_arrival(origins_csv, destinations_csv)
+                for result in results_dt:
+                    min_times.append(result.getMinArrivalTime())
+            else:
+                results_dt = evaluate_departures(origins_csv, destinations_csv)   
+                for result in results_dt:
+                    min_times.append(result.getMinStartTime())   
+            
+            next_time = min_times[0]
+            for i in range(1, len(min_times)):
+                if next_time.compareTo(min_times[i]) > 0:
+                    next_time = min_times[i] 
+            results.append(results_dt)    
+    
+        # merge the results
+        if do_merge:
+            merged_results = []
+            for n_results_per_time in range(len(results[0])):
+                merged_result = results[0][n_results_per_time]
+                for n_times in range(1, len(results)):
+                    res = results[n_times][n_results_per_time]
+                    merged_result = merged_result.merge(res)
+                merged_results.append(merged_result)
+            results = merged_results
+        else:            
+            # flatten the results
+            results = [r for res in results for r in res] 
+            
+        return results
+        
 
     def evaluate_departures(self, origins_csv, destinations_csv):     
         '''
@@ -333,15 +391,20 @@ if __name__ == '__main__':
     arrive_by = times.getElementsByTagName('arrive_by')[0].firstChild.data == 'True'
     time_batch = times.getElementsByTagName('time_batch')
     if len(time_batch) > 0 and time_batch[0].getElementsByTagName('active')[0].firstChild.data == 'True':
+        smart_search = time_batch[0].getElementsByTagName('smart_search')[0].firstChild.data == 'True'
+        
         dt_end = time_batch[0].getElementsByTagName('datetime_end')[0].firstChild.data
         date_time_end = datetime.strptime(dt_end, DATETIME_FORMAT)
-        time_step = int(time_batch[0].getElementsByTagName('time_step')[0].firstChild.data)
+        if smart_search:
+            time_step = 1
+        else:
+            time_step = int(time_batch[0].getElementsByTagName('time_step')[0].firstChild.data)
         
         dt = date_times[0]
         step_delta = timedelta(0, time_step * 60) # days, seconds ...
         while dt < date_time_end:
             dt += step_delta
-            date_times.append(dt)        
+            date_times.append(dt)                            
     
     # post processing
     postproc = config.getElementsByTagName('post_processing')[0]
@@ -370,48 +433,24 @@ if __name__ == '__main__':
     # results will be stored 2 dimensional to determine to which time the results belong, flattened later
     results = []
     
-    otpEval = OTPEvaluation(router, print_every_n_lines, calculate_details)    
-    # iterate all times
-    if arrive_by:        
-        time_note = 'arrival time '
-    else:
-        time_note = 'start time ' 
-    for date_time in date_times:     
-           
-        print 'Starting evaluation of routes with ' +time_note + date_time.strftime(DATETIME_FORMAT) + '\n'
-        otpEval.setup(date_time, 
-                      max_time=max_time, 
-                      max_walk=max_walk, 
-                      walk_speed=walk_speed, 
-                      bike_speed=bike_speed, 
-                      clamp_wait=clamp_wait, 
-                      modes=traverse_modes, 
-                      arrive_by=arrive_by,
-                      max_transfers=max_transfers,
-                      max_pre_transit_time=pre_transit_time,
-                      wheel_chair_accessible=wheel_chair_accessible,
-                      max_slope=max_slope)       
-        
-        
-        
-        if arrive_by:
-            results.append(otpEval.evaluate_arrival(origins_csv, destinations_csv))        
-        else:
-            results.append(otpEval.evaluate_departures(origins_csv, destinations_csv))     
+    otpEval = OTPEvaluation(router, print_every_n_lines, calculate_details, smart_search)    
+    
+    otpEval.setup(max_time=max_time, 
+                  max_walk=max_walk, 
+                  walk_speed=walk_speed, 
+                  bike_speed=bike_speed, 
+                  clamp_wait=clamp_wait, 
+                  modes=traverse_modes, 
+                  arrive_by=arrive_by,
+                  max_transfers=max_transfers,
+                  max_pre_transit_time=pre_transit_time,
+                  wheel_chair_accessible=wheel_chair_accessible,
+                  max_slope=max_slope)     
     
     # merge results over time, if aggregation or accumulation is requested or bestof
-    if mode is not None or bestof:
-        merged_results = []
-        for n_results_per_time in range(len(results[0])):
-            merged_result = results[0][n_results_per_time]
-            for n_times in range(1, len(results)):
-                res = results[n_times][n_results_per_time]
-                merged_result = merged_result.merge(res)
-            merged_results.append(merged_result)
-        results = merged_results
-    else:            
-        # flatten the results
-        results = [r for res in results for r in res] 
+    do_merge = True if mode is not None or bestof else False
+    
+    results = otpEval.evaluate(date_times, origins_csv, destinations_csv, arrival=arrive_by, do_merge=do_merge)
                 
     otpEval.results_to_csv(results, target_csv, oid, did, mode, field, params, bestof, arrive_by=arrive_by) 
         
