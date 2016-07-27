@@ -778,6 +778,9 @@
    </item>
    <item row="1" column="0">
     <widget class="QTabWidget" name="tabWidget_2">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
      <property name="toolTip">
       <string/>
      </property>
@@ -999,6 +1002,9 @@
            <layout class="QHBoxLayout" name="time_step_layout">
             <item>
              <widget class="QSpinBox" name="time_step_edit">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="toolTip">
                <string>Intervallschritt der Zeiten zu denen geroutet wird (alle n min)</string>
               </property>
@@ -1014,6 +1020,17 @@
              <widget class="QLabel" name="label_27">
               <property name="text">
                <string>min</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="smart_search_checkbox">
+              <property name="toolTip">
+               <string>wenn aktiviert, werden die Intervalle automatisch bestimmt 
+und Mehrfachberechnungen vermieden</string>
+              </property>
+              <property name="text">
+               <string>intelligente Suche</string>
               </property>
              </widget>
             </item>
@@ -1483,5 +1500,22 @@ maximal einstellbarer Wert entspricht unendlich</string>
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>smart_search_checkbox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>time_step_edit</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>210</x>
+     <y>532</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>149</x>
+     <y>529</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
