@@ -905,7 +905,7 @@ class OTP:
         if join_results:
             join = QgsVectorJoinInfo()
             join.joinLayerId = result_layer.id()
-            join.joinFieldName = 'origin-id'  
+            join.joinFieldName = 'origin id'  
             join.targetFieldName = config.settings['origin']['id_field']      
             origin_layer.addJoin(join)
             # TODO permanent join and remove result layer (origin_layer save as shape?)    
