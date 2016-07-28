@@ -181,13 +181,14 @@ class OTP:
         # call checkbox toggle callbacks (settings loaded, but checkboxes not 'clicked' while loading) 
         self.toggle_arrival()                       
                 
-        # currently deactivated functions
-        self.dlg.clamp_edit.setEnabled(False)
-        msg = u'\nDEAKTIVIERT - macht in OTP scheinbar nicht, was man erwarten würde'
-        self.dlg.clamp_edit.setValue(-1)
-        self.dlg.clamp_edit.setToolTip(self.dlg.clamp_edit.toolTip() + msg)
-        self.dlg.label_21.setToolTip(self.dlg.label_21.toolTip() + msg)
-        
+        # currently DEACTIVATED functions
+        # initial wait of 0 is confusing and higher values don't seem to work as supposed (only 'clamps' them, but doesn't work as maximum initial wait time) -> deactivated 
+        self.dlg.clamp_edit.setVisible(False)
+        # additional labels describing initial waiting time (i didn't consider proper naming)
+        self.dlg.label_21.setVisible(False) 
+        self.dlg.label_22.setVisible(False)
+        self.dlg.clamp_edit.setValue(-1) # -1 causes initial wait to be subtracted from total travel time, only value that makes sense atm
+        # smart search is under development
         self.dlg.smart_search_checkbox.setEnabled(False)
         self.dlg.smart_search_checkbox.setChecked(False)
         msg = u'\nDEAKTIVIERT - in Entwicklung'

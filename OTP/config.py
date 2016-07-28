@@ -91,9 +91,9 @@ ACCUMULATION_MODES = {
 }
 
 AVAILABLE_TRAVERSE_MODES = [
+    'AIRPLANE',
     'BICYCLE',
     'BUS',
-    'BUSISH',
     #'CABLE_CAR', deactivated: Bug in OtpsRoutingRequest with underscores
     'CAR',
     'FERRY',
@@ -102,7 +102,6 @@ AVAILABLE_TRAVERSE_MODES = [
     #'LEG_SWITCH', deactivated: it's only used internally in OTP
     'RAIL',
     'SUBWAY',
-    'TRAINISH',
     'TRAM',
     'TRANSIT',
     'WALK'

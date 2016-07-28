@@ -110,36 +110,36 @@ class OTPEvaluation(object):
         else:
             time_note = 'start time ' 
             
-        next_time = None
+        #next_time = None
         results = []
         # iterate all times
         for date_time in times:    
             self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second)            
             # has to be set every time after setting datetime (and also AFTER setting arriveby)
             self.request.setMaxTimeSec(max_time)
-            if smart_search and next_time is not None:
-                # compare seconds since epoch (different ways to get it from java/python date)
-                epoch = datetime.utcfromtimestamp(0)
-                if (date_time - epoch).total_seconds() < next_time.getTime() / 1000:
-                    continue
+            #if smart_search and next_time is not None:
+                ## compare seconds since epoch (different ways to get it from java/python date)
+                #epoch = datetime.utcfromtimestamp(0)
+                #if (date_time - epoch).total_seconds() < next_time.getTime() / 1000:
+                    #continue
                 
             print 'Starting evaluation of routes with ' + time_note + date_time.strftime(DATETIME_FORMAT) + '\n'
               
-            min_times = []
+            #min_times = []
                           
             if self.arrive_by:
                 results_dt = self._evaluate_arrival(origins_csv, destinations_csv)
-                for result in results_dt:
-                    min_times.append(result.getMinArrivalTime())
+                #for result in results_dt:
+                    #min_times.append(result.getMinArrivalTime())
             else:
                 results_dt = self._evaluate_departures(origins_csv, destinations_csv)   
-                for result in results_dt:
-                    min_times.append(result.getMinStartTime())   
+                #for result in results_dt:
+                    #min_times.append(result.getMinStartTime())   
             
-            next_time = min_times[0]
-            for i in range(1, len(min_times)):
-                if next_time.compareTo(min_times[i]) > 0:
-                    next_time = min_times[i] 
+            #next_time = min_times[0]
+            #for i in range(1, len(min_times)):
+                #if next_time.compareTo(min_times[i]) > 0:
+                    #next_time = min_times[i] 
             results.append(results_dt)    
     
         # merge the results
