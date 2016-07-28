@@ -117,7 +117,7 @@
        </property>
        <widget class="QWidget" name="orig_dest_calc_tab">
         <attribute name="title">
-         <string>alle Quell-/Zieldaten</string>
+         <string>Routensuche</string>
         </attribute>
         <attribute name="toolTip">
          <string>Routing zwischen Quellen und Zielen (Ankunft oder Abfahrt)</string>
