@@ -990,7 +990,8 @@
          <item>
           <widget class="QCheckBox" name="time_batch_checkbox">
            <property name="toolTip">
-            <string>bei Aktivierung Batchverarbeitung im definierten Zeitfenster</string>
+            <string>bei Aktivierung Batchverarbeitung im definierten Zeitfenster
+ACHTUNG: Mehrfachberechnungen und somit mehrfach auftauchende identische Routen möglich!</string>
            </property>
            <property name="text">
             <string>Zeitintervalle</string>
