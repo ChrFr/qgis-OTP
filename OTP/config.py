@@ -7,7 +7,6 @@ import os, sys, copy
 from collections import OrderedDict
 
 OTP_JAR='/opt/repos/OpenTripPlanner/target/otp-0.20.0-SNAPSHOT-shaded.jar'
-#OTP_JAR='/opt/repos/development/OpenTripPlanner_development/target/otp-0.20.0-SNAPSHOT-shaded.jar'
 GRAPH_PATH='/home/ggr/gis/otp_graphs'
 LATITUDE_COLUMN = 'Y' # field-name used for storing lat values in csv files
 LONGITUDE_COLUMN = 'X' # field-name used for storing lon values in csv files
@@ -92,9 +91,9 @@ ACCUMULATION_MODES = {
 }
 
 AVAILABLE_TRAVERSE_MODES = [
+    'AIRPLANE',
     'BICYCLE',
     'BUS',
-    'BUSISH',
     #'CABLE_CAR', deactivated: Bug in OtpsRoutingRequest with underscores
     'CAR',
     'FERRY',
@@ -103,7 +102,6 @@ AVAILABLE_TRAVERSE_MODES = [
     #'LEG_SWITCH', deactivated: it's only used internally in OTP
     'RAIL',
     'SUBWAY',
-    'TRAINISH',
     'TRAM',
     'TRANSIT',
     'WALK'
@@ -130,6 +128,7 @@ setting_struct = OrderedDict([
         'arrive_by': False,        
         'time_batch': {
             'active': False,
+            'smart_search': False,
             'datetime_end': '',
             'time_step': ''
         },        
@@ -185,14 +184,14 @@ class Config(Borg):
 
         if not filename:
             filename = DEFAULT_FILE
-
-        # create file if it does not exist
+        
+        self.settings = copy.deepcopy(setting_struct)
+        # create file with default settings if it does not exist
         if not os.path.isfile(filename):
-            self.settings = copy.deepcopy(setting_struct)
             self.write(filename)
         tree = etree.parse(filename)
-        self.settings = copy.deepcopy(setting_struct)
         f_set = xml_to_dict(tree.getroot())
+        # update subkeys to match file settings
         for key, value in f_set.iteritems():
             if self.settings.has_key(key):
                 self.settings[key].update(value)
