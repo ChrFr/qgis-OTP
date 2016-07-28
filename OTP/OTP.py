@@ -148,16 +148,18 @@ class OTP:
         self.dlg.aggregation_mode_combo.addItems(AGGREGATION_MODES.keys())
         agg_mode_combo = self.dlg.aggregation_mode_combo
         agg_layout = self.dlg.aggregation_value_edit
-        self.set_mode_params(AGGREGATION_MODES, agg_mode_combo, agg_layout)
+        agg_help_button = self.dlg.agg_help_button
+        self.set_mode_params(AGGREGATION_MODES, agg_mode_combo, agg_layout, agg_help_button)
         agg_mode_combo.currentIndexChanged.connect(
-            lambda: self.set_mode_params(AGGREGATION_MODES, agg_mode_combo, agg_layout))   
+            lambda: self.set_mode_params(AGGREGATION_MODES, agg_mode_combo, agg_layout, agg_help_button))   
         
         self.dlg.accumulation_mode_combo.addItems(ACCUMULATION_MODES.keys())
         acc_mode_combo = self.dlg.accumulation_mode_combo
         acc_layout = self.dlg.accumulation_value_edit
-        self.set_mode_params(ACCUMULATION_MODES, acc_mode_combo, acc_layout)
+        acc_help_button = self.dlg.acc_help_button
+        self.set_mode_params(ACCUMULATION_MODES, acc_mode_combo, acc_layout, acc_help_button)
         acc_mode_combo.currentIndexChanged.connect(
-            lambda: self.set_mode_params(ACCUMULATION_MODES, acc_mode_combo, acc_layout))   
+            lambda: self.set_mode_params(ACCUMULATION_MODES, acc_mode_combo, acc_layout, acc_help_button))   
         
         # router
         self.fill_router_combo()
@@ -584,7 +586,7 @@ class OTP:
             id_combo.addItem(field.name())
         id_combo.setCurrentIndex(old_idx)
         
-    def set_mode_params(self, modes, mode_combo, edit_layout):
+    def set_mode_params(self, modes, mode_combo, edit_layout, help_button):
         selected = mode_combo.currentText()  
         
         # clear layout
@@ -593,9 +595,23 @@ class OTP:
             edit_layout.removeWidget(widget)
             widget.setParent(None)
             
-        # only this one needs a value as an argument at the moment
+        try: help_button.clicked.disconnect()
+        except Exception: pass        
+        
+            
         if selected in modes.keys():
-            for param in modes[selected]:
+            
+            def show_help():                
+                msg_box = QMessageBox(
+                    QMessageBox.Information, 
+                    "Hilfe",
+                    modes[selected]["description"] 
+                )
+                msg_box.exec_()    
+                
+            help_button.clicked.connect(show_help)
+            
+            for param in modes[selected]["params"]:
                 label = QLabel(param["label"])
                 edit = QDoubleSpinBox()
                 step = param["step"] if param.has_key("step") else 1

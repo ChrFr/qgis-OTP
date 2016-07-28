@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 try:
     from lxml import etree
     import OTP
@@ -19,75 +21,101 @@ INFINITE = 2147483647 # represents indefinite values in the UI, pyqt spin boxes 
 # needed parameters for aggregation/accumulation modes (=keys) are listed here
 # order of parameters in list has to be the same, the specific mode requires them
 AGGREGATION_MODES = {
-    "THRESHOLD_SUM_AGGREGATOR": [
-        {
-            "label": "Schwellwert (sek)",
-            "min": 0,
-            "max": 180 * 60,
-            "default": 3600, 
-            "step": 1,
-            "decimals": 0
-        } 
-    ],
-    "THRESHOLD_CUMMULATIVE_AGGREGATOR": [
-        {
-            "label": "Schwellwert (sek)", # label of the param (UI only)
-            "min": 0, # minimum value
-            "max": 180 * 60, # maximum value
-            "default": 3600, # default value
-            "step": 1, # size of steps between values (default 1) 
-            "decimals": 0 # number of decimals (default 2)
-        }
-    ],
-    "DECAY_AGGREGATOR": [
-        {
-            "label": "Schwellwert (sek)",
-            "min": 0,
-            "max": 180 * 60,
-            "default": 60 * 60, 
-            "step": 1,
-            "decimals": 0
-        },
-        {
-            "label": "lambda",
-            "min": -10,
-            "max": 0,
-            "default": -0.1,
-            "step": 0.01,
-            "decimals": 2
-        }
+    "THRESHOLD_SUM_AGGREGATOR": {
+        "description": (u"Summiert die Werte der Ziele auf,\n" + 
+                        u"deren Verbindungsdauer den Schwellwert\n" + 
+                        u"nicht überschreitet."),
+        "params": [            
+            {
+                "label": "Schwellwert (sek)", # label of the param (UI only)
+                "min": 0, # minimum value
+                "max": 180 * 60, # maximum value
+                "default": 3600, # default value
+                "step": 1, # size of steps between values
+                "decimals": 0# number of decimals
+            }
+        ]
+    },
+    "THRESHOLD_CUMMULATIVE_AGGREGATOR": {
+        "description": (u"Summiert die gewichteten Werte der Ziele auf,\n" + 
+                        u"deren Verbindungsdauer t den Schwellwert s\n" + 
+                        u"nicht überschreitet.\n\n" + 
+                        u"Gewichtung: s - t"),
+        "params": [
+            {
+                "label": "Schwellwert (sek)",
+                "min": 0,
+                "max": 180 * 60,
+                "default": 3600,
+                "step": 1,
+                "decimals": 0
+            }
+        ]
+    },
+    "WEIGHTED_AVERAGE_AGGREGATOR": {
+        "description": (u"Bildet eine gewichtetes Mittel über die\n" + 
+                        u"Werte der erreichbaren Ziele.\n\n" + 
+                        u"Gewichtung: Verbindungsdauer"),
+        "params": [
+        ]
+    },
+    "DECAY_AGGREGATOR": {
+        "description": (u"Summiert die gewichteten Werte der Ziele auf,\n" + 
+                        u"deren Verbindungsdauer t den Schwellwert\n" + 
+                        u"nicht überschreitet.\n\n" + 
+                        u"Gewichtung: e^(lambda * (t / 60))"),        
+        "params": [
+            {
+                "label": "Schwellwert (sek)",
+                "min": 0,
+                "max": 180 * 60,
+                "default": 60 * 60, 
+                "step": 1,
+                "decimals": 0
+            },
+            {
+                "label": "lambda",
+                "min": -10,
+                "max": 0,
+                "default": -0.1,
+                "step": 0.01,
+                "decimals": 2
+            }
         ],
+    }
 }
 
 ACCUMULATION_MODES = {    
-    "DECAY_ACCUMULATOR": [
-        {
-            "label": "Halbwertszeit (min)",
-            "min": 1,
-            "max": 180 * 60,
-            "default": 1,
-            "step": 1,
-            "decimals": 0
-        },    
-        {
-            "label": "lambda",
-            "min": -10,
-            "max": 0,
-            "default": -0.1,
-            "step": 0.01,
-            "decimals": 2
-        }   
-    ],
-    "THRESHOLD_ACCUMULATOR": [
-        {
-            "label": "Schwellwert (sek)", # label of the param (UI only)
-            "min": 0, # minimum value
-            "max": 180 * 60, # maximum value
-            "default": 3600, # default value
-            "step": 1, # size of steps between values (default 1) 
-            "decimals": 0 # number of decimals (default 2)
-        }
-    ]    
+    "DECAY_ACCUMULATOR": {
+        "description": (u"Summiert die gewichteten Werte der Ziele auf.\n\n" + 
+                        u"Gewichtung: e^(-lambda * t)\n" + 
+                        u"mit lambda = 1 / (Halbwertszeit * 60)"),        
+        "params": [
+            {
+                "label": "Halbwertszeit (min)",
+                "min": 1,
+                "max": 180 * 60,
+                "default": 1,
+                "step": 1,
+                "decimals": 0
+            } 
+        ]
+    },
+    "THRESHOLD_ACCUMULATOR": {
+        "description": (u"Summiert die Werte der Ziele auf,\n" + 
+                        u"deren Verbindungsdauer den Schwellwert\n" + 
+                        u"nicht überschreitet."),        
+        "params": [
+            {
+                "label": "Schwellwert (min)",
+                "min": 0,
+                "max": 180 * 60,
+                "default": 3600, 
+                "step": 1,
+                "decimals": 0
+            }
+        ]    
+    }
 }
 
 AVAILABLE_TRAVERSE_MODES = [
