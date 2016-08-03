@@ -184,18 +184,21 @@ class OTP:
         self.toggle_arrival()                       
                 
         # currently DEACTIVATED functions
-        # initial wait of 0 is confusing and higher values don't seem to work as supposed (only 'clamps' them, but doesn't work as maximum initial wait time) -> deactivated 
+        # initial wait of 0 is confusing and higher values don't seem to work as supposed to
+        # (only 'clamps' them, but doesn't work as maximum initial wait time) -> deactivated 
         self.dlg.clamp_edit.setVisible(False)
         # additional labels describing initial waiting time (i didn't consider proper naming)
         self.dlg.label_21.setVisible(False) 
         self.dlg.label_22.setVisible(False)
-        self.dlg.clamp_edit.setValue(-1) # -1 causes initial wait to be subtracted from total travel time, only value that makes sense atm
-        # smart search is under development
+        # -1 causes initial wait to be subtracted from total travel time, 
+        # it's only value that makes sense for our purposes atm
+        self.dlg.clamp_edit.setValue(-1) 
+        
         self.dlg.smart_search_checkbox.setEnabled(False)
         self.dlg.smart_search_checkbox.setChecked(False)
         msg = u'\nDEAKTIVIERT - in Entwicklung'
         self.dlg.smart_search_checkbox.setToolTip(
-            self.dlg.smart_search_checkbox.toolTip() + msg)        
+            self.dlg.smart_search_checkbox.toolTip() + msg) 
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
