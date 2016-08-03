@@ -168,8 +168,9 @@ class OTP:
         self.dlg.calendar_edit.clicked.connect(self.set_date)
         
         def set_now():
-            self.dlg.calendar_edit.setSelectedDate(datetime.now())
-            self.set_date() # no idea how to manually emit "clicked"-signal, so calling connected function directly
+            now = datetime.now()
+            self.dlg.calendar_edit.setSelectedDate(now)
+            self.set_date(time = now.time())
         self.dlg.date_now_button.clicked.connect(set_now)
         
         # settings
@@ -184,18 +185,21 @@ class OTP:
         self.toggle_arrival()                       
                 
         # currently DEACTIVATED functions
-        # initial wait of 0 is confusing and higher values don't seem to work as supposed (only 'clamps' them, but doesn't work as maximum initial wait time) -> deactivated 
+        # initial wait of 0 is confusing and higher values don't seem to work as supposed to
+        # (only 'clamps' them, but doesn't work as maximum initial wait time) -> deactivated 
         self.dlg.clamp_edit.setVisible(False)
         # additional labels describing initial waiting time (i didn't consider proper naming)
         self.dlg.label_21.setVisible(False) 
         self.dlg.label_22.setVisible(False)
-        self.dlg.clamp_edit.setValue(-1) # -1 causes initial wait to be subtracted from total travel time, only value that makes sense atm
-        # smart search is under development
+        # -1 causes initial wait to be subtracted from total travel time, 
+        # it's only value that makes sense for our purposes atm
+        self.dlg.clamp_edit.setValue(-1) 
+        
         self.dlg.smart_search_checkbox.setEnabled(False)
         self.dlg.smart_search_checkbox.setChecked(False)
         msg = u'\nDEAKTIVIERT - in Entwicklung'
         self.dlg.smart_search_checkbox.setToolTip(
-            self.dlg.smart_search_checkbox.toolTip() + msg)        
+            self.dlg.smart_search_checkbox.toolTip() + msg) 
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -486,7 +490,7 @@ class OTP:
         config.write()  
         self.dlg.close()
         
-    def set_date(self):
+    def set_date(self, time=None):
         date = self.dlg.calendar_edit.selectedDate()
         # ToDo: if focus of user was on to_time, only change value in this one
         # but way below won't work, because focus changes, when calendar is clicked
@@ -494,8 +498,11 @@ class OTP:
             #self.dlg.to_time_edit.setDate(date)
         #else:
             #self.dlg.time_edit.setDate(date)
-        self.dlg.to_time_edit.setDate(date)
+        self.dlg.to_time_edit.setDate(date)       
         self.dlg.time_edit.setDate(date)
+        if time:
+            self.dlg.to_time_edit.setTime(time) 
+            self.dlg.time_edit.setTime(time)     
         
     def toggle_arrival(self):
         '''

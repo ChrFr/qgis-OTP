@@ -17,7 +17,7 @@ from argparse import ArgumentParser
 from datetime import datetime, timedelta
 import sys
 from xml.dom import minidom
-from java.util import Calendar 
+from java.util import Date 
 
 class OTPEvaluation(object):
     '''
@@ -110,36 +110,42 @@ class OTPEvaluation(object):
         else:
             time_note = 'start time ' 
             
-        #next_time = None
+        next_time = None # next start/arrival time detected is stored here
         results = []
         # iterate all times
         for date_time in times:    
             self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second)            
             # has to be set every time after setting datetime (and also AFTER setting arriveby)
             self.request.setMaxTimeSec(max_time)
-            #if smart_search and next_time is not None:
-                ## compare seconds since epoch (different ways to get it from java/python date)
-                #epoch = datetime.utcfromtimestamp(0)
-                #if (date_time - epoch).total_seconds() < next_time.getTime() / 1000:
-                    #continue
+            if smart_search and next_time is not None:
+                # compare seconds since epoch (different ways to get it from java/python date)
+                epoch = datetime.utcfromtimestamp(0)
+                # skip this time slice, if next detected time is not reached (as they are already detected)
+                if (date_time - epoch).total_seconds() <= next_time.getTime() / 1000:
+                    continue
                 
             print 'Starting evaluation of routes with ' + time_note + date_time.strftime(DATETIME_FORMAT) + '\n'
               
-            #min_times = []
+            min_times = []
                           
             if self.arrive_by:
                 results_dt = self._evaluate_arrival(origins_csv, destinations_csv)
-                #for result in results_dt:
-                    #min_times.append(result.getMinArrivalTime())
+                if smart_search:
+                    for result in results_dt:
+                        min_times.append(result.getMinArrivalTime())
             else:
                 results_dt = self._evaluate_departures(origins_csv, destinations_csv)   
-                #for result in results_dt:
-                    #min_times.append(result.getMinStartTime())   
+                if smart_search:
+                    for result in results_dt:
+                        min_times.append(result.getMinStartTime())   
             
-            #next_time = min_times[0]
-            #for i in range(1, len(min_times)):
-                #if next_time.compareTo(min_times[i]) > 0:
-                    #next_time = min_times[i] 
+            # detect the next start/arrival time (lowest of all found times)
+            if smart_search: 
+                next_time = min_times[0]
+                for i in range(1, len(min_times)):
+                    if next_time.compareTo(min_times[i]) > 0:
+                        next_time = min_times[i] 
+                        
             results.append(results_dt)    
     
         # merge the results
@@ -295,7 +301,7 @@ class OTPEvaluation(object):
             else:            
                 boardings = result_set.getBoardings()
                 walk_distances = result_set.getWalkDistances()
-                starts = result_set.getStartTimes()
+                starts = result_set.getSampledStartTimes()
                 timesToItineraries = result_set.getTimesToItineraries()
                 arrivals = result_set.getArrivalTimes()     
                 modes = result_set.getTraverseModes()
@@ -311,18 +317,13 @@ class OTPEvaluation(object):
                 for j in indices:
                     time = times[j]
                     if time is not None:
-                        start = starts[j]
-                        if start is not None:
-                            start.add(Calendar.SECOND, -timesToItineraries[j])
-                            start = start.getTime()
-                        arrival = arrivals[j].getTime() if arrivals[j] else None
                         out_csv.addRow([origin_ids[j], 
                                         dest_ids[j], 
                                         times[j], 
                                         boardings[j], 
                                         walk_distances[j],
-                                        start, 
-                                        arrival, 
+                                        starts[j], 
+                                        arrivals[j], 
                                         modes[j], 
                                         waiting_times[j], 
                                         elevationGained[j], 
