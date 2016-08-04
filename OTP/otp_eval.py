@@ -210,12 +210,16 @@ class OTPEvaluation(object):
                 spt = self.router.plan(self.request)
             else:
                 origins_skipped += 1
+                
+            result_set = None
             
             if spt is not None:
             
-                result_set = spt.getResultSet(destinations, self.calculate_details)   
+                result_set = destinations.createResultSet()
+                spt.eval(result_set, self.calculate_details)   
                 result_set.setSource(origin)
-                result_sets.append(result_set)                                
+                
+            result_sets.append(result_set)                                
                 
             if not (origins_processed + 1) % self.print_every_n_lines:
                 print "Processing: {} origins processed".format(origins_processed + 1)
@@ -248,7 +252,8 @@ class OTPEvaluation(object):
                 spt = self.router.plan(self.request)            
              
             if spt is not None:
-                result_set = spt.getResultSet(self.origins, self.calculate_details)            
+                result_set = origins.createResultSet()
+                spt.eval(result_set, self.calculate_details)           
                 result_set.setSource(destination) 
                 result_sets.append(result_set)
              
