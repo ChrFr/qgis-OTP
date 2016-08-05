@@ -195,11 +195,11 @@ class OTP:
         # it's only value that makes sense for our purposes atm
         self.dlg.clamp_edit.setValue(-1) 
         
-        self.dlg.smart_search_checkbox.setEnabled(False)
-        self.dlg.smart_search_checkbox.setChecked(False)
-        msg = u'\nDEAKTIVIERT - in Entwicklung'
-        self.dlg.smart_search_checkbox.setToolTip(
-            self.dlg.smart_search_checkbox.toolTip() + msg) 
+        #self.dlg.smart_search_checkbox.setEnabled(False)
+        #self.dlg.smart_search_checkbox.setChecked(False)
+        #msg = u'\nDEAKTIVIERT - in Entwicklung'
+        #self.dlg.smart_search_checkbox.setToolTip(
+            #self.dlg.smart_search_checkbox.toolTip() + msg) 
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
