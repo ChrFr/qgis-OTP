@@ -1569,21 +1569,5 @@ maximal einstellbarer Wert entspricht unendlich</string>
     </hint>
    </hints>
   </connection>
-  <connection>
-   <sender>smart_search_checkbox</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>time_step_edit</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>250</x>
-     <y>523</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>153</x>
-     <y>525</y>
-    </hint>
-   </hints>
-  </connection>
  </connections>
 </ui>
