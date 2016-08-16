@@ -102,10 +102,10 @@ if __name__ == '__main__':
         
         dt_end = time_batch[0].getElementsByTagName('datetime_end')[0].firstChild.data
         date_time_end = datetime.strptime(dt_end, DATETIME_FORMAT)
-        if smart_search:
-            time_step = 1
-        else:
-            time_step = int(time_batch[0].getElementsByTagName('time_step')[0].firstChild.data)
+#         if smart_search:
+#             time_step = 1
+#         else:
+        time_step = int(time_batch[0].getElementsByTagName('time_step')[0].firstChild.data)
         
         dt = date_times[0]
         step_delta = timedelta(0, time_step * 60) # days, seconds ...

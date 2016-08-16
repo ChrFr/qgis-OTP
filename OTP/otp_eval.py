@@ -109,21 +109,24 @@ class OTPEvaluation(object):
         origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
         destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)   
         
-        # next start/arrival time detected (of ALL results)   
-        min_next_time = None 
-
+        time_tables = []
+        # create a time-table made of resultSets storing the next detected travel times (constantly updated)
         if self.arrive_by:
-            time_note = 'arrival time '
-            min_next_times = [sys.maxint] * destinations.size()
-            #time_table = [[None] * len(orgins)] * len(destinations)
+            time_note = 'arrival time '   
+            if self.smart_search:
+                for i in range(destinations.size()):
+                    time_tables.append(origins.createResultSet())             
         else:
             time_note = 'start time ' 
-            min_next_times = [sys.maxint] * origins.size()
-            #time_table = [[None] * len(destinations)] * len(origins)
-            
-        results = []
+            if self.smart_search:
+                for i in range(origins.size()):
+                    time_tables.append(destinations.createResultSet())            
+        
+        # dimension: time x individuals (origins resp. destinations)    
+        results = []   
+        
         # iterate all times
-        for date_time in times:    
+        for t, date_time in enumerate(times):    
             # compare seconds since epoch (different ways to get it from java/python date)
             epoch = datetime.utcfromtimestamp(0)
             time_since_epoch = (date_time - epoch).total_seconds()
@@ -131,41 +134,20 @@ class OTPEvaluation(object):
             # has to be set every time after setting datetime (and also AFTER setting arriveby)
             self.request.setMaxTimeSec(max_time)
             msg = 'Starting evaluation of routes with ' + time_note + date_time.strftime(DATETIME_FORMAT)
-            
-            if self.smart_search and min_next_time is not None:
-                # skip the whole time slice, if next detected time is not reached (as they are already detected)
-                if time_since_epoch <= (min_next_time + 10) / 1000: # 10 seconds tolerance
-                    print msg + ' - SKIPPED'
-                    continue
                 
             print msg
                           
+            # first iteration no results -> no time table
+            tt = time_tables if t > 0 and self.smart_search else None
+                
             if self.arrive_by:
-                if self.smart_search:
-                    for i, destination in destinations:
-                        #ignore destination, if already found routes arrive later anyway
-                        destination.setIgnored(time_since_epoch <= min_next_times[i])
-                results_dt = self._evaluate_arrival(origins, destinations)
-                if self.smart_search:
-                    for result in results_dt:
-                        min_next_times[i] = result.getMinArrivalTime().getTime()
+                results_dt = self._evaluate_arrival(origins, destinations, time_tables=tt)
             else:
-                if self.smart_search:
-                    for i, origin in enumerate(origins):
-                        #ignore origin, if already found routes start later anyway
-                        ignore = time_since_epoch <= min_next_times[i]
-                        origin.setIgnored(ignore)
-                results_dt = self._evaluate_departures(origins, destinations)   
-                if self.smart_search:
-                    for result in results_dt:
-                        min_next_times[i] = result.getMinStartTime().getTime()  
-            
-            # detect the next start/arrival time (lowest of all found times)
-            if self.smart_search: 
-                min_next_time = min_next_times[0]
-                for i in range(1, len(min_next_times)):
-                    if min_next_times[i] < min_next_time:
-                        min_next_time = min_next_times[i] 
+                results_dt = self._evaluate_departures(origins, destinations, time_tables=tt)    
+                
+            for i, time_table in enumerate(time_tables): 
+                if results_dt[i] is not None:               
+                    time_table.update(results_dt[i])              
                         
             results.append(results_dt)    
     
@@ -186,7 +168,7 @@ class OTPEvaluation(object):
         return results
         
 
-    def _evaluate_departures(self, origins, destinations):     
+    def _evaluate_departures(self, origins, destinations, time_tables=None):     
         '''
         evaluate the shortest paths from origins to destinations
         uses the routing options set in setup() (run it first!)
@@ -197,14 +179,27 @@ class OTPEvaluation(object):
         destinations: destination individuals
         '''       
         
-        origins_processed = -1 # in case no origins are processed (shouldn't happen though)     
-        origins_skipped = 0        
-        
+        i = -1 # in case no origins are processed (increased by 1 when printing total amount of origins)      
+        origins_skipped = 0    
+        start_time = self.request.getDateTime()
         result_sets = []
 
-        for origins_processed, origin in enumerate(origins):
+        for i, origin in enumerate(origins):
             spt = None
-            if not origin.isIgnored():
+            skip_origin = False
+            skip_destinations = None
+            if time_tables is not None:
+                min_next_time = time_tables[i].getMinStartTime()                
+                if min_next_time is not None and min_next_time.compareTo(start_time) >= 0: # is None, if no routes were found at all
+                    skip_origin = True
+                else:
+                    #TODO: check this later
+                    skip_destinations = []
+                    compare_times = time_tables[i].compareStartTime(start_time)
+                    for c in compare_times:
+                        skip = True if c >= 0 else False
+                        skip_destinations.append(skip)
+            if not skip_origin:
                 # Set the origin of the request to this point and run a search
                 self.request.setOrigin(origin)
                 spt = self.router.plan(self.request)
@@ -216,21 +211,24 @@ class OTPEvaluation(object):
             if spt is not None:
             
                 result_set = destinations.createResultSet()
-                spt.eval(result_set, self.calculate_details)   
-                result_set.setSource(origin)
+                result_set.setEvalItineraries(self.calculate_details)
+                if skip_destinations is not None:
+                    result_set.setSkipIndividuals(skip_destinations)
+                spt.eval(result_set)   
+                result_set.setSource(origin)  
                 
-            result_sets.append(result_set)                                
+            result_sets.append(result_set)                                     
                 
-            if not (origins_processed + 1) % self.print_every_n_lines:
-                print "Processing: {} origins processed".format(origins_processed + 1)
+            if not (i + 1) % self.print_every_n_lines:
+                print "Processing: {} origins processed".format(i + 1)
                 
-        msg = "A total of {} origins processed".format(origins_processed + 1)
+        msg = "A total of {} origins processed".format(i + 1)
         if origins_skipped > 0:
             msg += ", {} origins skipped".format(origins_skipped)   
         print msg
         return result_sets
     
-    def _evaluate_arrival(self, origins, destinations):   
+    def _evaluate_arrival(self, origins, destinations, skip_destinations=None):   
         '''
         evaluate the shortest paths from destinations to origins (reverse search)
         uses the routing options set in setup() (run it first!), arriveby has to be set
@@ -253,7 +251,8 @@ class OTPEvaluation(object):
              
             if spt is not None:
                 result_set = origins.createResultSet()
-                spt.eval(result_set, self.calculate_details)           
+                result_set.setEvalItineraries(self.calculate_details)
+                spt.eval(result_set)           
                 result_set.setSource(destination) 
                 result_sets.append(result_set)
              
@@ -303,6 +302,8 @@ class OTPEvaluation(object):
             return a[1]
         
         for result_set in result_sets: 
+            if result_set is None:
+                continue
                 
             if do_accumulate:
                 if acc_result_set is None:
@@ -331,8 +332,7 @@ class OTPEvaluation(object):
             else:            
                 boardings = result_set.getBoardings()
                 walk_distances = result_set.getWalkDistances()
-                starts = result_set.getSampledStartTimes()
-                timesToItineraries = result_set.getTimesToItineraries()
+                starts = result_set.getStartTimes()#result_set.getSampledStartTimes()
                 arrivals = result_set.getArrivalTimes()     
                 modes = result_set.getTraverseModes()
                 waiting_times = result_set.getWaitingTimes()
@@ -358,6 +358,8 @@ class OTPEvaluation(object):
                                         waiting_times[j], 
                                         elevationGained[j], 
                                         elevationLost[j]])
+#                     else:
+#                         out_csv.addRow(['None'])
     
         if do_accumulate:
             results = acc_result_set.getResults()
