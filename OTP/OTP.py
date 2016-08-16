@@ -387,7 +387,7 @@ class OTP:
         time_batch = times['time_batch']
         
         smart_search = time_batch['smart_search'] in ['True', True]
-        self.dlg.smart_search_checkbox.setChecked(True)  
+        self.dlg.smart_search_checkbox.setChecked(smart_search)  
         
         if time_batch['datetime_end']:
             dt = datetime.strptime(time_batch['datetime_end'], DATETIME_FORMAT)
