@@ -228,7 +228,7 @@ class OTPEvaluation(object):
         print msg
         return result_sets
     
-    def _evaluate_arrival(self, origins, destinations, skip_destinations=None):   
+    def _evaluate_arrival(self, origins, destinations, time_tables=None):   
         '''
         evaluate the shortest paths from destinations to origins (reverse search)
         uses the routing options set in setup() (run it first!), arriveby has to be set
@@ -240,26 +240,51 @@ class OTPEvaluation(object):
         '''        
      
         i = -1       
-        result_sets=[]
+        destinations_skipped = 0    
+        arrival_time = self.request.getDateTime()
+        result_sets = []
          
-        for i, destination in enumerate(self.destinations):
+        for i, destination in enumerate(destinations):
             spt = None
-            if not destination.isIgnored():
+            skip_destination = False
+            skip_origins = None
+            if time_tables is not None:
+                min_next_time = time_tables[i].getMinArrivalTime()                
+                if min_next_time is not None and min_next_time.compareTo(arrival_time) >= 0: # is None, if no routes were found at all
+                    skip_destination = True
+                else:
+                    #TODO: check this later
+                    skip_origins = []
+                    compare_times = time_tables[i].compareArrivalTime(arrival_time)
+                    for c in compare_times:
+                        skip = True if c >= 0 else False
+                        skip_origins.append(skip)
+            if not skip_destination:
                 # Set the destination of the request to this point and run a search
                 self.request.setDestination(destination)
-                spt = self.router.plan(self.request)            
-             
+                spt = self.router.plan(self.request)   
+            else:
+                destinations_skipped += 1
+                
+            result_set = None
+                
             if spt is not None:
                 result_set = origins.createResultSet()
                 result_set.setEvalItineraries(self.calculate_details)
+                if skip_origins is not None:
+                    result_set.setSkipIndividuals(skip_origins)
                 spt.eval(result_set)           
                 result_set.setSource(destination) 
-                result_sets.append(result_set)
+            
+            result_sets.append(result_set)
              
             if not (i + 1) % self.print_every_n_lines:
                 print "Processing: {} destinations processed".format(i+1)    
           
-        print "A total of {} destinations processed".format(i+1)    
+        msg = "A total of {} destinations processed".format(i+1)    
+        if destinations_skipped > 0:
+            msg += ", {} destinations skipped".format(destinations_skipped) 
+        print msg
         return result_sets
         
     def results_to_csv(self, result_sets, target_csv, oid, did, mode=None, field=None, params=None, bestof=None, arrive_by=False):         
