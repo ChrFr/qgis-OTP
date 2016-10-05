@@ -29,7 +29,7 @@ AGGREGATION_MODES = {
             {
                 "label": "Schwellwert (sek)", # label of the param (UI only)
                 "min": 0, # minimum value
-                "max": 180 * 60, # maximum value
+                "max": 24 * 60 * 60, # maximum value
                 "default": 3600, # default value
                 "step": 1, # size of steps between values
                 "decimals": 0# number of decimals
@@ -45,7 +45,7 @@ AGGREGATION_MODES = {
             {
                 "label": "Schwellwert (sek)",
                 "min": 0,
-                "max": 180 * 60,
+                "max": 24 * 60 * 60,
                 "default": 3600,
                 "step": 1,
                 "decimals": 0
@@ -68,7 +68,7 @@ AGGREGATION_MODES = {
             {
                 "label": "Schwellwert (sek)",
                 "min": 0,
-                "max": 180 * 60,
+                "max": 24 * 60 * 60,
                 "default": 60 * 60, 
                 "step": 1,
                 "decimals": 0
@@ -94,7 +94,7 @@ ACCUMULATION_MODES = {
             {
                 "label": "Halbwertszeit (min)",
                 "min": 1,
-                "max": 180 * 60,
+                "max": 24 * 60,
                 "default": 1,
                 "step": 1,
                 "decimals": 0
@@ -109,7 +109,7 @@ ACCUMULATION_MODES = {
             {
                 "label": "Schwellwert (min)",
                 "min": 0,
-                "max": 180 * 60,
+                "max": 24 * 60,
                 "default": 3600, 
                 "step": 1,
                 "decimals": 0
