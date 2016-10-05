@@ -146,10 +146,10 @@ class ExecOTPDialog(ProgressDialog):
             err = str(self.process.readAllStandardError())
             if len(out):                 
                 self.show_status(out)
-                if out.startswith(tick_indicator) and n_ticks:
+                if tick_indicator in out and n_ticks:
                     self.ticks += 1
                     self.progress_bar.setValue(min(max_progress, int(self.ticks * max_progress / n_ticks)))      
-                elif out.startswith(iteration_finished_indicator):
+                elif iteration_finished_indicator in out:
                     self.iterations += 1                      
                     self.progress_bar.setValue(self.iterations * max_progress / n_iterations)  
                         
@@ -186,6 +186,7 @@ class ExecOTPDialog(ProgressDialog):
         super(ExecOTPDialog, self).stopped()
 
     def finished(self):
+        self.startButton.setText('Neustart')
         self.timer.stop()
         if self.process.exitCode() == QtCore.QProcess.NormalExit and not self.killed:
             self.progress_bar.setValue(100)

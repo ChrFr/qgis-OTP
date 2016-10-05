@@ -25,7 +25,8 @@ from PyQt4.QtCore import (QSettings, QTranslator, qVersion,
                           QVariant, QLocale, QDate)
 from PyQt4.QtGui import (QAction, QIcon, QListWidgetItem, 
                          QCheckBox, QMessageBox, QLabel,
-                         QDoubleSpinBox, QFileDialog)
+                         QDoubleSpinBox, QFileDialog,
+                         QInputDialog, QLineEdit)
 
 # Initialize Qt resources from file resources.py
 import resources
@@ -46,7 +47,10 @@ import shutil
 import getpass
 from datetime import datetime
 
-TITLE = "Entwicklungsversion"
+VERSION = "0.5"
+TITLE = "GGR OpenTripPlanner Plugin v" + VERSION
+
+TITLE += " - Entwicklungsversion" 
 
 config = Config()
 config.read()
@@ -691,7 +695,17 @@ class OTP:
         else:
             target_file = None
         add_results = self.dlg.orig_dest_add_check.isChecked()
-        self.call_otp(target_file=target_file, add_results=add_results)
+        result_layer_name = None
+        if add_results:
+            preset = 'results-{}-{}'.format(self.dlg.router_combo.currentText(),
+                                            self.dlg.origins_combo.currentText())
+            result_layer_name, ok = QInputDialog.getText(None, 'Layer benennen', 
+                                                         'Name der zu erzeugenden Ergebnistabelle:', 
+                                                         QLineEdit.Normal,
+                                                         preset)
+            if not ok:
+                return
+        self.call_otp(target_file=target_file, add_results=add_results, result_layer_name=result_layer_name)
         
     def start_aggregation(self):
         # update postprocessing settings
@@ -790,7 +804,7 @@ class OTP:
         #remove temporary layer
         QgsMapLayerRegistry.instance().removeMapLayer(temp_dest_layer.id())   
         
-    def call_otp(self, target_file=None, origin_layer=None, destination_layer=None, add_results=False, join_results=False):   
+    def call_otp(self, target_file=None, origin_layer=None, destination_layer=None, add_results=False, join_results=False, result_layer_name=None):   
         now_string = datetime.now().strftime(DATETIME_FORMAT)
                 
         # update settings
@@ -909,12 +923,13 @@ class OTP:
         
         ### add/join layers in QGIS after OTP is done ### 
         
-        layer_name = 'results-{}-{}'.format(self.dlg.router_combo.currentText(),
-                                               self.dlg.origins_combo.currentText())
-        layer_name += '-' + now_string
+        if result_layer_name is None:
+            result_layer_name = 'results-{}-{}'.format(self.dlg.router_combo.currentText(),
+                                                   self.dlg.origins_combo.currentText())
+            result_layer_name += '-' + now_string
         # WARNING: csv layer is only link to file, if temporary is removed you won't see anything later
         result_layer = self.iface.addVectorLayer(target_file, 
-                                                 layer_name, 
+                                                 result_layer_name, 
                                                  'delimitedtext')
             
         if join_results:

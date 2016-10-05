@@ -32,7 +32,8 @@ class OTPEvaluation(object):
     def __init__(self, router, print_every_n_lines=50, calculate_details=False, smart_search=False):
         self.otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router])
         self.router = self.otp.getRouter()
-        self.request = self.otp.createRequest()
+        self.request = self.otp.createManyToManyRequest()
+        self.request.setEvalItineraries(calculate_details)
         # smart search needs details (esp. start/arrival times), 
         # even if not wanted explicitly
         if smart_search:
@@ -108,24 +109,21 @@ class OTPEvaluation(object):
     
         origins = self.otp.loadCSVPopulation(origins_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)    
         destinations = self.otp.loadCSVPopulation(destinations_csv, LATITUDE_COLUMN, LONGITUDE_COLUMN)   
+        self.request.setOrigins(origins)
+        self.request.setDestinations(destinations)
+        self.request.setLogProgress(self.print_every_n_lines)
         
-        time_tables = []
-        # create a time-table made of resultSets storing the next detected travel times (constantly updated)
+        if len(times) > 1:
+            cutoff = times[-1]
+            self.request.setCutoffTime(cutoff.year, cutoff.month, cutoff.day, cutoff.hour, cutoff.minute, cutoff.second)
+            
         if self.arrive_by:
-            time_note = 'arrival time '   
-            if self.smart_search:
-                for i in range(destinations.size()):
-                    time_tables.append(origins.createResultSet())             
+            time_note = ' arrival time '             
         else:
             time_note = 'start time ' 
-            if self.smart_search:
-                for i in range(origins.size()):
-                    time_tables.append(destinations.createResultSet())            
-        
-        # dimension: time x individuals (origins resp. destinations)    
-        results = []   
-        
+            
         # iterate all times
+        results = [] # dimension (if not merged): times x targets (origins resp. destinations)
         for t, date_time in enumerate(times):    
             # compare seconds since epoch (different ways to get it from java/python date)
             epoch = datetime.utcfromtimestamp(0)
@@ -133,160 +131,23 @@ class OTPEvaluation(object):
             self.request.setDateTime(date_time.year, date_time.month, date_time.day, date_time.hour, date_time.minute, date_time.second)            
             # has to be set every time after setting datetime (and also AFTER setting arriveby)
             self.request.setMaxTimeSec(max_time)
-            msg = 'Starting evaluation of routes with ' + time_note + date_time.strftime(DATETIME_FORMAT)
-                
+            
+            msg = 'Starting evaluation of routes with ' + time_note + date_time.strftime(DATETIME_FORMAT)                
             print msg
                           
-            # first iteration no results -> no time table
-            tt = time_tables if t > 0 and self.smart_search else None
-                
-            if self.arrive_by:
-                results_dt = self._evaluate_arrival(origins, destinations, time_tables=tt)
-            else:
-                results_dt = self._evaluate_departures(origins, destinations, time_tables=tt)    
-                
-            for i, time_table in enumerate(time_tables): 
-                if results_dt[i] is not None:               
-                    time_table.update(results_dt[i])              
-                        
-            results.append(results_dt)    
+            results_dt = self.router.plan(self.request)
+            
+            # if there already was a calculation: merge it with new results
+            if do_merge and len(results) > 0:
+                for prev_result, i in results[0]:
+                    prev_result.merge(results_dt[i])    
+            else:        
+                results.append(results_dt)    
     
-        # merge the results
-        if do_merge:
-            merged_results = []
-            for n_results_per_time in range(len(results[0])):
-                merged_result = results[0][n_results_per_time]
-                for n_times in range(1, len(results)):
-                    res = results[n_times][n_results_per_time]
-                    merged_result = merged_result.merge(res)
-                merged_results.append(merged_result)
-            results = merged_results
-        else:            
-            # flatten the results
-            results = [r for res in results for r in res] 
+        # flatten the results
+        results = [r for res in results for r in res] 
             
-        return results
-        
-
-    def _evaluate_departures(self, origins, destinations, time_tables=None):     
-        '''
-        evaluate the shortest paths from origins to destinations
-        uses the routing options set in setup() (run it first!)
-        
-        Parameters
-        ----------
-        origins: origin individuals
-        destinations: destination individuals
-        '''       
-        
-        i = -1 # in case no origins are processed (increased by 1 when printing total amount of origins)      
-        origins_skipped = 0    
-        start_time = self.request.getDateTime()
-        result_sets = []
-
-        for i, origin in enumerate(origins):
-            spt = None
-            skip_origin = False
-            skip_destinations = None
-            if time_tables is not None:
-                min_next_time = time_tables[i].getMinStartTime()     
-                if (min_next_time is not None # is None, if no routes were found at all
-                    and min_next_time.compareTo(start_time) >= 0): 
-                    skip_origin = True
-                else:
-                    #TODO: check this later
-                    skip_destinations = []
-                    compare_times = time_tables[i].compareStartTime(start_time)
-                    for c in compare_times:
-                        skip = True if c >= 0 else False
-                        skip_destinations.append(skip)
-            if not skip_origin:
-                # Set the origin of the request to this point and run a search
-                self.request.setOrigin(origin)
-                spt = self.router.plan(self.request)
-            else:
-                origins_skipped += 1
-                
-            result_set = None
-            
-            if spt is not None:
-            
-                result_set = destinations.createResultSet()
-                result_set.setEvalItineraries(self.calculate_details)
-                if skip_destinations is not None:
-                    result_set.setSkipIndividuals(skip_destinations)
-                spt.eval(result_set)   
-                result_set.setSource(origin)  
-                
-            result_sets.append(result_set)                                     
-                
-            if not (i + 1) % self.print_every_n_lines:
-                print "Processing: {} origins processed".format(i + 1)
-                
-        msg = "A total of {} origins processed".format(i + 1)
-        if origins_skipped > 0:
-            msg += ", {} origins skipped".format(origins_skipped)   
-        print msg
-        return result_sets
-    
-    def _evaluate_arrival(self, origins, destinations, time_tables=None):   
-        '''
-        evaluate the shortest paths from destinations to origins (reverse search)
-        uses the routing options set in setup() (run it first!), arriveby has to be set
-        
-        Parameters
-        ----------
-        origins: origin individuals
-        destinations: destination individuals
-        '''        
-     
-        i = -1       
-        destinations_skipped = 0    
-        arrival_time = self.request.getDateTime()
-        result_sets = []
-         
-        for i, destination in enumerate(destinations):
-            spt = None
-            skip_destination = False
-            skip_origins = None
-            if time_tables is not None:
-                min_next_time = time_tables[i].getMinArrivalTime()                
-                if min_next_time is not None and min_next_time.compareTo(arrival_time) >= 0: # is None, if no routes were found at all
-                    skip_destination = True
-                else:
-                    #TODO: check this later
-                    skip_origins = []
-                    compare_times = time_tables[i].compareArrivalTime(arrival_time)
-                    for c in compare_times:
-                        skip = True if c >= 0 else False
-                        skip_origins.append(skip)
-            if not skip_destination:
-                # Set the destination of the request to this point and run a search
-                self.request.setDestination(destination)
-                spt = self.router.plan(self.request)   
-            else:
-                destinations_skipped += 1
-                
-            result_set = None
-                
-            if spt is not None:
-                result_set = origins.createResultSet()
-                result_set.setEvalItineraries(self.calculate_details)
-                if skip_origins is not None:
-                    result_set.setSkipIndividuals(skip_origins)
-                spt.eval(result_set)           
-                result_set.setSource(destination) 
-            
-            result_sets.append(result_set)
-             
-            if not (i + 1) % self.print_every_n_lines:
-                print "Processing: {} destinations processed".format(i+1)    
-          
-        msg = "A total of {} destinations processed".format(i+1)    
-        if destinations_skipped > 0:
-            msg += ", {} destinations skipped".format(destinations_skipped) 
-        print msg
-        return result_sets
+        return results      
         
     def results_to_csv(self, result_sets, target_csv, oid, did, mode=None, field=None, params=None, bestof=None, arrive_by=False):         
         '''
