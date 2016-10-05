@@ -179,7 +179,7 @@
             <string>Ergebnisse werden als Layer zum geöffneten QGIS-Projekt hinzugefügt</string>
            </property>
            <property name="text">
-            <string>Ergebnisse als Layer hinzufügen</string>
+            <string>Ergebnistabelle zu QGIS-Projekt hinzufügen</string>
            </property>
            <property name="checked">
             <bool>true</bool>
@@ -1058,6 +1058,19 @@ ACHTUNG: Mehrfachberechnungen und somit mehrfach auftauchende identische Routen 
                <string>min</string>
               </property>
              </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_11">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
             </item>
             <item>
              <widget class="QCheckBox" name="smart_search_checkbox">
