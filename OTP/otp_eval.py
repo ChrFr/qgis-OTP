@@ -168,7 +168,7 @@ class OTPEvaluation(object):
         header = [ 'origin id' ]
         do_aggregate = do_accumulate = False
         if not mode:
-            header += [ 'destination id', 'travel time (sec)', 'boardings', 'walk/bike distance (m)', 'start time', 'arrival time', 'traverse modes', 'waiting time (sec)', 'elevation gained (m)', 'elevation lost (m)'] 
+            header += [ 'destination id', 'travel time (sec)', 'boardings', 'walk/bike distance (m)', 'start time', 'arrival time', 'arrival_last_used_transit','traverse modes', 'waiting time (sec)', 'elevation gained (m)', 'elevation lost (m)'] 
         elif mode in AGGREGATION_MODES.keys():
             header += [field + '-aggregated']   
             do_aggregate = True
@@ -221,6 +221,7 @@ class OTPEvaluation(object):
                 walk_distances = result_set.getWalkDistances()
                 starts = result_set.getStartTimes()#result_set.getSampledStartTimes()
                 arrivals = result_set.getArrivalTimes()     
+                arrivalsLastTransit = result_set.getArrivalLastUsedTransit()     
                 modes = result_set.getTraverseModes()
                 waiting_times = result_set.getWaitingTimes()
                 elevationGained = result_set.getElevationGained()
@@ -241,6 +242,7 @@ class OTPEvaluation(object):
                                         walk_distances[j],
                                         starts[j], 
                                         arrivals[j], 
+                                        arrivalsLastTransit[j],
                                         modes[j], 
                                         waiting_times[j], 
                                         elevationGained[j], 
