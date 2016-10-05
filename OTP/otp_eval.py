@@ -189,8 +189,9 @@ class OTPEvaluation(object):
             skip_origin = False
             skip_destinations = None
             if time_tables is not None:
-                min_next_time = time_tables[i].getMinStartTime()                
-                if min_next_time is not None and min_next_time.compareTo(start_time) >= 0: # is None, if no routes were found at all
+                min_next_time = time_tables[i].getMinStartTime()     
+                if (min_next_time is not None # is None, if no routes were found at all
+                    and min_next_time.compareTo(start_time) >= 0): 
                     skip_origin = True
                 else:
                     #TODO: check this later

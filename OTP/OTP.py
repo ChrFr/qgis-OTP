@@ -22,7 +22,7 @@
 """
 from PyQt4.QtCore import (QSettings, QTranslator, qVersion, 
                           QCoreApplication, QProcess, QDateTime,
-                          QVariant, QLocale)
+                          QVariant, QLocale, QDate)
 from PyQt4.QtGui import (QAction, QIcon, QListWidgetItem, 
                          QCheckBox, QMessageBox, QLabel,
                          QDoubleSpinBox, QFileDialog)
@@ -45,6 +45,8 @@ import tempfile
 import shutil
 import getpass
 from datetime import datetime
+
+TITLE = "Entwicklungsversion"
 
 config = Config()
 config.read()
@@ -93,6 +95,7 @@ class OTP:
 
         # Create the dialog (after translation) and keep reference
         self.dlg = OTPDialog()   
+        self.dlg.setWindowTitle(TITLE)
         
         # store last used directory for saving files
         self.prev_directory = os.environ['HOME']        
@@ -195,11 +198,11 @@ class OTP:
         # it's only value that makes sense for our purposes atm
         self.dlg.clamp_edit.setValue(-1) 
         
-        #self.dlg.smart_search_checkbox.setEnabled(False)
-        #self.dlg.smart_search_checkbox.setChecked(False)
-        #msg = u'\nDEAKTIVIERT - in Entwicklung'
-        #self.dlg.smart_search_checkbox.setToolTip(
-            #self.dlg.smart_search_checkbox.toolTip() + msg) 
+        self.dlg.smart_search_checkbox.setEnabled(False)
+        self.dlg.smart_search_checkbox.setChecked(False)
+        msg = u'\nDEAKTIVIERT - in Entwicklung'
+        self.dlg.smart_search_checkbox.setToolTip(
+            self.dlg.smart_search_checkbox.toolTip() + msg) 
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -500,9 +503,13 @@ class OTP:
             #self.dlg.time_edit.setDate(date)
         self.dlg.to_time_edit.setDate(date)       
         self.dlg.time_edit.setDate(date)
-        if time:
+        if time:            
+            if isinstance(time, QDate):
+                time = QDateTime(time).time()
+            # QDate is lacking a time, so don't set it (only if QDateTime is given)
+            else:
+                self.dlg.time_edit.setTime(time)    
             self.dlg.to_time_edit.setTime(time) 
-            self.dlg.time_edit.setTime(time)     
         
     def toggle_arrival(self):
         '''
@@ -905,6 +912,7 @@ class OTP:
         layer_name = 'results-{}-{}'.format(self.dlg.router_combo.currentText(),
                                                self.dlg.origins_combo.currentText())
         layer_name += '-' + now_string
+        # WARNING: csv layer is only link to file, if temporary is removed you won't see anything later
         result_layer = self.iface.addVectorLayer(target_file, 
                                                  layer_name, 
                                                  'delimitedtext')
@@ -915,8 +923,6 @@ class OTP:
             join.joinFieldName = 'origin id'  
             join.targetFieldName = config.settings['origin']['id_field']      
             origin_layer.addJoin(join)
-            # TODO permanent join and remove result layer (origin_layer save as shape?)    
-            # csv layer is only link to file, if temporary is removed you won't see anything later
             
     def run(self):
         '''

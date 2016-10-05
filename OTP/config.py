@@ -16,7 +16,7 @@ ID_COLUMN = 'id' # field-name used for storing the ids in csv files
 VM_MEMORY_RESERVED = 3 # max. memory the virtual machine running OTP can allocate
 DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S" # format of time stored in csv files
 CALC_REACHABILITY_MODE = "THRESHOLD_SUM_AGGREGATOR" # agg. mode that is used to calculate number of reachable destinations (note: threshold is taken from set max travel time)
-INFINITE = 2147483647 # represents indefinite values in the UI, pyqt spin boxes limit this to max int32
+INFINITE = 2147483647 # represents indefinite values in the UI, pyqt spin boxes are limited to max int32
 
 # needed parameters for aggregation/accumulation modes (=keys) are listed here
 # order of parameters in list has to be the same, the specific mode requires them
