@@ -42,13 +42,6 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="save_button">
-          <property name="text">
-           <string>Speichern</string>
-          </property>
-         </widget>
-        </item>
-        <item>
          <widget class="QPushButton" name="config_save_button">
           <property name="toolTip">
            <string>aktuelle Konfiguration extern speichern</string>
