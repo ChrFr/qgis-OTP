@@ -122,7 +122,10 @@ if __name__ == '__main__':
         bestof = None
         
     details = postproc.getElementsByTagName('details')[0].firstChild.data
-    calculate_details = details == 'True' # avoid error if key does not exist or data is empty
+    calculate_details = details == 'True' # avoid error if key does not exist or data is empty    
+    
+    dest_data = postproc.getElementsByTagName('dest_data')[0].firstChild.data
+    write_dest_data = dest_data == 'True' # avoid error if key does not exist or data is empty   
         
     mode = field = params = None
     agg_acc = postproc.getElementsByTagName('aggregation_accumulation')
@@ -158,5 +161,5 @@ if __name__ == '__main__':
     
     results = otpEval.evaluate(date_times, long(max_time), origins_csv, destinations_csv, do_merge=do_merge)
                 
-    otpEval.results_to_csv(results, target_csv, oid, did, mode, field, params, bestof, arrive_by=arrive_by) 
+    otpEval.results_to_csv(results, target_csv, oid, did, mode, field, params, bestof, arrive_by=arrive_by, write_dest_data=write_dest_data) 
         

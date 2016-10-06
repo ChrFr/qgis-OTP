@@ -180,6 +180,7 @@ setting_struct = OrderedDict([
     ('post_processing', {
         'best_of': '',
         'details': False,
+        'dest_data': False,
         'aggregation_accumulation': {
             'active': False,
             'mode': '',

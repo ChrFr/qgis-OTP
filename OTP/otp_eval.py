@@ -171,7 +171,10 @@ class OTPEvaluation(object):
         header = [ 'origin id' ]
         do_aggregate = do_accumulate = False
         if not mode:
-            header += [ 'destination id', 'travel time (sec)', 'boardings', 'walk/bike distance (m)', 'start time', 'arrival time', 'start transit', 'arrival transit','traverse modes', 'waiting time (sec)', 'elevation gained (m)', 'elevation lost (m)'] 
+            header += [ 'destination id', 'travel time (sec)', 'boardings', 'walk/bike distance (m)', 
+                       'start time', 'arrival time', 'start transit', 'arrival transit', 
+                       'transit time', 'traverse modes', 'waiting time (sec)', 'elevation gained (m)', 
+                       'elevation lost (m)'] 
         elif mode in AGGREGATION_MODES.keys():
             header += [field + '-aggregated']   
             do_aggregate = True
@@ -181,14 +184,19 @@ class OTPEvaluation(object):
         
         # add header for data of destinations
         if write_dest_data:
-            if arrive_by:
-                data_fields = result_sets[0].getSource().getDataFields()
-            else:
-                data_fields = result_sets[0].getPopulation().getDataFields()
-            data_fields.remove(did)
             # all results share the same data names, cause they originate from the same csv file
-            for field in data_fields:
-                header.append('destination_' + field)
+            # you just have to find a valid result
+            for i, res in enumerate(result_sets):
+                if res is None:
+                    continue
+                if arrive_by:
+                    data_fields = result_sets[i].getSource().getDataFields()
+                else:
+                    data_fields = result_sets[i].getPopulation().getDataFields()
+                data_fields.remove(did)
+                for field in data_fields:
+                    header.append('destination_' + field)
+                break
         
         out_csv = self.otp.createCSVOutput()
         out_csv.setHeader(header)
@@ -247,6 +255,7 @@ class OTPEvaluation(object):
                            result.getArrivalTime(), 
                            result.getStartTransit(), 
                            result.getArrivalTransit(),
+                           result.getTransitTime(),
                            result.getModes(), 
                            result.getWaitingTime(), 
                            result.getElevationGained(), 
