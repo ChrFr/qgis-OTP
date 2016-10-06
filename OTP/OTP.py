@@ -50,7 +50,7 @@ from datetime import datetime
 VERSION = "0.8"
 TITLE = "GGR OpenTripPlanner Plugin v" + VERSION
 
-#TITLE += " - Entwicklungsversion" 
+TITLE += " - Entwicklungsversion" 
 
 config = Config()
 config.read()
@@ -682,6 +682,8 @@ class OTP:
         postproc['best_of'] = best_of          
         details = self.dlg.details_check.isChecked()
         postproc['details'] = details
+        dest_data = self.dlg.dest_data_check.isChecked()
+        postproc['dest_data'] = dest_data
         if self.dlg.orig_dest_csv_check.checkState():
             file_preset = '{}-{}-{}.csv'.format(
                 self.dlg.router_combo.currentText(),

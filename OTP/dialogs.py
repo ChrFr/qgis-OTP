@@ -130,11 +130,8 @@ class ExecOTPDialog(ProgressDialog):
         self.process.finished.connect(self.finished)
         
         # how often will the stdout-indicator written before reaching 100%
-        n_ticks = n_points / points_per_tick    
-        print n_ticks
+        n_ticks = float(n_points) / points_per_tick  
         n_ticks *= n_iterations
-        print n_ticks
-        print n_iterations
         tick_indicator = 'Processing:'
         iteration_finished_indicator = 'A total of'
         
@@ -147,8 +144,8 @@ class ExecOTPDialog(ProgressDialog):
             if len(out):                 
                 self.show_status(out)
                 if tick_indicator in out and n_ticks:
-                    self.ticks += 1
-                    self.progress_bar.setValue(min(max_progress, int(self.ticks * max_progress / n_ticks)))      
+                    self.ticks += max_progress / n_ticks
+                    self.progress_bar.setValue(min(max_progress, int(self.ticks)))           
                 elif iteration_finished_indicator in out:
                     self.iterations += 1                      
                     self.progress_bar.setValue(self.iterations * max_progress / n_iterations)  
