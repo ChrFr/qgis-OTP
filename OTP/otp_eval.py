@@ -139,7 +139,7 @@ class OTPEvaluation(object):
             
             # if there already was a calculation: merge it with new results
             if do_merge and len(results) > 0:
-                for prev_result, i in results[0]:
+                for i, prev_result in enumerate(results[0]):
                     prev_result.merge(results_dt[i])    
             else:        
                 results.append(results_dt)    
