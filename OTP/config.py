@@ -14,7 +14,9 @@ LATITUDE_COLUMN = 'Y' # field-name used for storing lat values in csv files
 LONGITUDE_COLUMN = 'X' # field-name used for storing lon values in csv files
 ID_COLUMN = 'id' # field-name used for storing the ids in csv files
 VM_MEMORY_RESERVED = 3 # max. memory the virtual machine running OTP can allocate
-DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S" # format of time stored in csv files
+DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S" # format of time stored in xml files
+        
+OUTPUT_DATE_FORMAT = 'dd.MM.yyyy HH:mm:ss' # format of the time in the results
 CALC_REACHABILITY_MODE = "THRESHOLD_SUM_AGGREGATOR" # agg. mode that is used to calculate number of reachable destinations (note: threshold is taken from set max travel time)
 INFINITE = 2147483647 # represents indefinite values in the UI, pyqt spin boxes are limited to max int32
 

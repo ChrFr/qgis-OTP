@@ -13,7 +13,7 @@ from org.opentripplanner.routing.core import TraverseMode
 from org.opentripplanner.scripting.api import OtpsResultSet, OtpsAggregate
 from config import (GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, 
                     ID_COLUMN, DATETIME_FORMAT, AGGREGATION_MODES,
-                    ACCUMULATION_MODES)
+                    ACCUMULATION_MODES, OUTPUT_DATE_FORMAT)
 from datetime import datetime
 import sys
 
@@ -200,7 +200,6 @@ class OTPEvaluation(object):
         
         out_csv = self.otp.createCSVOutput()
         out_csv.setHeader(header)
-        data_header = None
         
         if do_accumulate:
             acc_result_set = self.origins.getEmptyResultSet()
@@ -251,10 +250,10 @@ class OTPEvaluation(object):
                            result.getTime(),
                            result.getBoardings(), 
                            result.getWalkDistance(),
-                           result.getStartTime(), 
-                           result.getArrivalTime(), 
-                           result.getStartTransit(), 
-                           result.getArrivalTransit(),
+                           result.getStartTime(OUTPUT_DATE_FORMAT), 
+                           result.getArrivalTime(OUTPUT_DATE_FORMAT), 
+                           result.getStartTransit(OUTPUT_DATE_FORMAT), 
+                           result.getArrivalTransit(OUTPUT_DATE_FORMAT),
                            result.getTransitTime(),
                            result.getModes(), 
                            result.getWaitingTime(), 
