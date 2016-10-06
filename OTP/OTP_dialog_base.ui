@@ -199,10 +199,11 @@
          <item row="7" column="0" colspan="2">
           <widget class="QCheckBox" name="orig_dest_add_check">
            <property name="toolTip">
-            <string>Ergebnisse werden als Layer zum geöffneten QGIS-Projekt hinzugefügt</string>
+            <string>Ergebnisse werden als Layer zum geöffneten QGIS-Projekt hinzugefügt 
+ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verknüpfung zu einer temporären Datei!</string>
            </property>
            <property name="text">
-            <string>Ergebnisse als Layer hinzufügen</string>
+            <string>Ergebnistabelle zu geöffnetem QGIS-Projekt hinzufügen</string>
            </property>
            <property name="checked">
             <bool>true</bool>
@@ -212,10 +213,10 @@
          <item row="9" column="0" colspan="2">
           <widget class="QCheckBox" name="orig_dest_csv_check">
            <property name="toolTip">
-            <string>Ergebnisse werden am gewählten Ort gespeichert (inkl. xml mit den genutzten Einstellungen im selben Ordner!)</string>
+            <string>Ergebnisse werden separat am gewählten Ort gespeichert (inkl. xml mit den genutzten Einstellungen im selben Ordner!)</string>
            </property>
            <property name="text">
-            <string>Ergebnisse als CSV speichern</string>
+            <string>Ergebnisse separat als CSV speichern</string>
            </property>
           </widget>
          </item>
@@ -338,7 +339,8 @@
          <item row="9" column="0" colspan="3">
           <widget class="QCheckBox" name="aggregation_join_check">
            <property name="toolTip">
-            <string>Ergebnisse werden an den gewählten Layer mit den Quellpunkten gejoint (über die ids)</string>
+            <string>Ergebnisse werden an den gewählten Layer mit den Quellpunkten gejoint (über die ids)
+ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verknüpfung zu einer temporären Datei!</string>
            </property>
            <property name="text">
             <string>Ergebnisse an Quelllayer joinen</string>
@@ -523,7 +525,8 @@
          <item row="10" column="0" colspan="3">
           <widget class="QCheckBox" name="accumulation_join_check">
            <property name="toolTip">
-            <string>Ergebnisse werden an den gewählten Layer mit den Zielpunkten gejoint (über die ids)</string>
+            <string>Ergebnisse werden an den gewählten Layer mit den Zielpunkten gejoint (über die ids)
+ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verknüpfung zu einer temporären Datei!</string>
            </property>
            <property name="text">
             <string>Ergebnisse an Zielllayer joinen</string>
@@ -757,7 +760,8 @@
          <item row="2" column="0" colspan="2">
           <widget class="QCheckBox" name="reachability_join_check">
            <property name="toolTip">
-            <string>Ergebnisse werden an den gewählten Layer mit den Quellpunkten gejoint (über die ids)</string>
+            <string>Ergebnisse werden an den gewählten Layer mit den Quellpunkten gejoint (über die ids)
+ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verknüpfung zu einer temporären Datei!</string>
            </property>
            <property name="text">
             <string>Ergebnisse an Quelllayer joinen</string>
@@ -1568,7 +1572,11 @@ maximal einstellbarer Wert entspricht unendlich</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_8">
        <item row="2" column="0" colspan="3">
-        <widget class="QLineEdit" name="otp_jar_edit"/>
+        <widget class="QLineEdit" name="otp_jar_edit">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
        </item>
        <item row="6" column="1">
         <spacer name="verticalSpacer_23">
@@ -1598,6 +1606,9 @@ maximal einstellbarer Wert entspricht unendlich</string>
        </item>
        <item row="1" column="0" colspan="2">
         <widget class="QLabel" name="label_35">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>OpenTripPlanner - JAR-Datei</string>
          </property>
@@ -1660,6 +1671,9 @@ maximal einstellbarer Wert entspricht unendlich</string>
        </item>
        <item row="2" column="3">
         <widget class="QPushButton" name="otp_jar_browse_button">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="sizePolicy">
           <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
            <horstretch>0</horstretch>
