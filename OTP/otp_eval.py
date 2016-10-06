@@ -139,7 +139,7 @@ class OTPEvaluation(object):
             
             # if there already was a calculation: merge it with new results
             if do_merge and len(results) > 0:
-                for prev_result, i in results[0]:
+                for i, prev_result in enumerate(results[0]):
                     prev_result.merge(results_dt[i])    
             else:        
                 results.append(results_dt)    
@@ -149,7 +149,7 @@ class OTPEvaluation(object):
             
         return results      
         
-    def results_to_csv(self, result_sets, target_csv, oid, did, mode=None, field=None, params=None, bestof=None, arrive_by=False):         
+    def results_to_csv(self, result_sets, target_csv, oid, did, mode=None, field=None, params=None, bestof=None, arrive_by=False, write_dest_data=False):         
         '''
         write result sets to csv file, may aggregate/accumulate before writing results
         
@@ -165,28 +165,37 @@ class OTPEvaluation(object):
         '''   
         print 'post processing results...'
         
+        if len(result_sets) == 0:
+            return
+        
         header = [ 'origin id' ]
         do_aggregate = do_accumulate = False
         if not mode:
-            header += [ 'destination id', 'travel time (sec)', 'boardings', 'walk/bike distance (m)', 'start time', 'arrival time', 'arrival_last_used_transit','traverse modes', 'waiting time (sec)', 'elevation gained (m)', 'elevation lost (m)'] 
+            header += [ 'destination id', 'travel time (sec)', 'boardings', 'walk/bike distance (m)', 'start time', 'arrival time', 'start transit', 'arrival transit','traverse modes', 'waiting time (sec)', 'elevation gained (m)', 'elevation lost (m)'] 
         elif mode in AGGREGATION_MODES.keys():
             header += [field + '-aggregated']   
             do_aggregate = True
         elif mode in ACCUMULATION_MODES.keys():
             header += [field + '-accumulated']
-            do_accumulate = True       
+            do_accumulate = True    
+        
+        # add header for data of destinations
+        if write_dest_data:
+            if arrive_by:
+                data_fields = result_sets[0].getSource().getDataFields()
+            else:
+                data_fields = result_sets[0].getPopulation().getDataFields()
+            data_fields.remove(did)
+            # all results share the same data names, cause they originate from the same csv file
+            for field in data_fields:
+                header.append('destination_' + field)
         
         out_csv = self.otp.createCSVOutput()
         out_csv.setHeader(header)
+        data_header = None
         
         if do_accumulate:
             acc_result_set = self.origins.getEmptyResultSet()
-            
-        # used for sorting times, times not set will be treated as max values
-        def sorter(a):
-            if a[1] is None:
-                return sys.maxint
-            return a[1]
         
         for result_set in result_sets: 
             if result_set is None:
@@ -199,56 +208,55 @@ class OTPEvaluation(object):
                     result_set.setAccumulationMode(mode)
                     result_set.accumulate(acc_result_set, field, params)
                 continue
-                    
-            times = result_set.getTimes()
-            
+                                
             if arrive_by:
-                dest_id = result_set.getSource().getStringData(did)          
-                dest_ids = [dest_id for x in range(len(times))]      
-                origin_ids = result_set.getStringData(oid)     
+                destination = result_set.getSource()
+                dest_id = destination.getStringData(did)      
             else:
-                origin_id = result_set.getSource().getStringData(oid)          
-                origin_ids = [origin_id for x in range(len(times))]  
-                dest_ids = result_set.getStringData(did)     
-             
-            if do_aggregate:
+                origin_id = result_set.getSource().getStringData(oid)       
+                      
+            if do_aggregate: 
                 result_set.setAggregationMode(mode)
+                # origin_id is known here, because !arriveby when aggregating
                 aggregated = result_set.aggregate(field, params)
                 out_csv.addRow([origin_id, aggregated])  
             
-            else:            
-                boardings = result_set.getBoardings()
-                walk_distances = result_set.getWalkDistances()
-                starts = result_set.getStartTimes()#result_set.getSampledStartTimes()
-                arrivals = result_set.getArrivalTimes()     
-                arrivalsLastTransit = result_set.getArrivalLastUsedTransit()     
-                modes = result_set.getTraverseModes()
-                waiting_times = result_set.getWaitingTimes()
-                elevationGained = result_set.getElevationGained()
-                elevationLost = result_set.getElevationLost()
-                
+            else:      
                 if bestof is not None:
-                    indices = [t[0] for t in sorted(enumerate(times), key=sorter)]
-                    indices = indices[:bestof]
+                    results = result_set.getBestResults(bestof)
                 else:
-                    indices = range(len(times))
-                for j in indices:
-                    time = times[j]
-                    if time is not None:
-                        out_csv.addRow([origin_ids[j], 
-                                        dest_ids[j], 
-                                        times[j], 
-                                        boardings[j], 
-                                        walk_distances[j],
-                                        starts[j], 
-                                        arrivals[j], 
-                                        arrivalsLastTransit[j],
-                                        modes[j], 
-                                        waiting_times[j], 
-                                        elevationGained[j], 
-                                        elevationLost[j]])
-#                     else:
-#                         out_csv.addRow(['None'])
+                    results = result_set.getResults();
+                    
+                for result in results: 
+                    
+                    if result is None: #unreachable
+                        continue
+                        
+                    if arrive_by:
+                        origin_id = result.getIndividual().getStringData(oid)
+                    else:
+                        destination = result.getIndividual()
+                        dest_id = destination.getStringData(did)
+                        
+                    row = [origin_id,
+                           dest_id, 
+                           result.getTime(),
+                           result.getBoardings(), 
+                           result.getWalkDistance(),
+                           result.getStartTime(), 
+                           result.getArrivalTime(), 
+                           result.getStartTransit(), 
+                           result.getArrivalTransit(),
+                           result.getModes(), 
+                           result.getWaitingTime(), 
+                           result.getElevationGained(), 
+                           result.getElevationLost()]
+                    
+                    if write_dest_data:    
+                        for field in data_fields:
+                            row.append(destination.getStringData(field))
+                        
+                    out_csv.addRow(row)
     
         if do_accumulate:
             results = acc_result_set.getResults()
