@@ -29,11 +29,13 @@ class OTPEvaluation(object):
     print_every_n_lines: optional, determines how often progress in processing origins/destination is written to stdout (default: 50)
     calculate_details: optional, if True, evaluates additional informations about itineraries (a little slower)
     '''   
-    def __init__(self, router, print_every_n_lines=50, calculate_details=False, smart_search=False):
+    def __init__(self, router, print_every_n_lines=50, calculate_details=False, smart_search=False, nThreads=1):
         self.otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router])
-        self.router = self.otp.getRouter()
-        self.request = self.otp.createManyToManyRequest()
+        router = self.otp.getRouter()
+        self.batch_processor = self.otp.createBatchProcessor(router)
+        self.request = self.otp.createBatchRequest()
         self.request.setEvalItineraries(calculate_details)
+        self.request.setThreads(4)#(nThreads)
         # smart search needs details (esp. start/arrival times), 
         # even if not wanted explicitly
         if smart_search:
@@ -135,7 +137,7 @@ class OTPEvaluation(object):
             msg = 'Starting evaluation of routes with ' + time_note + date_time.strftime(DATETIME_FORMAT)                
             print msg
                           
-            results_dt = self.router.plan(self.request)
+            results_dt = self.batch_processor.evaluate(self.request)
             
             # if there already was a calculation: merge it with new results
             if do_merge and len(results) > 0:
@@ -190,7 +192,7 @@ class OTPEvaluation(object):
                 if res is None:
                     continue
                 if arrive_by:
-                    data_fields = result_sets[i].getSource().getDataFields()
+                    data_fields = result_sets[i].getRoot().getDataFields()
                 else:
                     data_fields = result_sets[i].getPopulation().getDataFields()
                 data_fields.remove(did)
@@ -217,10 +219,10 @@ class OTPEvaluation(object):
                 continue
                                 
             if arrive_by:
-                destination = result_set.getSource()
+                destination = result_set.getRoot()
                 dest_id = destination.getStringData(did)      
             else:
-                origin_id = result_set.getSource().getStringData(oid)       
+                origin_id = result_set.getRoot().getStringData(oid)       
                       
             if do_aggregate: 
                 result_set.setAggregationMode(mode)

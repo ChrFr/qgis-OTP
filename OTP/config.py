@@ -8,8 +8,7 @@ except:
 import os, sys, copy
 from collections import OrderedDict
 
-#OTP_JAR='/opt/repos/OpenTripPlanner/target/otp-0.20.0-SNAPSHOT-shaded.jar'
-OTP_JAR='/opt/repos/OpenTripPlanner/otp-0.20.0-SNAPSHOT-shaded.jar'
+OTP_JAR='/opt/OpenTripPlanner/otp-ggr-stable.jar'
 GRAPH_PATH='/home/ggr/gis/otp_graphs'
 LATITUDE_COLUMN = 'Y' # field-name used for storing lat values in csv files
 LONGITUDE_COLUMN = 'X' # field-name used for storing lon values in csv files
@@ -153,6 +152,10 @@ setting_struct = OrderedDict([
     ('destination', {
         'layer': '',
         'id_field': ''
+    }),
+    ('system', {
+        'otp_jar_file': '',
+        'n_threads': 1
     }),
     ('time', {
         'datetime': '', # == now,        
