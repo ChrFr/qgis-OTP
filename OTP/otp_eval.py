@@ -29,13 +29,12 @@ class OTPEvaluation(object):
     print_every_n_lines: optional, determines how often progress in processing origins/destination is written to stdout (default: 50)
     calculate_details: optional, if True, evaluates additional informations about itineraries (a little slower)
     '''   
-    def __init__(self, router, print_every_n_lines=50, calculate_details=False, smart_search=False, nThreads=1):
+    def __init__(self, router, print_every_n_lines=50, calculate_details=False, smart_search=False):
         self.otp = OtpsEntryPoint.fromArgs([ "--graphs", GRAPH_PATH, "--router", router])
         router = self.otp.getRouter()
         self.batch_processor = self.otp.createBatchProcessor(router)
         self.request = self.otp.createBatchRequest()
         self.request.setEvalItineraries(calculate_details)
-        self.request.setThreads(4)#(nThreads)
         # smart search needs details (esp. start/arrival times), 
         # even if not wanted explicitly
         if smart_search:
@@ -46,10 +45,10 @@ class OTPEvaluation(object):
         self.print_every_n_lines = print_every_n_lines
     
     def setup(self, 
-              date_time=None, max_time=None, max_walk=None, walk_speed=None, 
+              date_time=None, max_walk=None, walk_speed=None, 
               bike_speed=None, clamp_wait=None, banned='', modes=None, 
               arrive_by=False, max_transfers=None, max_pre_transit_time=None,
-              wheel_chair_accessible=False, max_slope=None):
+              wheel_chair_accessible=False, max_slope=None, n_threads=None):
         '''
         sets up the routing request
         
@@ -67,6 +66,7 @@ class OTPEvaluation(object):
         max_pre_transit_time: optional, maximum time in seconds of pre-transit travel when using drive-to-transit (park andride or kiss and ride)
         wheel_chair_accessible: optional, if True, the trip must be wheelchair accessible (defaults to False)
         max_slope: optional, maximum slope of streets for wheelchair trips
+        n_threads: optional, number of threads to be used in evaluation
         '''
         
         if date_time is not None:
@@ -75,6 +75,8 @@ class OTPEvaluation(object):
         self.request.setArriveBy(arrive_by)
         self.arrive_by = arrive_by
         self.request.setWheelChairAccessible(wheel_chair_accessible)
+        if n_threads is not None:            
+            self.request.setThreads(n_threads)
         if max_walk is not None:
             self.request.setMaxWalkDistance(max_walk)
         if walk_speed is not None:
@@ -114,15 +116,18 @@ class OTPEvaluation(object):
         self.request.setOrigins(origins)
         self.request.setDestinations(destinations)
         self.request.setLogProgress(self.print_every_n_lines)
-        
-        if len(times) > 1:
-            cutoff = times[-1]
-            self.request.setCutoffTime(cutoff.year, cutoff.month, cutoff.day, cutoff.hour, cutoff.minute, cutoff.second)
             
         if self.arrive_by:
             time_note = ' arrival time '             
         else:
             time_note = 'start time ' 
+        
+#         # if evaluation is performed in a time window, routes exceeding the window will be ignored 
+#         # (worstTime already takes care of this, but the time needed to reach the snapped the OSM point is also taken into account here)
+#         if len(times) > 1:
+#             print 'Cutoff set: routes with {}s exceeding the time window ({}) will be ignored (incl. time to reach OSM-net)'.format(time_note, times[-1])
+#             cutoff = times[-1]
+#             self.request.setCutoffTime(cutoff.year, cutoff.month, cutoff.day, cutoff.hour, cutoff.minute, cutoff.second)
             
         # iterate all times
         results = [] # dimension (if not merged): times x targets (origins resp. destinations)
@@ -185,7 +190,7 @@ class OTPEvaluation(object):
             do_accumulate = True    
         
         # add header for data of destinations
-        if write_dest_data:
+        if write_dest_data and not (do_accumulate or do_aggregate):
             # all results share the same data names, cause they originate from the same csv file
             # you just have to find a valid result
             for i, res in enumerate(result_sets):
@@ -198,7 +203,7 @@ class OTPEvaluation(object):
                 data_fields.remove(did)
                 for field in data_fields:
                     header.append('destination_' + field)
-                break
+                break # found one -> break
         
         out_csv = self.otp.createCSVOutput()
         out_csv.setHeader(header)
@@ -226,8 +231,8 @@ class OTPEvaluation(object):
                       
             if do_aggregate: 
                 result_set.setAggregationMode(mode)
-                # origin_id is known here, because !arriveby when aggregating
                 aggregated = result_set.aggregate(field, params)
+                # origin_id is known here, because !arriveby when aggregating
                 out_csv.addRow([origin_id, aggregated])  
             
             else:      

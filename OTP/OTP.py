@@ -33,7 +33,7 @@ import resources
 # Import the code for the dialog
 from OTP_dialog import OTPDialog
 import os
-from config import (OTP_JAR, GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
+from config import (GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES, 
                     DEFAULT_FILE, CALC_REACHABILITY_MODE, 
                     VM_MEMORY_RESERVED, Config)
@@ -47,7 +47,7 @@ import shutil
 import getpass
 from datetime import datetime
 
-VERSION = "0.8"
+VERSION = "0.85"
 TITLE = "GGR OpenTripPlanner Plugin v" + VERSION
 
 TITLE += " - Entwicklungsversion" 
@@ -65,7 +65,8 @@ REACHABILITY = 3
 PRINT_EVERY_N_LINES = 100
 
 XML_FILTER = u'XML-Dateien (*.xml)'
-CSV_FILTER = u'CSV-Dateien (*.csv)'
+CSV_FILTER = u'Comma-seperated values (*.csv)'
+JAR_FILTER = u'Java Archive (*.jar)'
 
 class OTP:
     """QGIS Plugin Implementation."""
@@ -120,6 +121,14 @@ class OTP:
         self.dlg.start_aggregation_button.clicked.connect(self.start_aggregation)
         self.dlg.start_reachability_button.clicked.connect(self.start_reachability)
         self.dlg.start_accumulation_button.clicked.connect(self.start_accumulation)
+        
+        def browse_jar():
+            jar_file = self.browse_file('', u'OTP-Version wählen', JAR_FILTER, save=False)
+            if not jar_file:
+                return             
+            self.dlg.otp_jar_edit.setText(jar_file)
+            
+        self.dlg.otp_jar_browse_button.clicked.connect(browse_jar)        
          
         self.dlg.close_button.clicked.connect(self.close) #ToDo: save on close
         
@@ -406,6 +415,13 @@ class OTP:
             
         arrive_by = times['arrive_by'] in ['True', True]
         self.dlg.arrival_checkbox.setChecked(arrive_by)
+        
+        # SYSTEM SETTINGS
+        sys_settings = config.settings['system']
+        n_threads = int(sys_settings['n_threads'])
+        jar = sys_settings['otp_jar_file']
+        self.dlg.otp_jar_edit.setText(jar)
+        self.dlg.cpu_edit.setValue(n_threads)
             
     def update_config(self):     
         '''
@@ -463,7 +479,14 @@ class OTP:
         time_batch['time_step'] = step 
         
         is_arrival = self.dlg.arrival_checkbox.isChecked()
-        times['arrive_by'] = is_arrival        
+        times['arrive_by'] = is_arrival                
+        
+        # SYSTEM SETTINGS
+        sys_settings = config.settings['system']
+        n_threads = self.dlg.cpu_edit.value()
+        jar = self.dlg.otp_jar_edit.text()
+        sys_settings['n_threads'] = n_threads
+        sys_settings['otp_jar_file'] = jar
         
     def save_config_as(self):        
         filename = str(
@@ -523,12 +546,16 @@ class OTP:
         acc_idx = self.dlg.calculation_tabs.indexOf(self.dlg.accumulation_tab)
         agg_idx = self.dlg.calculation_tabs.indexOf(self.dlg.aggregation_tab)
         reach_idx = self.dlg.calculation_tabs.indexOf(self.dlg.reachability_tab)
-        acc_enabled = agg_enabled = reach_enabled = False
+        acc_enabled = agg_enabled = reach_enabled = False        
         
         if is_arrival:
             acc_enabled = True
+            expl_text = u'(früheste Abfahrtszeit: Ankunftszeit - max. Reisezeit)'
         else:
             agg_enabled = reach_enabled = True
+            expl_text = u'(späteste Ankunftszeit: Abfahrtszeit + max. Reisezeit)'
+            
+        self.dlg.max_time_explanation_label.setText(expl_text)
             
         self.dlg.calculation_tabs.setTabEnabled(acc_idx, acc_enabled)  
         self.dlg.calculation_tabs.setTabEnabled(agg_idx, agg_enabled) 
@@ -655,17 +682,23 @@ class OTP:
                 params.append(str(widget.value()))
         return params
         
-    def browse_results_file(self, file_preset):
+    def browse_file(self, file_preset, title, file_filter, save=True):
         directory = os.path.join(self.prev_directory, file_preset)
         
+        
+        if save:
+            browse_func = QFileDialog.getSaveFileName
+        else:
+            browse_func = QFileDialog.getOpenFileName
+            
         filename = str(
-            QFileDialog.getSaveFileName(
+            browse_func(
                 parent=self.dlg, 
-                caption=u'Ergebnisse speichern unter',
+                caption=title,
                 directory=directory,
-                filter=CSV_FILTER
+                filter=file_filter
             )
-        )
+        )   
         
         if filename:            
             self.prev_directory = os.path.split(filename)[0]               
@@ -691,7 +724,7 @@ class OTP:
                 self.dlg.destinations_combo.currentText()
                 )
             
-            target_file = self.browse_results_file(file_preset)
+            target_file = self.browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER)
             if not target_file:
                 return             
         else:
@@ -726,7 +759,7 @@ class OTP:
                 self.dlg.origins_combo.currentText()
                 )
             
-            target_file = self.browse_results_file(file_preset)
+            target_file = self.browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER)
             if not target_file:
                 return                         
         else:
@@ -752,7 +785,7 @@ class OTP:
                 self.dlg.origins_combo.currentText()
                 )
             
-            target_file = self.browse_results_file(file_preset)
+            target_file = self.browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER)
             if not target_file:
                 return                         
         else:
@@ -794,7 +827,7 @@ class OTP:
                 self.dlg.destinations_combo.currentText()
                 )
             
-            target_file = self.browse_results_file(file_preset)
+            target_file = self.browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER)
             if not target_file:
                 return             
         else:
@@ -876,15 +909,21 @@ class OTP:
             msg_box.exec_()
             return    
         
+        otp_jar=self.dlg.otp_jar_edit.text()       
+        if not os.path.exists(otp_jar):
+            msg_box = QMessageBox(QMessageBox.Warning, "Fehler", u'Die angegebene OTP Datei existiert nicht!')
+            msg_box.exec_()
+            return   
+        
         # basic cmd is same for all evaluations
         cmd = '''jython -J-Xmx{ram_GB}G -Dpython.path="{jar}" 
         {wd}/otp_batch.py         
         --config "{config_xml}" 
         --origins "{origins}" --destinations "{destinations}" 
-        --target "{target}" --nlines {nlines}'''
+        --target "{target}" --nlines {nlines}'''        
         
         cmd = cmd.format(
-            jar=OTP_JAR, 
+            jar=otp_jar, 
             wd=working_dir, 
             ram_GB=VM_MEMORY_RESERVED,
             config_xml = config_xml,
