@@ -139,7 +139,15 @@ if __name__ == '__main__':
                 params = params.data
                 params = [float(x) for x in params.split(',')]
             field = agg_acc.getElementsByTagName('processed_field')[0].firstChild.data
-            
+    
+    # system settings
+    sys_settings = config.getElementsByTagName('system')[0]
+    n_threads = sys_settings.getElementsByTagName('n_threads')
+    if len(n_threads) > 0 and n_threads[0].firstChild: # avoid error if key does not exist or data is empty
+        n_threads = int(n_threads[0].firstChild.data)
+    else:
+        n_threads = None
+                
     # results will be stored 2 dimensional to determine to which time the results belong, flattened later
     results = []
     
@@ -154,7 +162,8 @@ if __name__ == '__main__':
                   max_transfers=max_transfers,
                   max_pre_transit_time=pre_transit_time,
                   wheel_chair_accessible=wheel_chair_accessible,
-                  max_slope=max_slope)     
+                  max_slope=max_slope,
+                  n_threads=n_threads)
     
     # merge results over time, if aggregation or accumulation is requested or bestof
     do_merge = True if mode is not None or bestof else False
