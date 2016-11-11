@@ -47,7 +47,7 @@ import shutil
 import getpass
 from datetime import datetime
 
-VERSION = "0.8"
+VERSION = "0.85"
 TITLE = "GGR OpenTripPlanner Plugin v" + VERSION
 
 TITLE += " - Entwicklungsversion" 
