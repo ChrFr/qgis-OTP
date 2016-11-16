@@ -7,6 +7,7 @@
                               -------------------
         begin                : 2016-04-08
         git sha              : $Format:%H$
+        author               : Christoph Franke
         copyright            : (C) 2016 by GGR
         email                : franke@ggr-planung.de
  ***************************************************************************/
@@ -52,9 +53,6 @@ TITLE = "GGR OpenTripPlanner Plugin v" + VERSION
 
 TITLE += " - Entwicklungsversion" 
 
-config = Config()
-config.read()
-
 # result-modes
 ORIGIN_DESTINATION = 0
 AGGREGATION = 1
@@ -67,6 +65,8 @@ PRINT_EVERY_N_LINES = 100
 XML_FILTER = u'XML-Dateien (*.xml)'
 CSV_FILTER = u'Comma-seperated values (*.csv)'
 JAR_FILTER = u'Java Archive (*.jar)'
+
+config = Config()
 
 class OTP:
     """QGIS Plugin Implementation."""
@@ -102,16 +102,24 @@ class OTP:
         self.dlg = OTPDialog()   
         self.dlg.setWindowTitle(TITLE)
         
-        # store last used directory for saving files
+        # store last used directory for saving files (init with home dir)
         self.prev_directory = os.environ['HOME']        
         
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&OTP')
-        # TODO: We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'OTP')
         self.toolbar.setObjectName(u'OTP')        
         
+        config.read()                
+        self.config_control = ConfigurationControl(self.dlg)
+        
+        self.setup_UI()
+        
+    def setup_UI(self):
+        '''
+        prefill UI-elements and connect slots and signals
+        '''
         ### PREFILL UI ELEMENTS AND CONNECT SLOTS TO SIGNALS ###
         
         # set active tab (aggregation or accumulation depending on arrival checkbox)
@@ -123,7 +131,7 @@ class OTP:
         self.dlg.start_accumulation_button.clicked.connect(self.start_accumulation)
         
         def browse_jar():
-            jar_file = self.browse_file('', u'OTP-Version wählen', JAR_FILTER, save=False)
+            jar_file = browse_file('', u'OTP-Version wählen', JAR_FILTER, save=False, parent=self.dlg)
             if not jar_file:
                 return             
             self.dlg.otp_jar_edit.setText(jar_file)
@@ -190,17 +198,18 @@ class OTP:
         self.dlg.date_now_button.clicked.connect(set_now)
         
         # settings
-        self.dlg.config_default_button.clicked.connect(self.reset_config_to_default)
-        self.dlg.config_reset_button.clicked.connect(self.apply_config)
-        self.dlg.config_read_button.clicked.connect(self.read_config)
-        self.dlg.config_save_button.clicked.connect(self.save_config_as)
+        self.dlg.config_default_button.clicked.connect(self.config_control.reset_to_default)
+        self.dlg.config_reset_button.clicked.connect(self.config_control.apply)
+        self.dlg.config_read_button.clicked.connect(self.config_control.read)
+        self.dlg.config_save_button.clicked.connect(self.config_control.save_as)
         # apply settings to UI (the layers are unknown at QGIS startup, so don't expect them to be already selected)
-        self.apply_config()
+        self.config_control.apply()
         
         # call checkbox toggle callbacks (settings loaded, but checkboxes not 'clicked' while loading) 
         self.toggle_arrival()                       
                 
-        # currently DEACTIVATED functions
+        ### currently DEACTIVATED functions ###
+        
         # initial wait of 0 is confusing and higher values don't seem to work as supposed to
         # (only 'clamps' them, but doesn't work as maximum initial wait time) -> deactivated 
         self.dlg.clamp_edit.setVisible(False)
@@ -215,7 +224,7 @@ class OTP:
         self.dlg.smart_search_checkbox.setChecked(False)
         msg = u'\nDEAKTIVIERT - in Entwicklung'
         self.dlg.smart_search_checkbox.setToolTip(
-            self.dlg.smart_search_checkbox.toolTip() + msg) 
+            self.dlg.smart_search_checkbox.toolTip() + msg)         
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -327,197 +336,12 @@ class OTP:
         # remove the toolbar
         del self.toolbar   
         
-    def reset_config_to_default(self):
-        '''
-        reset Config.settings to default
-        '''
-        config.reset()
-        self.apply_config()
-        
-    def apply_config(self):
-        '''
-        change state of UI (checkboxes, comboboxes) according to the Config.settings
-        '''
-        # ORIGIN
-        origin_config = config.settings['origin'] 
-        layer_idx = self.dlg.origins_combo.findText(origin_config['layer'])
-        # layer found
-        if layer_idx >= 0:  
-            self.dlg.origins_combo.setCurrentIndex(layer_idx)    
-            # if id is not found (returns -1) take first one (0)
-            id_idx = max(self.dlg.origins_id_combo.findText(origin_config['id_field']), 0)           
-            self.dlg.origins_id_combo.setCurrentIndex(id_idx)        
-        # layer not found -> take first one
-        else:
-            self.dlg.origins_combo.setCurrentIndex(0)  
-            
-        # DESTINATION
-        dest_config = config.settings['destination'] 
-        layer_idx = self.dlg.destinations_combo.findText(dest_config['layer'])
-        # layer found
-        if layer_idx >= 0:  
-            self.dlg.destinations_combo.setCurrentIndex(layer_idx)    
-            # if id is not found (returns -1) take first one (0)
-            id_idx = max(self.dlg.destinations_id_combo.findText(dest_config['id_field']), 0)           
-            self.dlg.destinations_id_combo.setCurrentIndex(id_idx)        
-        # layer not found -> take first one
-        else:
-            self.dlg.destinations_combo.setCurrentIndex(0)        
-        
-        # ROUTER
-        router_config = config.settings['router_config']
-        # if router is not found (returns -1) take first one (0)
-        idx = max(self.dlg.router_combo.findText(router_config['router']), 0)
-        self.dlg.router_combo.setCurrentIndex(idx)    
-        
-        self.dlg.max_time_edit.setValue(int(router_config['max_time_min']))
-        self.dlg.max_walk_dist_edit.setValue(int(router_config['max_walk_distance']))
-        self.dlg.walk_speed_edit.setValue(float(router_config['walk_speed']))
-        self.dlg.bike_speed_edit.setValue(float(router_config['bike_speed']))
-        self.dlg.clamp_edit.setValue(int(router_config['clamp_initial_wait_min']))   
-        self.dlg.transfers_edit.setValue(int(router_config['max_transfers']))    
-        self.dlg.pre_transit_edit.setValue(int(router_config['pre_transit_time_min'])) 
-        wheelchair = router_config['wheel_chair_accessible'] in ['True', True]  
-        self.dlg.wheelchair_check.setChecked(wheelchair)   
-        self.dlg.max_slope_edit.setValue(float(router_config['max_slope']))    
-                    
-        # TRAVERSE MODES    
-        modes = router_config['traverse_modes']
-        for index in xrange(self.dlg.mode_list_view.count()):
-            checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
-            if str(checkbox.text()) in modes :
-                checkbox.setChecked(True) 
-            else:
-                checkbox.setChecked(False)                 
-                
-        # TIMES
-        times = config.settings['time']
-        
-        if times['datetime']:
-            dt = datetime.strptime(times['datetime'], DATETIME_FORMAT)
-        else:
-            dt = datetime.now()
-        self.dlg.time_edit.setDateTime(dt)
-        self.dlg.calendar_edit.setSelectedDate(dt.date())
-        
-        time_batch = times['time_batch']
-        
-        smart_search = time_batch['smart_search'] in ['True', True]
-        self.dlg.smart_search_checkbox.setChecked(True)  
-        
-        if time_batch['datetime_end']:
-            dt = datetime.strptime(time_batch['datetime_end'], DATETIME_FORMAT)
-        self.dlg.to_time_edit.setDateTime(dt)
-        active = time_batch['active'] in ['True', True]
-        self.dlg.time_batch_checkbox.setChecked(active)
-        if time_batch['time_step']:
-            self.dlg.time_step_edit.setValue(int(time_batch['time_step']))
-            
-        arrive_by = times['arrive_by'] in ['True', True]
-        self.dlg.arrival_checkbox.setChecked(arrive_by)
-        
-        # SYSTEM SETTINGS
-        sys_settings = config.settings['system']
-        n_threads = int(sys_settings['n_threads'])
-        jar = sys_settings['otp_jar_file']
-        self.dlg.otp_jar_edit.setText(jar)
-        self.dlg.cpu_edit.setValue(n_threads)
-            
-    def update_config(self):     
-        '''
-        update Config.settings according to the current state of the UI (checkboxes etc.)
-        post processing not included! only written to config before calling otp (in call_otp()),
-        because not relevant for UI (meaning it is set to default on startup)
-        '''
-                
-        # LAYERS
-        origin_config = config.settings['origin'] 
-        origin_config['layer'] = self.dlg.origins_combo.currentText()
-        origin_config['id_field'] = self.dlg.origins_id_combo.currentText()
-        dest_config = config.settings['destination'] 
-        dest_config['layer'] = self.dlg.destinations_combo.currentText()
-        dest_config['id_field'] = self.dlg.destinations_id_combo.currentText()        
-                
-        # ROUTER
-        router_config = config.settings['router_config']
-        router_config['router'] = self.dlg.router_combo.currentText()
-        router_config['max_time_min'] = self.dlg.max_time_edit.value()
-        router_config['max_walk_distance'] = self.dlg.max_walk_dist_edit.value()      
-        router_config['walk_speed'] = self.dlg.walk_speed_edit.value()      
-        router_config['bike_speed'] = self.dlg.bike_speed_edit.value()   
-        router_config['max_transfers'] = self.dlg.transfers_edit.value() 
-        router_config['pre_transit_time_min'] = self.dlg.pre_transit_edit.value() 
-        router_config['wheel_chair_accessible'] = self.dlg.wheelchair_check.isChecked() 
-        router_config['max_slope'] = self.dlg.max_slope_edit.value()      
-        router_config['clamp_initial_wait_min'] = self.dlg.clamp_edit.value()      
-                
-        # TRAVERSE MODES    
-        selected_modes = []
-        for index in xrange(self.dlg.mode_list_view.count()):
-            checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
-            if checkbox.isChecked():
-                selected_modes.append(str(checkbox.text()))   
-        router_config['traverse_modes'] = selected_modes
-        
-        # TIMES
-        times = config.settings['time']
-        dt = self.dlg.time_edit.dateTime()
-        times['datetime'] = dt.toPyDateTime().strftime(DATETIME_FORMAT)
-        time_batch = times['time_batch']
-        
-        smart_search = self.dlg.smart_search_checkbox.isChecked()
-        time_batch['smart_search'] = smart_search
-        
-        active = self.dlg.time_batch_checkbox.isChecked()
-        time_batch['active'] = active
-        end = step = ''
-        if active:            
-            dt = self.dlg.to_time_edit.dateTime()
-            end = dt.toPyDateTime().strftime(DATETIME_FORMAT)
-            step = self.dlg.time_step_edit.value()            
-        time_batch['datetime_end'] = end
-        time_batch['time_step'] = step 
-        
-        is_arrival = self.dlg.arrival_checkbox.isChecked()
-        times['arrive_by'] = is_arrival                
-        
-        # SYSTEM SETTINGS
-        sys_settings = config.settings['system']
-        n_threads = self.dlg.cpu_edit.value()
-        jar = self.dlg.otp_jar_edit.text()
-        sys_settings['n_threads'] = n_threads
-        sys_settings['otp_jar_file'] = jar
-        
-    def save_config_as(self):        
-        filename = str(
-            QFileDialog.getSaveFileName(
-                self.dlg, u'Konfigurationsdatei wählen',
-                directory=DEFAULT_FILE,
-                filter=XML_FILTER)
-            )
-        if filename:         
-            self.update_config()
-            config.write(filename)    
-            
-    def read_config(self):
-        '''
-        save config in selectable file
-        '''
-        filename = str(
-            QFileDialog.getOpenFileName(
-                self.dlg, u'Konfigurationsdatei wählen',
-                filter=XML_FILTER)
-            )
-        if filename:
-            config.read(filename)
-            self.apply_config()
-    
     def close(self):
         '''
         save config and close UI
         '''
-        self.update_config()
-        config.write()  
+        self.config_control.update()
+        self.config_control.save()  
         self.dlg.close()
         
     def set_date(self, time=None):
@@ -540,7 +364,7 @@ class OTP:
         
     def toggle_arrival(self):
         '''
-        enable/disable tabs, depending on arrival is checked or not
+        enable/disable tabs, depending on whether arrival is checked or not
         '''
         is_arrival = self.dlg.arrival_checkbox.checkState()
         acc_idx = self.dlg.calculation_tabs.indexOf(self.dlg.accumulation_tab)
@@ -550,12 +374,15 @@ class OTP:
         
         if is_arrival:
             acc_enabled = True
-            expl_text = u'(früheste Abfahrtszeit: Ankunftszeit - max. Reisezeit)'
+            left_text = u'früheste Abfahrt'
+            right_text = u'min vor Ankunftszeit'
         else:
             agg_enabled = reach_enabled = True
-            expl_text = u'(späteste Ankunftszeit: Abfahrtszeit + max. Reisezeit)'
+            left_text = u'späteste Ankunft'
+            right_text = u'min nach Abfahrtszeit'
             
-        self.dlg.max_time_explanation_label.setText(expl_text)
+        self.dlg.max_time_label_left.setText(left_text)
+        self.dlg.max_time_label_right.setText(right_text)
             
         self.dlg.calculation_tabs.setTabEnabled(acc_idx, acc_enabled)  
         self.dlg.calculation_tabs.setTabEnabled(agg_idx, agg_enabled) 
@@ -680,30 +507,24 @@ class OTP:
             widget = layout.itemAt(i).widget()
             if isinstance(widget, QDoubleSpinBox):
                 params.append(str(widget.value()))
-        return params
-        
-    def browse_file(self, file_preset, title, file_filter, save=True):
-        directory = os.path.join(self.prev_directory, file_preset)
-        
-        
-        if save:
-            browse_func = QFileDialog.getSaveFileName
-        else:
-            browse_func = QFileDialog.getOpenFileName
+        return params              
             
-        filename = str(
-            browse_func(
-                parent=self.dlg, 
-                caption=title,
-                directory=directory,
-                filter=file_filter
-            )
-        )   
+    def run(self):
+        '''
+        called every time, the plugin is (re)started (so don't connect slots to signals here, otherwise they may be connected multiple times)
+        '''
         
-        if filename:            
-            self.prev_directory = os.path.split(filename)[0]               
-        return filename     
-    
+        # reload layer combos, if layers changed on rerun
+        layers = self.iface.legendInterface().layers()     
+        if layers != self.layers:
+            self.fill_layer_combos(layers)
+        
+        # reload routers on every run (they might be changed outside)
+        self.fill_router_combo()    
+        
+        # show the dialog
+        self.dlg.show()            
+                
     def start_origin_destination(self): 
         # update postprocessing settings
         postproc = config.settings['post_processing']
@@ -724,9 +545,11 @@ class OTP:
                 self.dlg.destinations_combo.currentText()
                 )
             
-            target_file = self.browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER)
+            file_preset = os.path.join(self.prev_directory, file_preset)                
+            target_file = browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER, parent=self.dlg)
             if not target_file:
-                return             
+                return                         
+            self.prev_directory = os.path.split(target_file)[0]                          
         else:
             target_file = None
         add_results = self.dlg.orig_dest_add_check.isChecked()
@@ -740,7 +563,7 @@ class OTP:
                                                          preset)
             if not ok:
                 return
-        self.call_otp(target_file=target_file, add_results=add_results, result_layer_name=result_layer_name)
+        self.call(target_file=target_file, add_results=add_results, result_layer_name=result_layer_name)
         
     def start_aggregation(self):
         # update postprocessing settings
@@ -758,15 +581,16 @@ class OTP:
                 self.dlg.router_combo.currentText(),
                 self.dlg.origins_combo.currentText()
                 )
-            
-            target_file = self.browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER)
+            file_preset = os.path.join(self.prev_directory, file_preset)
+            target_file = browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER, parent=self.dlg)
             if not target_file:
-                return                         
+                return     
+            self.prev_directory = os.path.split(target_file)[0]                     
         else:
             target_file = None
             
         do_join = self.dlg.aggregation_join_check.isChecked()        
-        self.call_otp(target_file=target_file, join_results=do_join)
+        self.call(target_file=target_file, join_results=do_join)
         
     def start_accumulation(self):
         # update postprocessing settings   
@@ -784,15 +608,16 @@ class OTP:
                 self.dlg.router_combo.currentText(),
                 self.dlg.origins_combo.currentText()
                 )
-            
-            target_file = self.browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER)
+            file_preset = os.path.join(self.prev_directory, file_preset)
+            target_file = browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER, parent=self.dlg)
             if not target_file:
-                return                         
+                return        
+            self.prev_directory = os.path.split(target_file)[0]                  
         else:
             target_file = None
                 
         do_join = self.dlg.accumulation_join_check.isChecked()       
-        self.call_otp(target_file=target_file, join_results=do_join)
+        self.call(target_file=target_file, join_results=do_join)
         
     def start_reachability(self):        
         # update postprocessing settings
@@ -826,24 +651,25 @@ class OTP:
                 self.dlg.origins_combo.currentText(),
                 self.dlg.destinations_combo.currentText()
                 )
-            
-            target_file = self.browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER)
+            file_preset = os.path.join(self.prev_directory, file_preset)
+            target_file = browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER, parent=self.dlg)
             if not target_file:
-                return             
+                return      
+            self.prev_directory = os.path.split(target_file)[0]        
         else:
             target_file = None
             
         do_join = self.dlg.reachability_join_check.isChecked() 
-        self.call_otp(target_file=target_file, destination_layer=temp_dest_layer, join_results=do_join)  
+        self.call(target_file=target_file, destination_layer=temp_dest_layer, join_results=do_join)  
         
         #remove temporary layer
         QgsMapLayerRegistry.instance().removeMapLayer(temp_dest_layer.id())   
         
-    def call_otp(self, target_file=None, origin_layer=None, destination_layer=None, add_results=False, join_results=False, result_layer_name=None):   
+    def call(self, target_file=None, origin_layer=None, destination_layer=None, add_results=False, join_results=False, result_layer_name=None):   
         now_string = datetime.now().strftime(DATETIME_FORMAT)
                 
         # update settings
-        self.update_config()        
+        self.config_control.update()        
         
         # LAYERS
         if origin_layer is None:
@@ -979,19 +805,216 @@ class OTP:
             join.joinFieldName = 'origin id'  
             join.targetFieldName = config.settings['origin']['id_field']      
             origin_layer.addJoin(join)
+        
+class ConfigurationControl():
+    
+    def __init__(self, dlg):
+        self.dlg = dlg 
+        
+    def reset_to_default(self):
+        '''
+        reset Config.settings to default
+        '''
+        config.reset()
+        self.apply()
+        
+    def apply(self):
+        '''
+        change state of UI (checkboxes, comboboxes) according to the Config.settings
+        '''
+        # ORIGIN
+        origin_config = config.settings['origin'] 
+        layer_idx = self.dlg.origins_combo.findText(origin_config['layer'])
+        # layer found
+        if layer_idx >= 0:  
+            self.dlg.origins_combo.setCurrentIndex(layer_idx)    
+            # if id is not found (returns -1) take first one (0)
+            id_idx = max(self.dlg.origins_id_combo.findText(origin_config['id_field']), 0)           
+            self.dlg.origins_id_combo.setCurrentIndex(id_idx)        
+        # layer not found -> take first one
+        else:
+            self.dlg.origins_combo.setCurrentIndex(0)  
             
-    def run(self):
+        # DESTINATION
+        dest_config = config.settings['destination'] 
+        layer_idx = self.dlg.destinations_combo.findText(dest_config['layer'])
+        # layer found
+        if layer_idx >= 0:  
+            self.dlg.destinations_combo.setCurrentIndex(layer_idx)    
+            # if id is not found (returns -1) take first one (0)
+            id_idx = max(self.dlg.destinations_id_combo.findText(dest_config['id_field']), 0)           
+            self.dlg.destinations_id_combo.setCurrentIndex(id_idx)        
+        # layer not found -> take first one
+        else:
+            self.dlg.destinations_combo.setCurrentIndex(0)        
+        
+        # ROUTER
+        router_config = config.settings['router_config']
+        # if router is not found (returns -1) take first one (0)
+        idx = max(self.dlg.router_combo.findText(router_config['router']), 0)
+        self.dlg.router_combo.setCurrentIndex(idx)    
+        
+        self.dlg.max_time_edit.setValue(int(router_config['max_time_min']))
+        self.dlg.max_walk_dist_edit.setValue(int(router_config['max_walk_distance']))
+        self.dlg.walk_speed_edit.setValue(float(router_config['walk_speed']))
+        self.dlg.bike_speed_edit.setValue(float(router_config['bike_speed']))
+        self.dlg.clamp_edit.setValue(int(router_config['clamp_initial_wait_min']))   
+        self.dlg.transfers_edit.setValue(int(router_config['max_transfers']))    
+        self.dlg.pre_transit_edit.setValue(int(router_config['pre_transit_time_min'])) 
+        wheelchair = router_config['wheel_chair_accessible'] in ['True', True]  
+        self.dlg.wheelchair_check.setChecked(wheelchair)   
+        self.dlg.max_slope_edit.setValue(float(router_config['max_slope']))    
+                    
+        # TRAVERSE MODES    
+        modes = router_config['traverse_modes']
+        for index in xrange(self.dlg.mode_list_view.count()):
+            checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
+            if str(checkbox.text()) in modes :
+                checkbox.setChecked(True) 
+            else:
+                checkbox.setChecked(False)                 
+                
+        # TIMES
+        times = config.settings['time']
+        
+        if times['datetime']:
+            dt = datetime.strptime(times['datetime'], DATETIME_FORMAT)
+        else:
+            dt = datetime.now()
+        self.dlg.time_edit.setDateTime(dt)
+        self.dlg.calendar_edit.setSelectedDate(dt.date())
+        
+        time_batch = times['time_batch']
+        
+        smart_search = time_batch['smart_search'] in ['True', True]
+        self.dlg.smart_search_checkbox.setChecked(True)  
+        
+        if time_batch['datetime_end']:
+            dt = datetime.strptime(time_batch['datetime_end'], DATETIME_FORMAT)
+        self.dlg.to_time_edit.setDateTime(dt)
+        active = time_batch['active'] in ['True', True]
+        self.dlg.time_batch_checkbox.setChecked(active)
+        if time_batch['time_step']:
+            self.dlg.time_step_edit.setValue(int(time_batch['time_step']))
+            
+        arrive_by = times['arrive_by'] in ['True', True]
+        self.dlg.arrival_checkbox.setChecked(arrive_by)
+        
+        # SYSTEM SETTINGS
+        sys_settings = config.settings['system']
+        n_threads = int(sys_settings['n_threads'])
+        jar = sys_settings['otp_jar_file']
+        self.dlg.otp_jar_edit.setText(jar)
+        self.dlg.cpu_edit.setValue(n_threads)
+            
+    def update(self):     
         '''
-        called every time, the plugin is (re)started (so don't connect slots to signals here, otherwise they may be connected multiple times)
+        update Config.settings according to the current state of the UI (checkboxes etc.)
+        post processing not included! only written to config before calling otp (in call_otp()),
+        because not relevant for UI (meaning it is set to default on startup)
         '''
+                
+        # LAYERS
+        origin_config = config.settings['origin'] 
+        origin_config['layer'] = self.dlg.origins_combo.currentText()
+        origin_config['id_field'] = self.dlg.origins_id_combo.currentText()
+        dest_config = config.settings['destination'] 
+        dest_config['layer'] = self.dlg.destinations_combo.currentText()
+        dest_config['id_field'] = self.dlg.destinations_id_combo.currentText()        
+                
+        # ROUTER
+        router_config = config.settings['router_config']
+        router_config['router'] = self.dlg.router_combo.currentText()
+        router_config['max_time_min'] = self.dlg.max_time_edit.value()
+        router_config['max_walk_distance'] = self.dlg.max_walk_dist_edit.value()      
+        router_config['walk_speed'] = self.dlg.walk_speed_edit.value()      
+        router_config['bike_speed'] = self.dlg.bike_speed_edit.value()   
+        router_config['max_transfers'] = self.dlg.transfers_edit.value() 
+        router_config['pre_transit_time_min'] = self.dlg.pre_transit_edit.value() 
+        router_config['wheel_chair_accessible'] = self.dlg.wheelchair_check.isChecked() 
+        router_config['max_slope'] = self.dlg.max_slope_edit.value()      
+        router_config['clamp_initial_wait_min'] = self.dlg.clamp_edit.value()      
+                
+        # TRAVERSE MODES    
+        selected_modes = []
+        for index in xrange(self.dlg.mode_list_view.count()):
+            checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
+            if checkbox.isChecked():
+                selected_modes.append(str(checkbox.text()))   
+        router_config['traverse_modes'] = selected_modes
         
-        # reload layer combos, if layers changed on rerun
-        layers = self.iface.legendInterface().layers()     
-        if layers != self.layers:
-            self.fill_layer_combos(layers)
+        # TIMES
+        times = config.settings['time']
+        dt = self.dlg.time_edit.dateTime()
+        times['datetime'] = dt.toPyDateTime().strftime(DATETIME_FORMAT)
+        time_batch = times['time_batch']
         
-        # reload routers on every run (they might be changed outside)
-        self.fill_router_combo()    
+        smart_search = self.dlg.smart_search_checkbox.isChecked()
+        time_batch['smart_search'] = smart_search
         
-        # show the dialog
-        self.dlg.show()                
+        active = self.dlg.time_batch_checkbox.isChecked()
+        time_batch['active'] = active
+        end = step = ''
+        if active:            
+            dt = self.dlg.to_time_edit.dateTime()
+            end = dt.toPyDateTime().strftime(DATETIME_FORMAT)
+            step = self.dlg.time_step_edit.value()            
+        time_batch['datetime_end'] = end
+        time_batch['time_step'] = step 
+        
+        is_arrival = self.dlg.arrival_checkbox.isChecked()
+        times['arrive_by'] = is_arrival                
+        
+        # SYSTEM SETTINGS
+        sys_settings = config.settings['system']
+        n_threads = self.dlg.cpu_edit.value()
+        jar = self.dlg.otp_jar_edit.text()
+        sys_settings['n_threads'] = n_threads
+        sys_settings['otp_jar_file'] = jar
+        
+    def save(self):
+        config.write()
+        
+    def save_as(self):   
+        '''
+        save config in selectable file
+        '''     
+        filename = str(
+            QFileDialog.getSaveFileName(
+                self.dlg, u'Konfigurationsdatei wählen',
+                directory=DEFAULT_FILE,
+                filter=XML_FILTER)
+            )
+        if filename:         
+            self.update()
+            config.write(filename)    
+            
+    def read(self):
+        '''
+        read config from selectable file
+        '''
+        filename = str(
+            QFileDialog.getOpenFileName(
+                self.dlg, u'Konfigurationsdatei wählen',
+                filter=XML_FILTER)
+            )
+        if filename:
+            config.read(filename)
+            self.apply()
+  
+def browse_file(file_preset, title, file_filter, save=True, parent=None):
+    
+    if save:
+        browse_func = QFileDialog.getSaveFileName
+    else:
+        browse_func = QFileDialog.getOpenFileName
+        
+    filename = str(
+        browse_func(
+            parent=parent, 
+            caption=title,
+            directory=file_preset,
+            filter=file_filter
+        )
+    )   
+    return filename 
