@@ -197,20 +197,12 @@ setting_struct = OrderedDict([
 ])
 
 '''
-Borg pattern, all subclasses share same state (similar to singleton, but without single identity)
-'''
-class Borg:
-    _shared_state = {}
-    def __init__(self):
-        self.__dict__ = self._shared_state
-
-'''
 holds informations about the environment and database settings
 '''
-class Config(Borg):
+class Config():
 
     def __init__(self):
-        Borg.__init__(self)
+        pass
 
     def read(self, filename=None):
         '''
