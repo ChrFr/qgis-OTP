@@ -111,7 +111,7 @@ class OTP:
         self.toolbar = self.iface.addToolBar(u'OTP')
         self.toolbar.setObjectName(u'OTP')        
         
-        config.read()                
+        config.read(do_create=True)                
         self.config_control = ConfigurationControl(self.dlg)
         
         self.setup_UI()
@@ -573,13 +573,15 @@ class OTP:
         agg_acc = postproc['aggregation_accumulation'] 
         agg_acc['active'] = True            
         agg_acc['mode'] = self.dlg.aggregation_mode_combo.currentText() 
-        agg_acc['processed_field'] = self.dlg.aggregation_field_combo.currentText()    
+        agg_acc['processed_field'] = self.dlg.aggregation_field_combo.currentText() 
+        print agg_acc['processed_field']
         agg_acc['params'] = self.get_widget_values(self.dlg.aggregation_value_edit)
         
         if self.dlg.aggregation_csv_check.checkState():
-            file_preset = '{}-{}-aggregiert.csv'.format(
+            file_preset = '{}-{}-{}-aggregiert.csv'.format(
                 self.dlg.router_combo.currentText(),
-                self.dlg.origins_combo.currentText()
+                self.dlg.origins_combo.currentText(),
+                self.dlg.destinations_combo.currentText()
                 )
             file_preset = os.path.join(self.prev_directory, file_preset)
             target_file = browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER, parent=self.dlg)
@@ -604,9 +606,10 @@ class OTP:
         agg_acc['params'] = self.get_widget_values(self.dlg.accumulation_value_edit)
         
         if self.dlg.accumulation_csv_check.checkState():
-            file_preset = '{}-{}-akkumuliert.csv'.format(
+            file_preset = '{}-{}-{}-akkumuliert.csv'.format(
                 self.dlg.router_combo.currentText(),
-                self.dlg.origins_combo.currentText()
+                self.dlg.origins_combo.currentText(),
+                self.dlg.destinations_combo.currentText()
                 )
             file_preset = os.path.join(self.prev_directory, file_preset)
             target_file = browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER, parent=self.dlg)
@@ -886,7 +889,7 @@ class ConfigurationControl():
         
         time_batch = times['time_batch']
         
-        smart_search = time_batch['smart_search'] in ['True', True]
+        smart_search = False #time_batch['smart_search'] in ['True', True]
         self.dlg.smart_search_checkbox.setChecked(True)  
         
         if time_batch['datetime_end']:
