@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+# jython does not support lxml (contains c-bindings)
 try:
     from lxml import etree
-    import OTP
+    import OTP    
 except:
-    pass
+    from xml.etree import ElementTree as etree
 import os, sys, copy
 from collections import OrderedDict
 
@@ -204,7 +205,7 @@ class Config():
     def __init__(self):
         pass
 
-    def read(self, filename=None):
+    def read(self, filename=None, do_create=False):
         '''
         read the config from given xml file (default config.xml)
         '''
@@ -214,7 +215,7 @@ class Config():
         
         self.settings = copy.deepcopy(setting_struct)
         # create file with default settings if it does not exist
-        if not os.path.isfile(filename):
+        if not os.path.isfile(filename) and do_create:
             self.write(filename)
         tree = etree.parse(filename)
         f_set = xml_to_dict(tree.getroot())
