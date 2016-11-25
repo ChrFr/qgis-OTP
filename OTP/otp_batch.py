@@ -12,7 +12,7 @@ from otp_eval import OTPEvaluation
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
 import sys
-from xml.dom import minidom
+from config import Config
 
 if __name__ == '__main__':
     parser = ArgumentParser(description="Batch Analysis with OpenTripPlanner")
@@ -53,59 +53,58 @@ if __name__ == '__main__':
     
     # config.read(options.config_file)
     
-    dom = minidom.parse(options.config_file)
-    config = dom.firstChild
+    config = Config()
+    config.read(options.config_file)
     
     # router
-    router_config = config.getElementsByTagName('router_config')[0]
-    router = router_config.getElementsByTagName('router')[0].firstChild.data
-    max_time = long(router_config.getElementsByTagName('max_time_min')[0].firstChild.data) 
+    router_config = config.settings['router_config']
+    router = router_config['router']
+    max_time = long(router_config['max_time_min']) 
     # max value -> no need to set it up (is Long.MAX_VALUE in OTP by default), unfortunately you can't pass OTP Long.MAX_VALUE, messes up routing
     if max_time >= INFINITE:
         max_time = None 
     else:
         max_time *= 60 # OTP needs this one in seconds
-    max_walk = float(router_config.getElementsByTagName('max_walk_distance')[0].firstChild.data)
+    max_walk = float(router_config['max_walk_distance'])
     # max value -> no need to set it up (is Double.MAX_VALUE in OTP by default), same as max_time
     if max_walk >= INFINITE:
         max_walk = None    
-    walk_speed = float(router_config.getElementsByTagName('walk_speed')[0].firstChild.data)
-    bike_speed = float(router_config.getElementsByTagName('bike_speed')[0].firstChild.data)
-    clamp_wait = int(router_config.getElementsByTagName('clamp_initial_wait_min')[0].firstChild.data) 
+    walk_speed = float(router_config['walk_speed'])
+    bike_speed = float(router_config['bike_speed'])
+    clamp_wait = int(router_config['clamp_initial_wait_min']) 
     if clamp_wait > 0:
         clamp_wait *= 60   
-    pre_transit_time = int(router_config.getElementsByTagName('pre_transit_time_min')[0].firstChild.data) 
+    pre_transit_time = int(router_config['pre_transit_time_min']) 
     pre_transit_time *= 60
-    max_transfers = int(router_config.getElementsByTagName('max_transfers')[0].firstChild.data) 
-    wheel_chair_accessible = router_config.getElementsByTagName('wheel_chair_accessible')[0].firstChild.data == 'True'
-    max_slope = float(router_config.getElementsByTagName('max_slope')[0].firstChild.data) 
+    max_transfers = int(router_config['max_transfers']) 
+    wheel_chair_accessible = router_config['wheel_chair_accessible'] == 'True'
+    max_slope = float(router_config['max_slope']) 
         
-    traverse_modes = router_config.getElementsByTagName('traverse_modes')[0].firstChild
-    if traverse_modes:
-        traverse_modes = traverse_modes.data
+    traverse_modes = router_config['traverse_modes']
     
     # layer ids
-    origin = config.getElementsByTagName('origin')[0]
-    oid = origin.getElementsByTagName('id_field')[0].firstChild.data
-    destination = config.getElementsByTagName('destination')[0]
-    did = destination.getElementsByTagName('id_field')[0].firstChild.data
+    origin = config.settings['origin']
+    oid = origin['id_field']
+    destination = config.settings['destination']
+    did = destination['id_field']
     
     # times
-    times = config.getElementsByTagName('time')[0]
-    dt = times.getElementsByTagName('datetime')[0].firstChild.data
+    times = config.settings['time']
+    dt = times['datetime']
     date_times = [datetime.strptime(dt, DATETIME_FORMAT)]
-    arrive_by = times.getElementsByTagName('arrive_by')[0].firstChild.data == 'True'
-    time_batch = times.getElementsByTagName('time_batch')
+    arrive_by = times['arrive_by'] == 'True'
     smart_search = False
-    if len(time_batch) > 0 and time_batch[0].getElementsByTagName('active')[0].firstChild.data == 'True':
-        smart_search = time_batch[0].getElementsByTagName('smart_search')[0].firstChild.data == 'True'
+    if 'time_batch' in times and times['time_batch']['active'] == 'True':
         
-        dt_end = time_batch[0].getElementsByTagName('datetime_end')[0].firstChild.data
+        time_batch = times['time_batch']
+        smart_search = time_batch['smart_search'] == 'True'
+        
+        dt_end = time_batch['datetime_end']
         date_time_end = datetime.strptime(dt_end, DATETIME_FORMAT)
 #         if smart_search:
 #             time_step = 1
 #         else:
-        time_step = int(time_batch[0].getElementsByTagName('time_step')[0].firstChild.data)
+        time_step = int(time_batch['time_step'])
         
         dt = date_times[0]
         step_delta = timedelta(0, time_step * 60) # days, seconds ...
@@ -114,39 +113,32 @@ if __name__ == '__main__':
             date_times.append(dt)                            
     
     # post processing
-    postproc = config.getElementsByTagName('post_processing')[0]
-    bestof = postproc.getElementsByTagName('best_of')
-    if len(bestof) > 0 and bestof[0].firstChild: # avoid error if key does not exist or data is empty
-        bestof = int(bestof[0].firstChild.data)
+    postproc = config.settings['post_processing']
+    if 'best_of' in postproc and len(postproc['best_of']) > 0:
+        bestof = int(postproc['best_of'])
     else:
         bestof = None
         
-    details = postproc.getElementsByTagName('details')[0].firstChild.data
+    details = postproc['details']
     calculate_details = details == 'True' # avoid error if key does not exist or data is empty    
     
-    dest_data = postproc.getElementsByTagName('dest_data')[0].firstChild.data
+    dest_data = postproc['dest_data']
     write_dest_data = dest_data == 'True' # avoid error if key does not exist or data is empty   
         
     mode = field = params = None
-    agg_acc = postproc.getElementsByTagName('aggregation_accumulation')
-    if len(agg_acc) > 0:  # avoid error if key does not exist
-        agg_acc = agg_acc[0]
-        active = agg_acc.getElementsByTagName('active')[0].firstChild.data
+    if 'aggregation_accumulation' in postproc:  
+        agg_acc = postproc['aggregation_accumulation']
+        active = agg_acc['active']
         if active == 'True':
-            mode = agg_acc.getElementsByTagName('mode')[0].firstChild.data
-            params = agg_acc.getElementsByTagName('params')[0].firstChild
+            mode = agg_acc['mode']
+            params = agg_acc['params']
             if params:
-                params = params.data
                 params = [float(x) for x in params.split(',')]
-            field = agg_acc.getElementsByTagName('processed_field')[0].firstChild.data
+            field = agg_acc['processed_field']
     
     # system settings
-    sys_settings = config.getElementsByTagName('system')[0]
-    n_threads = sys_settings.getElementsByTagName('n_threads')
-    if len(n_threads) > 0 and n_threads[0].firstChild: # avoid error if key does not exist or data is empty
-        n_threads = int(n_threads[0].firstChild.data)
-    else:
-        n_threads = None
+    sys_settings = config.settings['system']
+    n_threads = int(sys_settings['n_threads'])
                 
     # results will be stored 2 dimensional to determine to which time the results belong, flattened later
     results = []

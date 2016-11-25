@@ -10,7 +10,7 @@ to be used with Jython (Java Bindings!)
 
 from org.opentripplanner.scripting.api import OtpsEntryPoint, OtpsCsvOutput
 from org.opentripplanner.routing.core import TraverseMode
-from org.opentripplanner.scripting.api import OtpsResultSet, OtpsAggregate
+from org.opentripplanner.scripting.api import OtpsResultSet, OtpsAggregate, OtpsAccumulate
 from config import (GRAPH_PATH, LONGITUDE_COLUMN, LATITUDE_COLUMN, 
                     ID_COLUMN, DATETIME_FORMAT, AGGREGATION_MODES,
                     ACCUMULATION_MODES, OUTPUT_DATE_FORMAT)
@@ -94,7 +94,9 @@ class OTPEvaluation(object):
         if max_pre_transit_time is not None:
             self.request.setMaxPreTransitTime(max_pre_transit_time)
              
-        if modes:          
+        if modes:     
+            if isinstance(modes, list):
+                modes = ','.join(modes)     
             self.request.setModes(modes)
             
     def evaluate(self, times, max_time, origins_csv, destinations_csv, do_merge=False):
@@ -147,7 +149,8 @@ class OTPEvaluation(object):
             # if there already was a calculation: merge it with new results
             if do_merge and len(results) > 0:
                 for i, prev_result in enumerate(results[0]):
-                    prev_result.merge(results_dt[i])    
+                    if prev_result is not None:
+                        prev_result.merge(results_dt[i])    
             else:        
                 results.append(results_dt)    
     
@@ -206,21 +209,18 @@ class OTPEvaluation(object):
                 break # found one -> break
         
         out_csv = self.otp.createCSVOutput()
-        out_csv.setHeader(header)
+        out_csv.setHeader(header) 
         
         if do_accumulate:
-            acc_result_set = self.origins.getEmptyResultSet()
+            accumulator = OtpsAccumulate(mode, params)
         
         for result_set in result_sets: 
             if result_set is None:
                 continue
                 
             if do_accumulate:
-                if acc_result_set is None:
-                    acc_result_set = result_set
-                else:
-                    result_set.setAccumulationMode(mode)
-                    result_set.accumulate(acc_result_set, field, params)
+                amount = result_set.getRoot().getFloatData(field)
+                accumulator.accumulate(result_set, amount)
                 continue
                                 
             if arrive_by:
@@ -230,8 +230,8 @@ class OTPEvaluation(object):
                 origin_id = result_set.getRoot().getStringData(oid)       
                       
             if do_aggregate: 
-                result_set.setAggregationMode(mode)
-                aggregated = result_set.aggregate(field, params)
+                aggregator = OtpsAggregate(mode, params)
+                aggregated = aggregator.aggregate(result_set, field)
                 # origin_id is known here, because !arriveby when aggregating
                 out_csv.addRow([origin_id, aggregated])  
             
@@ -274,10 +274,10 @@ class OTPEvaluation(object):
                     out_csv.addRow(row)
     
         if do_accumulate:
-            results = acc_result_set.getResults()
-            origin_ids = acc_result_set.getStringData(oid)   
-            for i, res in enumerate(results):
-                out_csv.addRow([origin_ids[i], res])
+            results = accumulator.getResults()
+            for i, individual in enumerate(result_sets[0].getPopulation()):
+                origin_id = individual.getStringData(oid)
+                out_csv.addRow([origin_id, results[i]])
             
         out_csv.save(target_csv)
         print 'results written to "{}"'.format(target_csv)  
