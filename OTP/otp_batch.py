@@ -132,7 +132,9 @@ if __name__ == '__main__':
         if active == 'True':
             mode = agg_acc['mode']
             params = agg_acc['params']
-            if params:
+            if isinstance(params, list):
+                params = [float(x) for x in params]
+            if isinstance(params, str):
                 params = [float(x) for x in params.split(',')]
             field = agg_acc['processed_field']
     
