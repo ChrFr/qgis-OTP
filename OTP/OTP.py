@@ -46,9 +46,11 @@ import locale
 import tempfile
 import shutil
 import getpass
+import csv
+
 from datetime import datetime
 
-VERSION = "0.85"
+VERSION = "0.87"
 TITLE = "GGR OpenTripPlanner Plugin v" + VERSION
 
 TITLE += " - Entwicklungsversion" 
@@ -347,7 +349,8 @@ class OTP:
     def set_date(self, time=None):
         date = self.dlg.calendar_edit.selectedDate()
         # ToDo: if focus of user was on to_time, only change value in this one
-        # but way below won't work, because focus changes, when calendar is clicked
+        # but way below won't work, because focus changes, when calendar is 
+        # clicked
         #if self.dlg.to_time_edit.hasFocus():
             #self.dlg.to_time_edit.setDate(date)
         #else:
@@ -357,7 +360,7 @@ class OTP:
         if time:            
             if isinstance(time, QDate):
                 time = QDateTime(time).time()
-            # QDate is lacking a time, so don't set it (only if QDateTime is given)
+            # QDate is lacking a time, so don't set it (only if QDateTime is)
             else:
                 self.dlg.time_edit.setTime(time)    
             self.dlg.to_time_edit.setTime(time) 
@@ -402,14 +405,17 @@ class OTP:
         
     def fill_layer_combos(self, layers):
         '''
-        fill the combo boxes for selection of origin/destination layers with all available vector-layers
+        fill the combo boxes for selection of origin/destination layers with all 
+        available vector-layers.
         keep selections of previously selected layers, if possible
         '''
         old_origin_layer = None 
         old_destination_layer = None
         if len(self.layer_list) > 0:    
-            old_origin_layer = self.layer_list[self.dlg.origins_combo.currentIndex()]
-            old_destination_layer = self.layer_list[self.dlg.destinations_combo.currentIndex()]              
+            old_origin_layer = self.layer_list[
+                self.dlg.origins_combo.currentIndex()]
+            old_destination_layer = self.layer_list[
+                self.dlg.destinations_combo.currentIndex()]              
         
         self.layer_list = []
         self.dlg.origins_combo.clear()   
@@ -432,18 +438,23 @@ class OTP:
         self.dlg.origins_combo.setCurrentIndex(old_origin_idx)          
         self.dlg.destinations_combo.setCurrentIndex(old_destination_idx)   
         
-        # fill ids although there is already a signal/slot connection (in __init__) to do this,
-        # but if index doesn't change (idx == 0), signal doesn't fire (so it maybe is done twice, but this is not performance-relevant)
+        # fill ids although there is already a signal/slot connection 
+        # (in __init__) to do this,
+        # but if index doesn't change (idx == 0), signal doesn't fire (
+        # so it maybe is done twice, but this is not performance-relevant)
         self.fill_id_combo(self.dlg.origins_combo, self.dlg.origins_id_combo)
-        self.fill_id_combo(self.dlg.destinations_combo, self.dlg.destinations_id_combo)
+        self.fill_id_combo(
+            self.dlg.destinations_combo, self.dlg.destinations_id_combo)
         
         self.layers = layers     
         
     def fill_id_combo(self, layer_combo, id_combo):  
         '''
-        fill a combo box (id_combo) with all fields of the currently selected layer in the given layer_combo
+        fill a combo box (id_combo) with all fields of the currently selected 
+        layer in the given layer_combo.
         tries to keep same field as selected before
-        WARNING: does not keep same field selected if layers are changed and rerun
+        WARNING: does not keep same field selected if layers are changed and 
+        rerun
         '''        
         old_id_field = id_combo.currentText()
         id_combo.clear()
@@ -511,7 +522,8 @@ class OTP:
             
     def run(self):
         '''
-        called every time, the plugin is (re)started (so don't connect slots to signals here, otherwise they may be connected multiple times)
+        called every time, the plugin is (re)started (so don't connect slots 
+        to signals here, otherwise they may be connected multiple times)
         '''
         
         # reload layer combos, if layers changed on rerun
@@ -546,7 +558,9 @@ class OTP:
                 )
             
             file_preset = os.path.join(self.prev_directory, file_preset)                
-            target_file = browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER, parent=self.dlg)
+            target_file = browse_file(file_preset, 
+                                      u'Ergebnisse speichern unter', 
+                                      CSV_FILTER, parent=self.dlg)
             if not target_file:
                 return                         
             self.prev_directory = os.path.split(target_file)[0]                          
@@ -557,13 +571,15 @@ class OTP:
         if add_results:
             preset = 'results-{}-{}'.format(self.dlg.router_combo.currentText(),
                                             self.dlg.origins_combo.currentText())
-            result_layer_name, ok = QInputDialog.getText(None, 'Layer benennen', 
-                                                         'Name der zu erzeugenden Ergebnistabelle:', 
-                                                         QLineEdit.Normal,
-                                                         preset)
+            result_layer_name, ok = QInputDialog.getText(
+                None, 'Layer benennen', 
+                'Name der zu erzeugenden Ergebnistabelle:', 
+                QLineEdit.Normal,
+                preset)
             if not ok:
                 return
-        self.call(target_file=target_file, add_results=add_results, result_layer_name=result_layer_name)
+        self.call(target_file=target_file, add_results=add_results, 
+                  result_layer_name=result_layer_name)
         
     def start_aggregation(self):
         # update postprocessing settings
@@ -573,9 +589,11 @@ class OTP:
         agg_acc = postproc['aggregation_accumulation'] 
         agg_acc['active'] = True            
         agg_acc['mode'] = self.dlg.aggregation_mode_combo.currentText() 
-        agg_acc['processed_field'] = self.dlg.aggregation_field_combo.currentText() 
+        agg_acc['processed_field'] = \
+            self.dlg.aggregation_field_combo.currentText() 
         print agg_acc['processed_field']
-        agg_acc['params'] = self.get_widget_values(self.dlg.aggregation_value_edit)
+        agg_acc['params'] = self.get_widget_values(
+            self.dlg.aggregation_value_edit)
         
         if self.dlg.aggregation_csv_check.checkState():
             file_preset = '{}-{}-{}-aggregiert.csv'.format(
@@ -584,7 +602,9 @@ class OTP:
                 self.dlg.destinations_combo.currentText()
                 )
             file_preset = os.path.join(self.prev_directory, file_preset)
-            target_file = browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER, parent=self.dlg)
+            target_file = browse_file(file_preset, 
+                                      u'Ergebnisse speichern unter', 
+                                      CSV_FILTER, parent=self.dlg)
             if not target_file:
                 return     
             self.prev_directory = os.path.split(target_file)[0]                     
@@ -602,8 +622,10 @@ class OTP:
         agg_acc = postproc['aggregation_accumulation'] 
         agg_acc['active'] = True            
         agg_acc['mode'] = self.dlg.accumulation_mode_combo.currentText() 
-        agg_acc['processed_field'] = self.dlg.accumulation_field_combo.currentText()    
-        agg_acc['params'] = self.get_widget_values(self.dlg.accumulation_value_edit)
+        agg_acc['processed_field'] = \
+            self.dlg.accumulation_field_combo.currentText()    
+        agg_acc['params'] = self.get_widget_values(
+            self.dlg.accumulation_value_edit)
         
         if self.dlg.accumulation_csv_check.checkState():
             file_preset = '{}-{}-{}-akkumuliert.csv'.format(
@@ -612,7 +634,9 @@ class OTP:
                 self.dlg.destinations_combo.currentText()
                 )
             file_preset = os.path.join(self.prev_directory, file_preset)
-            target_file = browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER, parent=self.dlg)
+            target_file = browse_file(file_preset, 
+                                      u'Ergebnisse speichern unter', 
+                                      CSV_FILTER, parent=self.dlg)
             if not target_file:
                 return        
             self.prev_directory = os.path.split(target_file)[0]                  
@@ -630,11 +654,13 @@ class OTP:
         agg_acc = postproc['aggregation_accumulation'] 
         agg_acc['active'] = True      
         
-        temp_dest_layer = self.layer_list[self.dlg.destinations_combo.currentIndex()]            
+        temp_dest_layer = self.layer_list[
+            self.dlg.destinations_combo.currentIndex()]            
         # duplicate destination layer
-        temp_dest_layer = self.iface.addVectorLayer(temp_dest_layer.source(), 
-                                                    temp_dest_layer.name(), 
-                                                    temp_dest_layer.providerType())
+        temp_dest_layer = self.iface.addVectorLayer(
+            temp_dest_layer.source(), 
+            temp_dest_layer.name(), 
+            temp_dest_layer.providerType())
         # add virtual field with 1s as values
         reach_field_name = 'erreichbare_Ziele'
         agg_acc['mode'] = CALC_REACHABILITY_MODE       
@@ -655,7 +681,9 @@ class OTP:
                 self.dlg.destinations_combo.currentText()
                 )
             file_preset = os.path.join(self.prev_directory, file_preset)
-            target_file = browse_file(file_preset, u'Ergebnisse speichern unter', CSV_FILTER, parent=self.dlg)
+            target_file = browse_file(file_preset, 
+                                      u'Ergebnisse speichern unter', 
+                                      CSV_FILTER, parent=self.dlg)
             if not target_file:
                 return      
             self.prev_directory = os.path.split(target_file)[0]        
@@ -663,12 +691,14 @@ class OTP:
             target_file = None
             
         do_join = self.dlg.reachability_join_check.isChecked() 
-        self.call(target_file=target_file, destination_layer=temp_dest_layer, join_results=do_join)  
+        self.call(target_file=target_file, destination_layer=temp_dest_layer, 
+                  join_results=do_join)  
         
         #remove temporary layer
         QgsMapLayerRegistry.instance().removeMapLayer(temp_dest_layer.id())   
         
-    def call(self, target_file=None, origin_layer=None, destination_layer=None, add_results=False, join_results=False, result_layer_name=None):   
+    def call(self, target_file=None, origin_layer=None, destination_layer=None, 
+             add_results=False, join_results=False, result_layer_name=None):   
         now_string = datetime.now().strftime(DATETIME_FORMAT)
                 
         # update settings
@@ -676,17 +706,20 @@ class OTP:
         
         # LAYERS
         if origin_layer is None:
-            origin_layer = self.layer_list[self.dlg.origins_combo.currentIndex()]
+            origin_layer = self.layer_list[
+                self.dlg.origins_combo.currentIndex()]
         if destination_layer is None:
-            destination_layer = self.layer_list[self.dlg.destinations_combo.currentIndex()]            
+            destination_layer = self.layer_list[
+                self.dlg.destinations_combo.currentIndex()]            
         
         if origin_layer==destination_layer:
             msg_box = QMessageBox()
-            reply = msg_box.question(self.dlg,
-                                     'Hinweis',
-                                     'Die Layer mit Origins und Destinations sind identisch.\n'+
-                                     'Soll die Berechnung trotzdem gestartet werden?',
-                                     QMessageBox.Ok, QMessageBox.Cancel)
+            reply = msg_box.question(
+                self.dlg,
+                'Hinweis',
+                'Die Layer mit Origins und Destinations sind identisch.\n'+
+                'Soll die Berechnung trotzdem gestartet werden?',
+                QMessageBox.Ok, QMessageBox.Cancel)
             if reply == QMessageBox.Cancel:
                 return                     
     
@@ -702,22 +735,30 @@ class OTP:
         config.write(config_xml, hide_inactive=True, meta=meta)
         
         # convert layers to csv and write them to temporary directory 
-        orig_tmp_filename = os.path.join(tmp_dir, 'origins.csv')  
+        orig_tmp_filename = os.path.join(tmp_dir, 'origins.csv')
         dest_tmp_filename = os.path.join(tmp_dir, 'destinations.csv')
         
         wgs84 = QgsCoordinateReferenceSystem(4326)
-        QgsVectorFileWriter.writeAsVectorFormat(origin_layer, 
-                                                orig_tmp_filename, 
-                                                "utf-8", 
-                                                wgs84, 
-                                                "CSV", 
-                                                layerOptions=["GEOMETRY=AS_YX", "GEOMETRY_NAME=pnt"])
-        QgsVectorFileWriter.writeAsVectorFormat(destination_layer, 
-                                                dest_tmp_filename, 
-                                                "utf-8", 
-                                                wgs84, 
-                                                "CSV", 
-                                                layerOptions=["GEOMETRY=AS_YX", "GEOMETRY_NAME=geom"])
+        non_geom_fields = get_non_geom_indices(origin_layer)
+        QgsVectorFileWriter.writeAsVectorFormat(
+            origin_layer, 
+            orig_tmp_filename, 
+            "utf-8", 
+            wgs84, 
+            "CSV", 
+            attributes=non_geom_fields,
+            layerOptions=["GEOMETRY=AS_YX"])
+        
+        non_geom_fields = get_non_geom_indices(destination_layer)        
+        QgsVectorFileWriter.writeAsVectorFormat(
+            destination_layer, 
+            dest_tmp_filename, 
+            "utf-8", 
+            wgs84, 
+            "CSV", 
+            attributes=non_geom_fields,
+            layerOptions=["GEOMETRY=AS_YX"])
+        
         print 'wrote origins and destinations to temporary folder "{}"'.format(tmp_dir)                  
         
         if target_file is not None:            
@@ -730,17 +771,24 @@ class OTP:
         target_path = os.path.dirname(target_file)        
             
         if not os.path.exists(target_path):
-            msg_box = QMessageBox(QMessageBox.Warning, "Fehler", u'Sie haben keinen gültigen Dateipfad angegeben.')
+            msg_box = QMessageBox(
+                QMessageBox.Warning, "Fehler", 
+                u'Sie haben keinen gültigen Dateipfad angegeben.')
             msg_box.exec_()
             return
         elif not os.access(target_path, os.W_OK):
-            msg_box = QMessageBox(QMessageBox.Warning, "Fehler", u'Sie benötigen Schreibrechte im Dateipfad {}!'.format(target_path))
+            msg_box = QMessageBox(
+                QMessageBox.Warning, "Fehler", 
+                u'Sie benötigen Schreibrechte im Dateipfad {}!'
+                .format(target_path))
             msg_box.exec_()
             return    
         
         otp_jar=self.dlg.otp_jar_edit.text()       
         if not os.path.exists(otp_jar):
-            msg_box = QMessageBox(QMessageBox.Warning, "Fehler", u'Die angegebene OTP Datei existiert nicht!')
+            msg_box = QMessageBox(
+                QMessageBox.Warning, "Fehler", 
+                u'Die angegebene OTP Datei existiert nicht!')
             msg_box.exec_()
             return   
         
@@ -1021,3 +1069,39 @@ def browse_file(file_preset, title, file_filter, save=True, parent=None):
         )
     )   
     return filename 
+
+def get_geometry_fields(layer):
+    '''return the names of the geometry fields of a given layer'''
+    geoms = []
+    for field in layer.fields():
+        if field.typeName() == 'geometry':
+            geoms.append(field.name())
+    return geoms
+
+def get_non_geom_indices(layer):
+    '''return the indices of all fields of a given layer except the geometry fields'''
+    indices = []
+    for i, field in enumerate(layer.fields()):
+        if field.typeName() != 'geometry':
+            indices.append(i)
+    return indices
+
+def csv_remove_columns(csv_filename, columns):
+    '''remove the given columns from a csv file with header'''
+    tmp_fn = csv_filename + 'tmp'
+    os.rename(csv_filename, tmp_fn)
+    with open(csv_filename, 'a') as csv_file, open(tmp_fn, 'r') as tmp_csv_file:
+        reader = csv.DictReader(tmp_csv_file)
+        fieldnames = reader.fieldnames[:]
+        for column in columns:
+            if column in fieldnames:
+                fieldnames.remove(column)
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in reader:
+            for column in columns:
+                del row[column]
+            writer.writerow(row)
+            
+    os.remove(tmp_fn)
+    
