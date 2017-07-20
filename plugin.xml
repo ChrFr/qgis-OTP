@@ -6,10 +6,10 @@
         <trusted>False</trusted>
         <qgis_minimum_version>2.0.0</qgis_minimum_version>
         <homepage><![CDATA[http://www.ggr-planung.de]]></homepage>
-        <file_name>qgis_plugins-master.zip</file_name>
+        <file_name>plugin.zip</file_name>
         <icon>/static/packages/survey.png</icon>
         <author_name><![CDATA[Martin Dobias (Faunalia)]]></author_name>
-        <download_url>https://github.com/ChrFr/qgis_plugins.git</download_url>
+        <download_url>https://ci.appveyor.com/api/buildjobs/rgwq9s9gy93qn6l0/artifacts/</download_url>
         <uploaded_by><![CDATA[brushtyler]]></uploaded_by>
         <create_date>2012-06-18T09:43:57.251757</create_date>
         <update_date>2012-06-18T09:43:57.251757</update_date>
