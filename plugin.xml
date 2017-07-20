@@ -3,12 +3,12 @@
         <description><![CDATA[OTP]]></description>
         <about><![CDATA[bla]]></about>
         <version>0.9</version>
-        <trusted>False</trusted>
+        <trusted>True</trusted>
         <qgis_minimum_version>2.0.0</qgis_minimum_version>
         <homepage><![CDATA[http://www.ggr-planung.de]]></homepage>
         <file_name>plugin.zip</file_name>
         <icon>/static/packages/survey.png</icon>
-        <author_name><![CDATA[Martin Dobias (Faunalia)]]></author_name>
+        <author_name><![CDATA[Christoph Franke]]></author_name>
         <download_url>https://ci.appveyor.com/api/buildjobs/rgwq9s9gy93qn6l0/artifacts/</download_url>
         <uploaded_by><![CDATA[brushtyler]]></uploaded_by>
         <create_date>2012-06-18T09:43:57.251757</create_date>
@@ -18,7 +18,7 @@
         <tracker><![CDATA[https://github.com/ChrFr/qgis_plugins]]></tracker>
         <repository><![CDATA[https://github.com/ChrFr/qgis_plugins]]></repository>
         <tags><![CDATA[OTP]]></tags>
-        <downloads>5000000</downloads>
+        <downloads>100</downloads>
         <average_vote>5</average_vote>
         <rating_votes>18</rating_votes>
         <external_dependencies></external_dependencies>
