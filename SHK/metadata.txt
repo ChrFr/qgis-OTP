@@ -1,0 +1,31 @@
+[general]
+name=SHK
+qgisMinimumVersion=2.0
+description=SHK Erreichbarkeitsanalyse
+version=0.1
+author=GGR
+email=franke@ggr-planung.de
+
+about=Skript zur Berechnung von Erreichbarkeiten im Saale-Holzland-Kreis
+
+tracker=github.com
+repository=github.com
+# End of mandatory metadata
+
+# Recommended items:
+
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=
+
+homepage=
+category=Plugins
+icon=icon.png
+# experimental flag
+experimental=True
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
