@@ -11,7 +11,7 @@
         <file_name>plugin.zip</file_name>
         <icon>/static/packages/survey.png</icon>
         <author_name><![CDATA[Christoph Franke]]></author_name>
-        <download_url>https://ci.appveyor.com/api/buildjobs/rgwq9s9gy93qn6l0/artifacts/</download_url>
+        <download_url>https://ci.appveyor.com/api/buildjobs/rgwq9s9gy93qn6l0/artifacts/plugin.zip</download_url>
         <uploaded_by><![CDATA[brushtyler]]></uploaded_by>
         <create_date>2012-06-18T09:43:57.251757</create_date>
         <update_date>2012-06-18T09:43:57.251757</update_date>
