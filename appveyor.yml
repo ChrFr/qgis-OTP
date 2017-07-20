@@ -25,4 +25,4 @@ install:
 artifacts:
 
   # pushing a single file
-  - path: plugin.zip
+  - path: c:\projects\myproject\plugin.zip
