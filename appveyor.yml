@@ -28,4 +28,4 @@ build: off
 artifacts:
 
   # pushing a single file
-  - path: c:\projects\myproject\plugin.zip
+  - path: plugin.zip
