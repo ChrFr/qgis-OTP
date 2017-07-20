@@ -21,6 +21,7 @@ install:
   # batch commands start from cmd:
   - cmd: 7z a ..\plugin.zip .
   - cmd: cd ..
+  - cmd: copy static\index.html .
 
 # Skip .NET project specific build phase.
 build: off
@@ -28,4 +29,5 @@ build: off
 artifacts:
 
   # pushing a single file
+  - path: index.html
   - path: plugin.zip
