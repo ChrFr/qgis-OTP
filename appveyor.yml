@@ -22,6 +22,9 @@ install:
   - cmd: 7z a ..\plugin.zip .
   - cmd: cd ..
 
+# Skip .NET project specific build phase.
+build: off
+
 artifacts:
 
   # pushing a single file
