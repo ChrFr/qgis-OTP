@@ -1,0 +1,10 @@
+{
+    "db_config": {
+        "username": "saale_holzland",
+        "host": "gis.ggr-planung.de",
+        "db_name": "shk",
+        "srid": "3044",
+        "password": "holz",
+        "port": "5432"
+    }
+}
