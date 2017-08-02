@@ -59,9 +59,9 @@
         <item>
          <widget class="QTabWidget" name="tabWidget">
           <property name="currentIndex">
-           <number>0</number>
+           <number>2</number>
           </property>
-          <widget class="QWidget" name="tab">
+          <widget class="QWidget" name="schools_tab">
            <attribute name="title">
             <string>Schulen</string>
            </attribute>
@@ -85,7 +85,7 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="tab_3">
+          <widget class="QWidget" name="medicine_tab">
            <attribute name="title">
             <string>Medizinische Versorgung</string>
            </attribute>
@@ -109,7 +109,7 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="tab_2">
+          <widget class="QWidget" name="supply_tab">
            <attribute name="title">
             <string>Nahversorgung</string>
            </attribute>

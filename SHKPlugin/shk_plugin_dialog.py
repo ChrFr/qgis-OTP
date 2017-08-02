@@ -24,16 +24,26 @@
 
 import os
 
-from PyQt4 import QtGui, uic
+from PyQt4 import QtGui, uic, QtCore
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'shk_plugin_dialog_base.ui'))
 
 from config import Config
-from connection import Connection, Login
+from connection import DBConnection, Login
 from qgis.core import QgsDataSourceURI, QgsVectorLayer, QgsMapLayerRegistry
+import numpy as np
 
 config = Config()
+
+SCHEMA = 'einrichtungen'
+
+
+class Filter(object):
+    def __init__(self, displayname, options):
+        self.displayname = displayname
+        self.options = options
+        self.active = self.options[0]
 
 
 class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
@@ -49,6 +59,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.load_config()
         self.save_button.clicked.connect(self.save_config)
         self.connect_button.clicked.connect(self.connect)
+        self.layers = {'Bildungseinrichtungen': ('bildung_gesamt', self.schools_tree),
+                       'Medizinische Versorgung': ('gesundheit_gesamt', self.medicine_tree),
+                       'Nahversorgung': ('nahversorgung_gesamt', self.supply_tree)}
+        self.filters = dict([(v, []) for v in self.layers.keys()])
     
     def load_config(self):
         db_config = config.db_config
@@ -77,7 +91,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                            user=db_config['username'],
                            password=db_config['password'],
                            db=db_config['db_name'])
-        self.db_conn = Connection(login=self.login)
+        self.db_conn = DBConnection(self.login)
         self.refresh()
         
     def add_db_layer(self, name, schema, tablename): 
@@ -96,11 +110,63 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         QgsMapLayerRegistry.instance().addMapLayer(layer, True)
     
     def refresh(self):
-        self.add_db_layer('Bildungseinrichtungen',
-                          'einrichtungen', 'bildung_gesamt')
-        self.add_db_layer('Medizinische Versorgung',
-                          'einrichtungen', 'gesundheit_gesamt')
-        self.add_db_layer('Nahversorgung',
-                          'einrichtungen', 'nahversorgung_gesamt')
-    
+        for layername, (table, tree) in self.layers.iteritems():
+            self.add_db_layer(layername, SCHEMA, table)
+        self.init_filters()
+            
+    def init_filters(self):
+        table_sql = """
+        SELECT spalte
+        FROM meta.filter_einrichtungen
+        WHERE tabelle = '{table}'
+        """
+        column_sql = """
+        SELECT "{column}"
+        FROM {schema}.{table}
+        """
+        for layername, (tablename, tree) in self.layers.iteritems():
+            tree.clear()
+            res = self.db_conn.fetch(table_sql.format(table=tablename))
+            filters = []
+            for r in res:
+                column = r[0]
+                values = self.db_conn.fetch(column_sql.format(
+                    column=column, table=tablename, schema=SCHEMA))
+                values = [v[0].strip() if v[0] else '' for v in values]
+                options = np.unique(values)
+                filters.append(Filter(column, options))
+                
+                col_item = QtGui.QTreeWidgetItem(tree, [column])
+                col_item.setCheckState(0, QtCore.Qt.Unchecked)
+                col_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+                for option in options:
+                    opt_item = QtGui.QTreeWidgetItem(col_item, [option])
+                    opt_item.setCheckState(0, QtCore.Qt.Unchecked)
+                    opt_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+            tree.resizeColumnToContents(0)
+            self.filters[layername] = filters
+            
+    def render_structure(self):
+        idx = self.year_combo.currentIndex()
+        # nothing selected (e.g. when triggered on clearance)
+        if idx < 0:
+            return
+        self.structure_tree.clear()
+        year = str(self.year_combo.currentText())
+        structure = self.db_conn.get_structure_available(year)
+        for cat, cols in structure.iteritems():
+            cat_item = QtGui.QTreeWidgetItem(self.structure_tree, [cat])
+            cat_item.setCheckState(0,QtCore.Qt.Unchecked)
+            cat_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+            for col in cols:
+                col_item = QtGui.QTreeWidgetItem(cat_item, [col['name']])
+                col_item.setText(1, _fromUtf8(col['description']))
+                col_item.setCheckState(0,QtCore.Qt.Unchecked)
+                col_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+        self.structure_tree.resizeColumnToContents(0)    
+        
+if __name__ == '__main__':
+    print ('hallo')
+        
+        
     

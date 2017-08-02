@@ -145,3 +145,35 @@ class Connection(object):
             table = tablename
         descr = self.get_columns(table)
         return OrderedDict(((d.name, d) for d in descr))
+
+
+class DBConnection(object):
+    def __init__(self, login):
+        self.login = login
+        self.colums_available = None
+
+    def fetch(self, sql):
+        with Connection(login=self.login) as conn:
+            self.conn = conn
+            cursor = self.conn.cursor()
+            cursor.execute(sql)
+            rows = cursor.fetchall()
+        return rows
+
+    def copy_expert(self, sql, fileobject):
+        with Connection(login=self.login) as conn:
+            self.conn = conn
+            cursor = self.conn.cursor()
+            cursor.copy_expert(sql, fileobject)
+
+
+    def execute(self, sql):
+        with Connection(login=self.login) as conn:
+            self.conn = conn
+            cursor = self.conn.cursor()
+            try:
+                cursor.execute(sql)
+            except psycopg2.ProgrammingError as e:
+                raise psycopg2.ProgrammingError(
+                    os.linesep.join((sql, e.message)))
+            conn.commit()
