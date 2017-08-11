@@ -1,0 +1,25 @@
+<root>
+    <table name="bildung_gesamt">
+        <column name="Landkreis" />
+        <column name="Korrektur" />
+        <column name="Unterbereich">
+            <value name="Kita">
+                <column name="Angebotsform" />
+            </value>
+            <value name="Schule">
+                <column name="Angebotsform">
+                    <value name="Grundschule">
+                        <column name="Schuelerzahl_2016" alias="Sch&#252;lerzahlen" input="range"/>
+                        <column name="FILTER_Ganztagsbetreuungsangebot" alias="Ganztagsbetreuung" />
+                    </value>
+                </column>
+            </value>
+        </column>
+    </table>
+    <table name="gesundheit_gesamt">
+        <column name="Landkreis" />
+    </table>
+    <table name="nahversorgung_gesamt">
+        <column name="Landkreis" />
+    </table>
+</root>

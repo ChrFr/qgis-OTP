@@ -18,7 +18,7 @@ repository=github.com
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=
+tags=SHK
 
 homepage=
 category=Plugins
