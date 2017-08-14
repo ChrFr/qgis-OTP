@@ -29,6 +29,7 @@ except: pass
 from PyQt4 import QtGui, uic, QtCore
 import numpy as np
 from xml.etree import ElementTree as ET
+from collections import defaultdict
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'shk_plugin_dialog_base.ui'))
@@ -41,16 +42,37 @@ config = Config()
 SCHEMA = 'einrichtungen'
 
 
-class Filter(object):
-    def __init__(self, column, values):
-        self.column = column
-        self.values = values
-        self.active_filters = []
+#class Filter(object):
+    #def __init__(self, column, values):
+        #self.column = column
+        #self.filter_values = dict([(k, False) for k in values])
+    
+    #def activate(self, filter_value, active=True):
+        #self.filter_values[filter_value] = active
+    
+    #@property
+    #def is_active(self):
+        #return np.any(self.filter_values.values())
+    
+    #@property
+    #def active_values(self):
+        #idx = np.array(self.filter_values.values()) == True
+        #return np.array(self.filter_values.keys())[idx]
     
     #@property
     #def where(self):
         #return "WHERE {} IN ({})".format(
             #",".join(''.format(a) for a in self.active_filters))
+            
+class Filter():
+    def __init__(self, field, values):
+        self.field = field
+        self.values = values
+    
+    @property
+    def where(self):
+        return '"{}" IN ({})'.format(self.field, 
+            ','.join("'{}'".format(v) for v in self.values))
 
 
 class LabeledSlider(QtGui.QWidget):
@@ -89,7 +111,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.filters = dict([(v, []) for v in self.layers.keys()])
         
         for (table, tree) in self.layers.itervalues():
-            tree.itemClicked.connect(check_tree)
+            tree.itemClicked.connect(filter_clicked)
+        
+        self.filter_button.clicked.connect(self.apply_filters)
     
     def load_config(self):
         db_config = config.db_config
@@ -154,7 +178,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             for child in filter_nodes:
                 self.add_filter_node(item, child, tablename, tree)
             tree.resizeColumnToContents(0)
-            #self.filters[layername] = filters
             
     def add_filter_node(self, parent_item, node, tablename, tree, where=''):
         column_sql = """
@@ -197,7 +220,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                     option.setFlags(QtCore.Qt.ItemIsUserCheckable |
                                     QtCore.Qt.ItemIsEnabled)
                 
-                item.filter = Filter(column, options)
+                item.column = column
             where = ''
             
         elif node.tag == 'value':
@@ -206,36 +229,103 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             found = None
             for i in range(parent_item.childCount()):
                 child = parent_item.child(i)
-                print child.text(0)
                 if child.text(0) == value:
                     found = child
                     break
             item = found
-            if hasattr(parent_item, 'filter'):
-                parent_filter = parent_item.filter
-                where = """"{c}" = '{v}'""".format(c=parent_filter.column, v=value)
+            if hasattr(parent_item, 'column'):
+                where = """"{c}" = '{v}'""".format(c=parent_item.column,
+                                                   v=value)
             
         if item:
             for child in node.getchildren():
                 self.add_filter_node(item, child, tablename, tree, where)
-                    
-def check_tree(item):
+    
+    #def filter_layers(self):
+        #for layer, filters in self.filters.iteritems():
+            #for filter in filters:
+                #print(filter.filter_values)
+                #if filter.is_active:
+                    #print filter.active_values
+    
+    def apply_filters(self):
+        for layer_name, (table, tree) in self.layers.iteritems():
+            root = tree.topLevelItem(0)
+            queries = []
+            for i in range(root.childCount()):
+                child = root.child(i)
+                # root 'Spalten' has columns as children, no need to process them
+                # if not checked
+                if child.checkState(0) != QtCore.Qt.Unchecked:
+                    subquery = build_queries(child)
+                    if subquery:
+                        queries.append(subquery)
+            subset = ' AND '.join(queries)
+            layer = QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
+            layer.setSubsetString(subset)
+    
+def build_queries(tree_item):
+    queries = ''
+    # column
+    child_count = tree_item.childCount()
+    if hasattr(tree_item, 'column'):
+        column = tree_item.column
+        values = []
+        subqueries = []
+        for i in range(tree_item.childCount()):
+            child = tree_item.child(i)
+            if child.checkState(0) != QtCore.Qt.Unchecked:
+                value = child.text(0)
+                if child.childCount() > 0:
+                    subquery = build_queries(child)
+                    subquery = u'''("{c}" = '{v}' AND ({s}))'''.format(
+                        c=column, v=value, s=subquery)
+                    subqueries.append(subquery)
+                else:
+                    values.append(value)
+        query = ''
+        if len(values) > 0:
+            query = u'"{c}" IN ({v})'.format(
+                c=column,  v=u','.join(u"'{}'".format(v) for v in values))
+            queries += u' ' + query
+        if len(subqueries) > 0:
+            if query:
+                queries += u' OR '
+            queries += u'({})'.format(u' OR '.join(subqueries))
+    # value
+    else:
+        if child_count > 0:
+            subqueries = []
+            for i in range(tree_item.childCount()):
+                child = tree_item.child(i)
+                if (child.childCount() > 0 and
+                    child.checkState(0) != QtCore.Qt.Unchecked):
+                    subqueries.append(build_queries(child))
+            queries += u' AND '.join(subqueries)
+            
+    return queries
+
+def filter_clicked(item):
+    
     # check or uncheck all direct children
     if item.checkState(0) != QtCore.Qt.PartiallyChecked:
         state = item.checkState(0)
-        child_count = item.childCount()
-        for i in range(child_count):
-            item.child(i).setCheckState(0, state)
+        for i in range(item.childCount()):
+            child = item.child(i)
+            child.setCheckState(0, state)
 
     parent = item.parent()
     while (parent and parent.text(0) != 'Spalten'):
+        parent_filter = parent.filter if hasattr(parent, 'filter') else None
         # check/uncheck/partial check of parent of given item, depending on number of checked children
         child_count = parent.childCount()
         checked_count = 0
         for i in range(child_count):
-            if (parent.child(i).checkState(0) == QtCore.Qt.Checked or
-                parent.child(i).checkState(0) == QtCore.Qt.PartiallyChecked):
+            child = parent.child(i)
+            is_checked = False
+            if (child.checkState(0) != QtCore.Qt.Unchecked):
                 checked_count += 1
+                is_checked = True
         if checked_count == 0:
             parent.setCheckState(0, QtCore.Qt.Unchecked)
         elif checked_count == child_count:
