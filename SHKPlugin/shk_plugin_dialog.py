@@ -76,6 +76,12 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             'Nahversorgung': color_ranges
         }
         
+        self.err_tags = {
+            'Bildungseinrichtungen': 'bildung',
+            'Medizinische Versorgung': 'gesundheit',
+            'Nahversorgung': 'nahversorgung'
+        }
+        
         self.symbology = {
             'Bildungseinrichtungen': SimpleSymbology('yellow'),
             'Medizinische Versorgung': SimpleSymbology('red'),
@@ -263,12 +269,12 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         tab = self.get_selected_tab()
         ranges = self.err_ranges[tab]
         where = self.filters[tab]
+        tag = self.err_tags[tab]
         symbology = GraduatedSymbology('minuten', ranges, no_pen=True)
-        update_erreichbarkeiten('matview_err_bildung',
-                                self.db_conn, where=where)
+        update_erreichbarkeiten(tag, self.db_conn, where=where)
         name = 'Erreichbarkeiten ' + tab
         self.add_db_layer(name, 'erreichbarkeiten',
-                          'matview_err_bildung', 'geom', key='grid_id',
+                          'matview_err_' + tag, 'geom', key='grid_id',
                           symbology=symbology)
     
     def get_selected_tab(self):
