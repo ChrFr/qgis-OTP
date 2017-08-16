@@ -25,7 +25,7 @@
 import os
 from PyQt4 import QtGui, uic, QtCore
 from osgeo import gdal
-from qgis.core import (QgsDataSourceURI, QgsVectorLayer, QgsMarkerSymbolV2, 
+from qgis.core import (QgsDataSourceURI, QgsVectorLayer, 
                        QgsMapLayerRegistry, QgsRasterLayer)
 import numpy as np
 from xml.etree import ElementTree as ET
@@ -36,7 +36,8 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 from config import Config
 from connection import DBConnection, Login
-from ui_elements import LabeledSlider, SimpleSymbology, CategorizedSymbology
+from queries import get_values, update_erreichbarkeiten
+from ui_elements import LabeledSlider, SimpleSymbology, GraduatedSymbology
 
 config = Config()
 
@@ -58,6 +59,22 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.load_config()
         self.save_button.clicked.connect(self.save_config)
         self.connect_button.clicked.connect(self.connect)
+        self.login = None
+
+        color_ranges =  [
+            (0, 5, 'unter 5 Minuten', QtGui.QColor(37, 52, 148)), 
+            (10, 15, '10 bis 15 Minuten', QtGui.QColor(42, 111, 176)), 
+            (15, 20, '15 bis 20 Minuten', QtGui.QColor(56, 160, 191)), 
+            (20, 25, '20 bis 25 Minuten', QtGui.QColor(103, 196, 189)), 
+            (25, 30, '25 bis 30 Minuten', QtGui.QColor(179, 225, 184)), 
+            (30, 100000000, 'mehr als 30 Minuten', QtGui.QColor(208, 255, 204)), 
+        ]
+        
+        self.err_ranges = {
+            'Bildungseinrichtungen': color_ranges,
+            'Medizinische Versorgung': color_ranges,
+            'Nahversorgung': color_ranges
+        }
         
         self.symbology = {
             'Bildungseinrichtungen': SimpleSymbology('yellow'),
@@ -72,12 +89,13 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             'Nahversorgung':  ('nahversorgung_gesamt', self.supply_tree)
         }
         
-        self.filters = dict([(v, []) for v in self.layers.keys()])
+        self.filters = dict([(v, '') for v in self.layers.keys()])
         
         for (table, tree) in self.layers.itervalues():
             tree.itemClicked.connect(filter_clicked)
         
         self.filter_button.clicked.connect(self.apply_filters)
+        self.calculate_button.clicked.connect(self.calculate)
     
     def load_config(self):
         db_config = config.db_config
@@ -109,20 +127,27 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.db_conn = DBConnection(self.login)
         self.refresh()
         
-    def add_db_layer(self, name, schema, tablename, geom, symbology): 
-        uri = QgsDataSourceURI()
-        uri.setConnection(self.login.host,
-                          self.login.port,
-                          self.login.db,
-                          self.login.user,
-                          self.login.password)
-        uri.setDataSource(schema, tablename, geom)
-        layer = QgsVectorLayer(uri.uri(), name, "postgres")
+    def add_db_layer(self, name, schema, tablename, geom,
+                     symbology=None, uri=None, key=None):
+        """type: str, optional vector or polygon"""
+        if not uri:
+            uri = QgsDataSourceURI()
+            uri.setConnection(self.login.host,
+                              self.login.port,
+                              self.login.db,
+                              self.login.user,
+                              self.login.password)
+            uri.setDataSource(schema, tablename, geom, aKeyColumn=key)
+            uri = uri.uri(False)
+        layer = QgsVectorLayer(uri, name, "postgres")
+        print(uri)
+        print(layer.isValid())
         ex = QgsMapLayerRegistry.instance().mapLayersByName(name)
         if len(ex) > 0:
             for e in ex:
                 QgsMapLayerRegistry.instance().removeMapLayer(e.id())
-        symbology.apply(layer)
+        if symbology:
+            symbology.apply(layer)
         QgsMapLayerRegistry.instance().addMapLayer(layer, True)
         
     def add_background_map(self):
@@ -156,10 +181,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             tree.resizeColumnToContents(0)
             
     def add_filter_node(self, parent_item, node, tablename, tree, where=''):
-        column_sql = """
-        SELECT "{column}"
-        FROM {schema}.{table}
-        """
         alias = node.attrib['alias'] if node.attrib.has_key('alias') else None
         display_name = alias or node.attrib['name']
         item = None
@@ -169,10 +190,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             item.setFlags(QtCore.Qt.ItemIsUserCheckable |
                           QtCore.Qt.ItemIsEnabled)
             column = node.attrib['name'].encode('utf-8')
-            if where:
-                column_sql += ' WHERE ' + where
-            values = self.db_conn.fetch(column_sql.format(
-                column=column, table=tablename, schema=SCHEMA))
+            values = get_values(tablename, column, self.db_conn,
+                                schema=SCHEMA, where=where)
+            
             #stripped = []
             #for value, in values:
                 #if type(value) == str:
@@ -218,6 +238,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 self.add_filter_node(item, child, tablename, tree, where)
     
     def apply_filters(self):
+        if not self.login:
+            return
         for layer_name, (table, tree) in self.layers.iteritems():
             root = tree.topLevelItem(0)
             queries = []
@@ -233,32 +255,26 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             print(subset)
             layer = QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
             layer.setSubsetString(subset)
+            self.filters[layer_name] = subset
     
-    def show_erreichbarkeiten(self):
-        # ToDo: sql update view
-        #CREATE OR REPLACE VIEW einrichtungen.bildung_filtered AS
-        #SELECT
-        #g.grid_id, l.geom, min(r.travel_time) / 60 AS minuten
-        
-        #FROM
-        #einrichtungen.bildung_gesamt AS b,
-        #einrichtungen.bildung2grid AS bg,
-        #erreichbarkeiten.grid_points AS g,
-        #erreichbarkeiten.reisezeiten r,
-        #laea.grid_poly_100 l
-        #WHERE
-        #b."AngebotsID" = bg."AngebotsID"
-        #AND bg.grid_id = r.destination_id
-        #AND g.grid_id = r.origin_id
-        #--AND b."Landkreis" IN ('Altenburger Land','Saale-Holzland-Kreis')
-        #AND (("Unterbereich" = 'Schule' AND ( "Angebotsform" IN ('Gymnasium'))))
-        #--AND b."AngebotsID" = '13016'
-        #AND l.cellcode = g.cellcode
-        #GROUP BY g.grid_id, l.geom
-        #;
-        #REFRESH MATERIALIZED VIEW einrichtungen.matview_err_bildung;
-        self.add_db_layer('Erreichbarkeiten Bildung', 'einrichtungen',
-                          'matview_err_bildung', 'geom')
+    def calculate(self):
+        if not self.login:
+            return
+        tab = self.get_selected_tab()
+        ranges = self.err_ranges[tab]
+        where = self.filters[tab]
+        symbology = GraduatedSymbology('minuten', ranges, no_pen=True)
+        update_erreichbarkeiten('matview_err_bildung',
+                                self.db_conn, where=where)
+        name = 'Erreichbarkeiten ' + tab
+        self.add_db_layer(name, 'erreichbarkeiten',
+                          'matview_err_bildung', 'geom', key='grid_id',
+                          symbology=symbology)
+    
+    def get_selected_tab(self):
+        idx = self.selection_tabs.currentIndex()
+        tab_name = self.selection_tabs.tabText(idx)
+        return tab_name
         
     
 def build_queries(tree_item):

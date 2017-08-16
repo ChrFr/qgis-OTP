@@ -166,7 +166,6 @@ class DBConnection(object):
             cursor = self.conn.cursor()
             cursor.copy_expert(sql, fileobject)
 
-
     def execute(self, sql):
         with Connection(login=self.login) as conn:
             self.conn = conn
