@@ -39,7 +39,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 from config import Config
 from connection import DBConnection, Login
 from queries import get_values, update_erreichbarkeiten
-from ui_elements import LabeledSlider, SimpleSymbology, GraduatedSymbology
+from ui_elements import LabeledRangeSlider, SimpleSymbology, GraduatedSymbology
 
 config = Config()
 
@@ -128,6 +128,15 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                            password=db_config['password'],
                            db=db_config['db_name'])
         self.db_conn = DBConnection(self.login)
+        try:
+            self.db_conn.fetch('SELECT * FROM pg_index')
+        except:
+            QtGui.QMessageBox.information(
+                self, 'Fehler',
+                (u'Verbindung zur Datenbank fehlgeschlagen.\n'
+                u'Bitte überprüfen Sie die Einstellungen!'))
+            self.login = None
+            return
         self.refresh()
         
     def add_db_layer(self, name, schema, tablename, geom,
@@ -224,7 +233,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 values = [v for v, in values if v is not None]
                 v_min = np.min(values)
                 v_max = np.max(values)
-                slider = LabeledSlider(v_min, v_max)
+                slider = LabeledRangeSlider(v_min, v_max)
                 tree.setItemWidget(item, 1, slider)
             else:
                 values = ['' if v is None else v for v, in values]
@@ -302,7 +311,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             items += subitems
         if not items:
             QtGui.QMessageBox.information(
-                'Fehler', 'Es sind keine gefilterten Layer vorhanden.')
+                self, 'Fehler', 'Es sind keine gefilterten Layer vorhanden.')
             return
         
         item_texts = ['{} - {}'.format(l, c) for l, c in items]
