@@ -26,7 +26,9 @@ import os
 from PyQt4 import QtGui, uic, QtCore
 from osgeo import gdal
 from qgis.core import (QgsDataSourceURI, QgsVectorLayer, 
-                       QgsMapLayerRegistry, QgsRasterLayer)
+                       QgsMapLayerRegistry, QgsRasterLayer,
+                       QgsProject)
+from qgis.utils import iface
 import numpy as np
 from xml.etree import ElementTree as ET
 from collections import defaultdict
@@ -61,7 +63,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.connect_button.clicked.connect(self.connect)
         self.login = None
 
-        color_ranges =  [
+        self.err_color_ranges =  [
             (0, 5, 'unter 5 Minuten', QtGui.QColor(37, 52, 148)), 
             (10, 15, '10 bis 15 Minuten', QtGui.QColor(42, 111, 176)), 
             (15, 20, '15 bis 20 Minuten', QtGui.QColor(56, 160, 191)), 
@@ -70,37 +72,32 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             (30, 100000000, 'mehr als 30 Minuten', QtGui.QColor(208, 255, 204)), 
         ]
         
-        self.err_ranges = {
-            'Bildungseinrichtungen': color_ranges,
-            'Medizinische Versorgung': color_ranges,
-            'Nahversorgung': color_ranges
-        }
-        
         self.err_tags = {
             'Bildungseinrichtungen': 'bildung',
             'Medizinische Versorgung': 'gesundheit',
             'Nahversorgung': 'nahversorgung'
         }
         
-        self.symbology = {
-            'Bildungseinrichtungen': SimpleSymbology('yellow'),
-            'Medizinische Versorgung': SimpleSymbology('red'),
-            'Nahversorgung': SimpleSymbology('#F781F3')
+        self.colors = {
+            'Bildungseinrichtungen': 'yellow',
+            'Medizinische Versorgung': 'red',
+            'Nahversorgung': '#F781F3'
         }
         
-        
-        self.layers = {
+        self.categories = {
             'Bildungseinrichtungen': ('bildung_gesamt', self.schools_tree),
             'Medizinische Versorgung': ('gesundheit_gesamt', self.medicine_tree),
             'Nahversorgung':  ('nahversorgung_gesamt', self.supply_tree)
         }
-        
-        self.filters = dict([(v, '') for v in self.layers.keys()])
-        
-        for (table, tree) in self.layers.itervalues():
+
+        for (table, tree) in self.categories.itervalues():
+            tree.headerItem().setHidden(True)
+            tree.header().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+            tree.setHeaderLabels(['', ''])
             tree.itemClicked.connect(filter_clicked)
         
-        self.filter_button.clicked.connect(self.apply_filters)
+        for button in ['filter_button', 'filter_button_2', 'filter_button_3']:
+            getattr(self, button).clicked.connect(self.apply_filters)
         self.calculate_button.clicked.connect(self.calculate)
     
     def load_config(self):
@@ -134,7 +131,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.refresh()
         
     def add_db_layer(self, name, schema, tablename, geom,
-                     symbology=None, uri=None, key=None):
+                     symbology=None, uri=None, key=None, zoom=True, group=None):
         """type: str, optional vector or polygon"""
         if not uri:
             uri = QgsDataSourceURI()
@@ -146,30 +143,46 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             uri.setDataSource(schema, tablename, geom, aKeyColumn=key)
             uri = uri.uri(False)
         layer = QgsVectorLayer(uri, name, "postgres")
-        print(uri)
-        print(layer.isValid())
-        ex = QgsMapLayerRegistry.instance().mapLayersByName(name)
-        if len(ex) > 0:
-            for e in ex:
-                QgsMapLayerRegistry.instance().removeMapLayer(e.id())
+        remove_layer(name, group)
+        QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
+        if group:
+            group.addLayer(layer)
         if symbology:
             symbology.apply(layer)
-        QgsMapLayerRegistry.instance().addMapLayer(layer, True)
+        if zoom:
+            canvas = iface.mapCanvas()
+            extent = layer.extent()
+            canvas.setExtent(extent)
         
-    def add_background_map(self):
-        ex = QgsMapLayerRegistry.instance().mapLayersByName('OpenStreetMap')
-        if len(ex) > 0:
-            for e in ex:
-                QgsMapLayerRegistry.instance().removeMapLayer(e.id())
-        QgsMapLayerRegistry.instance().removeMapLayer('OpenStreetMap')
-        layer = QgsRasterLayer(OSM_XML, 'OpenStreetMap')
-        QgsMapLayerRegistry.instance().addMapLayer(layer, True)
-    
+    def add_background_map(self, group=None):
+        layer_name = 'OpenStreetMap'
+        for child in group.children():
+            pass
+        layer = QgsRasterLayer(OSM_XML, layer_name)
+        remove_layer(layer_name, group)
+        QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
+        if group:
+            group.addLayer(layer)
+
+    def get_group(self, groupname, parent_group=None):
+        if not parent_group:
+            parent_group = QgsProject.instance().layerTreeRoot()
+        group = parent_group.findGroup(groupname)
+        if not group:
+            group = parent_group.addGroup(groupname)
+        return group
+
     def refresh(self):
-        self.add_background_map()
-        for layername, (table, tree) in self.layers.iteritems():
-            symbology = self.symbology[layername]
-            self.add_db_layer(layername, SCHEMA, table, 'geom_gk', symbology)
+        # just for the right initial order
+        self.get_group('Filter')
+        self.get_group('Erreichbarkeiten Auto')
+        
+        for category, (table, tree) in self.categories.iteritems():
+            symbology = SimpleSymbology(self.colors[category])
+            self.add_db_layer(category, SCHEMA, table, 'geom_gk', symbology,
+                              group=self.get_group('Einrichtungen'))
+        
+        self.add_background_map(group=self.get_group('Hintergrundkarte'))
         self.init_filters()
             
     def init_filters(self):
@@ -177,14 +190,14 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         root = ET.parse(fn).getroot()
         table_filters = dict([(c.attrib['name'], c.getchildren())
                               for c in root.getchildren()])
-        for layername, (tablename, tree) in self.layers.iteritems():
+        for layername, (tablename, tree) in self.categories.iteritems():
             tree.clear()
             filter_nodes = table_filters[tablename]
             item = QtGui.QTreeWidgetItem(tree, ['Spalten'])
             item.setExpanded(True)
             for child in filter_nodes:
                 self.add_filter_node(item, child, tablename, tree)
-            tree.resizeColumnToContents(0)
+            #tree.resizeColumnToContents(0)
             
     def add_filter_node(self, parent_item, node, tablename, tree, where=''):
         alias = node.attrib['alias'] if node.attrib.has_key('alias') else None
@@ -246,36 +259,77 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
     def apply_filters(self):
         if not self.login:
             return
-        for layer_name, (table, tree) in self.layers.iteritems():
-            root = tree.topLevelItem(0)
-            queries = []
-            for i in range(root.childCount()):
-                child = root.child(i)
-                # root 'Spalten' has columns as children, no need to process them
-                # if not checked
-                if child.checkState(0) != QtCore.Qt.Unchecked:
-                    subquery = build_queries(child)
-                    if subquery:
-                        queries.append(subquery)
-            subset = ' AND '.join(queries)
-            print(subset)
-            layer = QgsMapLayerRegistry.instance().mapLayersByName(layer_name)[0]
-            layer.setSubsetString(subset)
-            self.filters[layer_name] = subset
+        category = self.get_selected_tab()
+        table, tree = self.categories[category]
+        root = tree.topLevelItem(0)
+        queries = []
+        for i in range(root.childCount()):
+            child = root.child(i)
+            # root 'Spalten' has columns as children, no need to process them
+            # if not checked
+            if child.checkState(0) != QtCore.Qt.Unchecked:
+                subquery = build_queries(child)
+                if subquery:
+                    queries.append(subquery)
+        subset = ' AND '.join(queries)
+        orig_layer = QgsMapLayerRegistry.instance().mapLayersByName(category)[0]
+        name, ok = QtGui.QInputDialog.getText(self, 'Filter',
+                                              'Name des zu erstellenden Layers',
+                                              text=category)
+        if not ok:
+            return
+        parent_group = self.get_group('Filter')
+        subgroup = self.get_group(category, parent_group)
+        remove_layer(name, subgroup)
+        
+        print(subset)
+        layer = QgsVectorLayer(orig_layer.source(), name, "postgres")
+        QgsMapLayerRegistry.instance().addMapLayer(layer, False)
+        subgroup.addLayer(layer)
+        layer.setSubsetString(subset)
+        symbology = SimpleSymbology(self.colors[category], shape='diamond')
+        symbology.apply(layer)
     
     def calculate(self):
         if not self.login:
             return
-        tab = self.get_selected_tab()
-        ranges = self.err_ranges[tab]
-        where = self.filters[tab]
-        tag = self.err_tags[tab]
-        symbology = GraduatedSymbology('minuten', ranges, no_pen=True)
-        update_erreichbarkeiten(tag, self.db_conn, where=where)
-        name = 'Erreichbarkeiten ' + tab
-        self.add_db_layer(name, 'erreichbarkeiten',
+        items = []
+        filter_group = self.get_group('Filter')
+        for category in self.categories.iterkeys():
+            subgroup = self.get_group(category, filter_group)
+            subitems = [(category, c.layer().name())
+                        for c in subgroup.children()]
+            items += subitems
+        if not items:
+            QtGui.QMessageBox.information(
+                'Fehler', 'Es sind keine gefilterten Layer vorhanden.')
+            return
+        
+        item_texts = ['{} - {}'.format(l, c) for l, c in items]
+        sel, ok = QtGui.QInputDialog.getItem(self, 'Erreichbarkeiten',
+                                              u'Gefilterten Layer auswählen',
+                                              item_texts, 0, False)
+        if not ok:
+            return
+        
+        category, layer_name = items[item_texts.index(sel)]
+        tag = self.err_tags[category]
+        
+        # find the layer and get it's query
+        subgroup = self.get_group(category, filter_group)
+        for child in subgroup.children():
+            if child.layer().name() == layer_name:
+                query = child.layer().subsetString()
+                break
+        
+        results_group = self.get_group('Erreichbarkeiten Auto')
+        subgroup = self.get_group(category, results_group)
+        symbology = GraduatedSymbology('minuten', self.err_color_ranges,
+                                       no_pen=True)
+        update_erreichbarkeiten(tag, self.db_conn, where=query)
+        self.add_db_layer(layer_name, 'erreichbarkeiten',
                           'matview_err_' + tag, 'geom', key='grid_id',
-                          symbology=symbology)
+                          symbology=symbology, group=subgroup, zoom=False)
     
     def get_selected_tab(self):
         idx = self.selection_tabs.currentIndex()
@@ -296,9 +350,10 @@ def build_queries(tree_item):
             if child.checkState(0) != QtCore.Qt.Unchecked:
                 value = child.text(0)
                 if child.childCount() > 0:
-                    subquery = build_queries(child)
-                    subquery = u'''("{c}" = '{v}' AND ({s}))'''.format(
-                        c=column, v=value, s=subquery)
+                    sq = build_queries(child)
+                    sq = ' AND ({})'.format(sq) if sq else ''
+                    subquery = u'''("{c}" = '{v}' {s})'''.format(
+                        c=column, v=value, s=sq)
                     subqueries.append(subquery)
                 else:
                     values.append(value)
@@ -319,7 +374,9 @@ def build_queries(tree_item):
                 child = tree_item.child(i)
                 if (child.childCount() > 0 and
                     child.checkState(0) != QtCore.Qt.Unchecked):
-                    subqueries.append(build_queries(child))
+                    sq = build_queries(child)
+                    if sq:
+                        subqueries.append(sq)
             queries += u' AND '.join(subqueries)
             
     return queries
@@ -329,13 +386,13 @@ def filter_clicked(item):
     # check or uncheck all direct children
     if item.checkState(0) != QtCore.Qt.PartiallyChecked:
         state = item.checkState(0)
-        for i in range(item.childCount()):
-            child = item.child(i)
-            child.setCheckState(0, state)
+        if hasattr(item, 'column'):
+            for i in range(item.childCount()):
+                child = item.child(i)
+                child.setCheckState(0, state)
 
     parent = item.parent()
     while (parent and parent.text(0) != 'Spalten'):
-        parent_filter = parent.filter if hasattr(parent, 'filter') else None
         # check/uncheck/partial check of parent of given item, depending on number of checked children
         child_count = parent.childCount()
         checked_count = 0
@@ -353,6 +410,19 @@ def filter_clicked(item):
             parent.setCheckState(0, QtCore.Qt.PartiallyChecked)
             
         parent = parent.parent()
+
+def remove_layer(name, group=None):
+
+    if not group:
+        ex = QgsMapLayerRegistry.instance().mapLayersByName(name)
+        if len(ex) > 0:
+            for e in ex:
+                QgsMapLayerRegistry.instance().removeMapLayer(e.id())
+    else:
+        for child in group.children():
+            l = child.layer()
+            if l and l.name() == name:
+                QgsMapLayerRegistry.instance().removeMapLayer(l.id())
         
 if __name__ == '__main__':
     print
