@@ -98,7 +98,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         
         for button in ['filter_button', 'filter_button_2', 'filter_button_3']:
             getattr(self, button).clicked.connect(self.apply_filters)
-        self.calculate_button.clicked.connect(self.calculate)
+        self.calculate_car_button.clicked.connect(self.calculate_car)
+        self.calculate_ov_button.clicked.connect(self.calculate_ov)
     
     def load_config(self):
         db_config = config.db_config
@@ -229,12 +230,15 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                     #continue
                 #stripped.append(value)
 
-            if node.attrib.has_key('input') and node.attrib['input'] == 'range':
-                values = [v for v, in values if v is not None]
-                v_min = np.min(values)
-                v_max = np.max(values)
-                slider = LabeledRangeSlider(v_min, v_max)
-                tree.setItemWidget(item, 1, slider)
+            if node.attrib.has_key('input'):
+            
+                if node.attrib['input'] == 'range':
+                    values = [v for v, in values if v is not None]
+                    v_min = np.min(values)
+                    v_max = np.max(values)
+                    slider = LabeledRangeSlider(v_min, v_max)
+                    tree.setItemWidget(item, 1, slider)
+                item.input_type = node.attrib['input']
             else:
                 values = ['' if v is None else v for v, in values]
                 options = np.sort(np.unique(values))
@@ -244,7 +248,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                     option.setFlags(QtCore.Qt.ItemIsUserCheckable |
                                     QtCore.Qt.ItemIsEnabled)
                 
-                item.column = column
+            item.column = column
             where = ''
             
         elif node.tag == 'value':
@@ -277,7 +281,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             # root 'Spalten' has columns as children, no need to process them
             # if not checked
             if child.checkState(0) != QtCore.Qt.Unchecked:
-                subquery = build_queries(child)
+                subquery = build_queries(child, tree)
                 if subquery:
                     queries.append(subquery)
         subset = ' AND '.join(queries)
@@ -296,10 +300,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         QgsMapLayerRegistry.instance().addMapLayer(layer, False)
         subgroup.addLayer(layer)
         layer.setSubsetString(subset)
-        symbology = SimpleSymbology(self.colors[category], shape='diamond')
+        symbology = SimpleSymbology(self.colors[category], shape='triangle')
         symbology.apply(layer)
     
-    def calculate(self):
+    def calculate_car(self):
         if not self.login:
             return
         items = []
@@ -339,6 +343,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.add_db_layer(layer_name, 'erreichbarkeiten',
                           'matview_err_' + tag, 'geom', key='grid_id',
                           symbology=symbology, group=subgroup, zoom=False)
+        
+    def calculate_ov(self):
+        pass
     
     def get_selected_tab(self):
         idx = self.selection_tabs.currentIndex()
@@ -346,12 +353,23 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         return tab_name
         
     
-def build_queries(tree_item):
+def build_queries(tree_item, tree):
     queries = ''
-    # column
     child_count = tree_item.childCount()
+    
+    ### COLUMN ###
     if hasattr(tree_item, 'column'):
         column = tree_item.column
+        if hasattr(tree_item, 'input_type'):
+            widget = tree.itemWidget(tree_item, 1)
+            if tree_item.input_type == 'range':
+                query = '"{c}" BETWEEN {min} AND {max}'.format(
+                    c=column, min=widget.min, max=widget.max)
+                ## columns with special input types will not have any children
+                return query
+            
+        ## normal columns may have subqueries (if value matches definition in xml)
+        #else:
         values = []
         subqueries = []
         for i in range(tree_item.childCount()):
@@ -359,7 +377,7 @@ def build_queries(tree_item):
             if child.checkState(0) != QtCore.Qt.Unchecked:
                 value = child.text(0)
                 if child.childCount() > 0:
-                    sq = build_queries(child)
+                    sq = build_queries(child, tree)
                     sq = ' AND ({})'.format(sq) if sq else ''
                     subquery = u'''("{c}" = '{v}' {s})'''.format(
                         c=column, v=value, s=sq)
@@ -375,15 +393,15 @@ def build_queries(tree_item):
             if query:
                 queries += u' OR '
             queries += u'({})'.format(u' OR '.join(subqueries))
-    # value
+            
+    ### VALUE ###
     else:
         if child_count > 0:
             subqueries = []
             for i in range(tree_item.childCount()):
                 child = tree_item.child(i)
-                if (child.childCount() > 0 and
-                    child.checkState(0) != QtCore.Qt.Unchecked):
-                    sq = build_queries(child)
+                if (child.checkState(0) != QtCore.Qt.Unchecked):
+                    sq = build_queries(child, tree)
                     if sq:
                         subqueries.append(sq)
             queries += u' AND '.join(subqueries)
