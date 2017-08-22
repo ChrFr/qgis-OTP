@@ -417,7 +417,7 @@ def build_queries(tree_item, tree):
                 value = child.text(0)
                 if child.childCount() > 0:
                     sq = build_queries(child, tree)
-                    sq = ' AND ({})'.format(sq) if sq else ''
+                    sq = u' AND ({})'.format(sq) if sq else ''
                     subquery = u'''("{c}" = '{v}' {s})'''.format(
                         c=column, v=value, s=sq)
                     subqueries.append(subquery)
