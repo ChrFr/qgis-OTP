@@ -69,7 +69,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             (15, 20, '15 bis 20 Minuten', QtGui.QColor(56, 160, 191)), 
             (20, 25, '20 bis 25 Minuten', QtGui.QColor(103, 196, 189)), 
             (25, 30, '25 bis 30 Minuten', QtGui.QColor(179, 225, 184)), 
-            (30, 100000000, 'mehr als 30 Minuten', QtGui.QColor(208, 255, 204)), 
+            (30, 60, '30 bis 60 Minuten', QtGui.QColor(255, 212, 184)), 
+            (60, 120, '60 bis 120 Minuten', QtGui.QColor(251, 154, 153)), 
+            (120, 99999999, 'mehr als 120 Minuten', QtGui.QColor(227, 88, 88)), 
         ]
         
         self.err_tags = {
@@ -141,7 +143,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.refresh()
         
     def add_db_layer(self, name, schema, tablename, geom,
-                     symbology=None, uri=None, key=None, zoom=True, group=None):
+                     symbology=None, uri=None, key=None, zoom=True,
+                     group=None, where=''):
         """type: str, optional vector or polygon"""
         if not uri:
             uri = QgsDataSourceURI()
@@ -150,11 +153,16 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                               self.login.db,
                               self.login.user,
                               self.login.password)
-            uri.setDataSource(schema, tablename, geom, aKeyColumn=key)
+            uri.setDataSource(schema, tablename, geom, aKeyColumn=key,
+                              aSql=where)
             uri = uri.uri(False)
         layer = QgsVectorLayer(uri, name, "postgres")
         remove_layer(name, group)
+        # if no group is given, add to layer-root
         QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
+        #if where:
+            #layer.setSubsetString(where)
+        print(layer.isValid())
         if group:
             group.addLayer(layer)
         if symbology:
@@ -345,7 +353,25 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                           symbology=symbology, group=subgroup, zoom=False)
         
     def calculate_ov(self):
-        pass
+        if not self.login:
+            return
+        results_group = self.get_group(u'Erreichbarkeiten ÖPNV')
+        schema = 'erreichbarkeiten'
+        mat_view = 'matview_err_ov'
+        rows = self.db_conn.fetch(
+            'SELECT DISTINCT(search_time) from {s}.{v}'.format(
+            s=schema, v=mat_view))
+        times = sorted([r.search_time for r in rows])
+        symbology = GraduatedSymbology('minuten', self.err_color_ranges,
+                                       no_pen=True)
+        for time in times:
+            layer_name = time.strftime("%H:%M")
+            self.add_db_layer(layer_name, 'erreichbarkeiten',
+                              'matview_err_ov', 'geom', key='id', 
+                              symbology=symbology, group=results_group, zoom=False,
+                              where="search_time='{}'".format(time))
+        
+        
     
     def get_selected_tab(self):
         idx = self.selection_tabs.currentIndex()
