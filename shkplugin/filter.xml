@@ -18,8 +18,33 @@
     </table>
     <table name="gesundheit_gesamt">
         <column name="Landkreis" />
+        <column name="Korrektur" />
+        <column name="Unterbereich">
+            <value name="Hausarzt">
+                <column name="Angebotsform">
+                    <value name="Innere Medizin">
+                        <column name="FILTER_Alter_GROB" alias="Alter"/>
+                        <column name="FILTER_Praxiskooperation_GROB" alias="Praxiskooperation"/>
+                    </value>
+                </column>
+            </value>
+            <value name="Facharzt">
+                <column name="Angebotsform">
+                    <value name="Frauenarzt">
+                        <column name="FILTER_Alter_GROB" alias="Alter"/>
+                        <column name="FILTER_Praxiskooperation_GROB" alias="Praxiskooperation"/>
+                    </value>
+                </column>
+            </value>
+        </column>
     </table>
     <table name="nahversorgung_gesamt">
         <column name="Landkreis" />
+        <column name="Korrektur" />
+        <column name="Unterbereich">
+            <value name="Nahversorger">
+                <column name="FILTER_FLAECHE" alias='Fl&#228;che (m&#178;)' />
+            </value>
+        </column>
     </table>
 </root>
