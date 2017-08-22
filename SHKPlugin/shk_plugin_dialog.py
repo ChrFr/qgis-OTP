@@ -65,10 +65,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
 
         self.err_color_ranges =  [
             (0, 5, 'unter 5 Minuten', QtGui.QColor(37, 52, 148)), 
-            (10, 15, '10 bis 15 Minuten', QtGui.QColor(42, 111, 176)), 
-            (15, 20, '15 bis 20 Minuten', QtGui.QColor(56, 160, 191)), 
-            (20, 25, '20 bis 25 Minuten', QtGui.QColor(103, 196, 189)), 
-            (25, 30, '25 bis 30 Minuten', QtGui.QColor(179, 225, 184)), 
+            (5, 10, '10 bis 15 Minuten', QtGui.QColor(42, 111, 176)), 
+            (10, 15, '15 bis 20 Minuten', QtGui.QColor(56, 160, 191)), 
+            (15, 20, '20 bis 25 Minuten', QtGui.QColor(103, 196, 189)), 
+            (20, 30, '25 bis 30 Minuten', QtGui.QColor(179, 225, 184)), 
             (30, 60, '30 bis 60 Minuten', QtGui.QColor(255, 212, 184)), 
             (60, 120, '60 bis 120 Minuten', QtGui.QColor(251, 154, 153)), 
             (120, 99999999, 'mehr als 120 Minuten', QtGui.QColor(227, 88, 88)), 
