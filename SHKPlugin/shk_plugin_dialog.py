@@ -194,6 +194,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         # just for the right initial order
         self.get_group('Filter')
         self.get_group('Erreichbarkeiten Auto')
+        self.get_group(u'Erreichbarkeiten ÖPNV')
         
         for category, (table, tree) in self.categories.iteritems():
             symbology = SimpleSymbology(self.colors[category])
@@ -356,6 +357,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if not self.login:
             return
         results_group = self.get_group(u'Erreichbarkeiten ÖPNV')
+        self.add_db_layer('Zentrale Orte', 'erreichbarkeiten',
+                          'zentrale_orte', 'geom', key='id',
+                          group=results_group)
         schema = 'erreichbarkeiten'
         mat_view = 'matview_err_ov'
         rows = self.db_conn.fetch(
