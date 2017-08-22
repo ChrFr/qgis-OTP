@@ -81,7 +81,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         }
         
         self.colors = {
-            'Bildungseinrichtungen': 'yellow',
+            'Bildungseinrichtungen': 'orange',
             'Medizinische Versorgung': 'red',
             'Nahversorgung': '#F781F3'
         }
@@ -102,6 +102,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             getattr(self, button).clicked.connect(self.apply_filters)
         self.calculate_car_button.clicked.connect(self.calculate_car)
         self.calculate_ov_button.clicked.connect(self.calculate_ov)
+        
+        self.canvas = iface.mapCanvas()
     
     def load_config(self):
         db_config = config.db_config
@@ -144,7 +146,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         
     def add_db_layer(self, name, schema, tablename, geom,
                      symbology=None, uri=None, key=None, zoom=True,
-                     group=None, where=''):
+                     group=None, where='', visible=True):
         """type: str, optional vector or polygon"""
         if not uri:
             uri = QgsDataSourceURI()
@@ -162,15 +164,15 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
         #if where:
             #layer.setSubsetString(where)
-        print(layer.isValid())
         if group:
-            group.addLayer(layer)
+            l = group.addLayer(layer)
         if symbology:
             symbology.apply(layer)
         if zoom:
-            canvas = iface.mapCanvas()
             extent = layer.extent()
-            canvas.setExtent(extent)
+            self.canvas.setExtent(extent)
+        iface.legendInterface().setLayerVisible(layer, visible)
+        self.canvas.refresh()
         
     def add_background_map(self, group=None):
         layer_name = 'OpenStreetMap'
@@ -182,26 +184,18 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if group:
             group.addLayer(layer)
 
-    def get_group(self, groupname, parent_group=None):
-        if not parent_group:
-            parent_group = QgsProject.instance().layerTreeRoot()
-        group = parent_group.findGroup(groupname)
-        if not group:
-            group = parent_group.addGroup(groupname)
-        return group
-
     def refresh(self):
         # just for the right initial order
-        self.get_group('Filter')
-        self.get_group('Erreichbarkeiten Auto')
-        self.get_group(u'Erreichbarkeiten ÖPNV')
+        get_group('Filter')
+        get_group('Erreichbarkeiten Auto')
+        get_group(u'Erreichbarkeiten ÖPNV')
         
         for category, (table, tree) in self.categories.iteritems():
             symbology = SimpleSymbology(self.colors[category])
             self.add_db_layer(category, SCHEMA, table, 'geom_gk', symbology,
-                              group=self.get_group('Einrichtungen'))
+                              group=get_group('Einrichtungen'))
         
-        self.add_background_map(group=self.get_group('Hintergrundkarte'))
+        self.add_background_map(group=get_group('Hintergrundkarte'))
         self.init_filters()
             
     def init_filters(self):
@@ -300,8 +294,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                                               text=category)
         if not ok:
             return
-        parent_group = self.get_group('Filter')
-        subgroup = self.get_group(category, parent_group)
+        parent_group = get_group('Filter')
+        subgroup = get_group(category, parent_group)
         remove_layer(name, subgroup)
         
         print(subset)
@@ -316,9 +310,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if not self.login:
             return
         items = []
-        filter_group = self.get_group('Filter')
+        filter_group = get_group('Filter')
         for category in self.categories.iterkeys():
-            subgroup = self.get_group(category, filter_group)
+            subgroup = get_group(category, filter_group)
             subitems = [(category, c.layer().name())
                         for c in subgroup.children()]
             items += subitems
@@ -338,14 +332,14 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         tag = self.err_tags[category]
         
         # find the layer and get it's query
-        subgroup = self.get_group(category, filter_group)
+        subgroup = get_group(category, filter_group)
         for child in subgroup.children():
             if child.layer().name() == layer_name:
                 query = child.layer().subsetString()
                 break
         
-        results_group = self.get_group('Erreichbarkeiten Auto')
-        subgroup = self.get_group(category, results_group)
+        results_group = get_group('Erreichbarkeiten Auto')
+        subgroup = get_group(category, results_group)
         symbology = GraduatedSymbology('minuten', self.err_color_ranges,
                                        no_pen=True)
         update_erreichbarkeiten(tag, self.db_conn, where=query)
@@ -356,9 +350,11 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
     def calculate_ov(self):
         if not self.login:
             return
-        results_group = self.get_group(u'Erreichbarkeiten ÖPNV')
+        results_group = get_group(u'Erreichbarkeiten ÖPNV')
+        symbology = SimpleSymbology('yellow', shape='diamond')
         self.add_db_layer('Zentrale Orte', 'erreichbarkeiten',
                           'zentrale_orte', 'geom', key='id',
+                          symbology=symbology, 
                           group=results_group)
         schema = 'erreichbarkeiten'
         mat_view = 'matview_err_ov'
@@ -368,20 +364,33 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         times = sorted([r.search_time for r in rows])
         symbology = GraduatedSymbology('minuten', self.err_color_ranges,
                                        no_pen=True)
+        subgroup_to = get_group('Hinfahrt zu den zentralen Orten',
+                                     results_group)
+        subgroup_from = get_group(u'Rückfahrt von den zentralen Orten',
+                                       results_group)
         for time in times:
             layer_name = time.strftime("%H:%M")
             self.add_db_layer(layer_name, 'erreichbarkeiten',
                               'matview_err_ov', 'geom', key='id', 
-                              symbology=symbology, group=results_group, zoom=False,
-                              where="search_time='{}'".format(time))
-        
-        
-    
+                              symbology=symbology, group=subgroup_to,
+                              where="search_time='{}'".format(time),
+                              visible=False)
+        for child in subgroup_to.children():
+            child.setExpanded(False)
+
     def get_selected_tab(self):
         idx = self.selection_tabs.currentIndex()
         tab_name = self.selection_tabs.tabText(idx)
         return tab_name
-        
+
+
+def get_group(groupname, parent_group=None):
+    if not parent_group:
+        parent_group = QgsProject.instance().layerTreeRoot()
+    group = parent_group.findGroup(groupname)
+    if not group:
+        group = parent_group.addGroup(groupname)
+    return group
     
 def build_queries(tree_item, tree):
     queries = ''
@@ -477,6 +486,8 @@ def remove_layer(name, group=None):
                 QgsMapLayerRegistry.instance().removeMapLayer(e.id())
     else:
         for child in group.children():
+            if not hasattr(child, 'layer'):
+                continue
             l = child.layer()
             if l and l.name() == name:
                 QgsMapLayerRegistry.instance().removeMapLayer(l.id())
