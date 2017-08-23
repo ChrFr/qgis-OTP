@@ -71,7 +71,7 @@ class CSVWriter(object):
             header += [ 'destination id', 'travel time (sec)'] + additional_columns.keys()
             if self.calculate_details:                
                 details = ['boardings', 'walk/bike distance (m)', 
-                           'start time', 'arrival time', 'start transit', 'arrival transit', 
+                           'start time', 'arrival time', 'start transit', 'arrival transit', 'distance (m)',
                            'transit time', 'traverse modes', 'waiting time (sec)', 'elevation gained (m)', 
                            'elevation lost (m)'] 
                 header += details
@@ -165,6 +165,7 @@ class CSVWriter(object):
                                        result.getArrivalTime(OUTPUT_DATE_FORMAT), 
                                        result.getStartTransit(OUTPUT_DATE_FORMAT), 
                                        result.getArrivalTransit(OUTPUT_DATE_FORMAT),
+                                       result.getDistance(),
                                        result.getTransitTime(),
                                        result.getModes(), 
                                        result.getWaitingTime(), 
