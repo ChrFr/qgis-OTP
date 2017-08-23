@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import json
 import os, sys, copy
+from os.path import expanduser
 
 ENCODINGS = ['UTF-8', 'CP1252', 'ISO-8859-1']
 DEFAULT_ENCODING = 'UTF-8'
 
-DEFAULT_SRID = 3044
-DEFAULT_FILE = os.path.join(os.path.split(__file__)[0], "config.txt")
+DEFAULT_FILE = os.path.join(expanduser("~"), "shk_plugin.cfg")
 
 
 class Singleton(type):
@@ -26,8 +26,7 @@ class Config(object):
             'password': 'pass',
             'db_name': 'shk',
             'host': 'gis.ggr-planung.de',
-            'port': '5432',
-            'srid': DEFAULT_SRID,
+            'port': '5432'
         }
     }
 

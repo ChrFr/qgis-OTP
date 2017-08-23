@@ -27,7 +27,7 @@ from PyQt4 import QtGui, uic, QtCore
 from osgeo import gdal
 from qgis.core import (QgsDataSourceURI, QgsVectorLayer, 
                        QgsMapLayerRegistry, QgsRasterLayer,
-                       QgsProject)
+                       QgsProject, QgsLayerTreeLayer, QgsRectangle)
 from qgis.utils import iface
 import numpy as np
 from xml.etree import ElementTree as ET
@@ -39,13 +39,15 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 from config import Config
 from connection import DBConnection, Login
 from queries import get_values, update_erreichbarkeiten
-from ui_elements import LabeledRangeSlider, SimpleSymbology, GraduatedSymbology
+from ui_elements import (LabeledRangeSlider, SimpleSymbology,
+                         GraduatedSymbology, WaitDialog)
 
 config = Config()
 
 SCHEMA = 'einrichtungen'
 
-OSM_XML = os.path.join(os.path.split(__file__)[0], 'osm_background.xml')
+OSM_XML = os.path.join(os.path.split(__file__)[0], 'osm_map.xml')
+GOOGLE_XML = os.path.join(os.path.split(__file__)[0], 'google_maps.xml')
 
 
 class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
@@ -100,8 +102,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         
         for button in ['filter_button', 'filter_button_2', 'filter_button_3']:
             getattr(self, button).clicked.connect(self.apply_filters)
+    
         self.calculate_car_button.clicked.connect(self.calculate_car)
-        self.calculate_ov_button.clicked.connect(self.calculate_ov)
+        self.calculate_ov_button.clicked.connect(
+            lambda: self.wait_call(self.add_ov_layers))
         
         self.canvas = iface.mapCanvas()
     
@@ -112,7 +116,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.db_edit.setText(str(db_config['db_name']))
         self.host_edit.setText(str(db_config['host']))
         self.port_edit.setText(str(db_config['port']))
-        self.srid_edit.setText(str(db_config['srid']))
         
     def save_config(self):
         db_config = config.db_config
@@ -121,7 +124,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         db_config['db_name'] = str(self.db_edit.text())
         db_config['host'] = str(self.host_edit.text())
         db_config['port'] = str(self.port_edit.text())
-        db_config['srid'] = str(self.srid_edit.text())
 
         config.write()
 
@@ -142,10 +144,22 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 u'Bitte überprüfen Sie die Einstellungen!'))
             self.login = None
             return
-        self.refresh()
+        #diag = WaitDialogThreaded(self.refresh, parent=self,
+                          #parent_thread=iface.mainWindow())
+        self.wait_call(self.refresh)
         
+    def wait_call(self, function):
+        '''
+        display wait-dialog while executing function, not threaded
+        (arcgis doesn't seem to handle multiple threads well)
+        '''
+        diag = WaitDialog(function, title='Bitte warten', parent=self)
+        diag.show()
+        function()
+        diag.close()
+
     def add_db_layer(self, name, schema, tablename, geom,
-                     symbology=None, uri=None, key=None, zoom=True,
+                     symbology=None, uri=None, key=None, zoom=False,
                      group=None, where='', visible=True):
         """type: str, optional vector or polygon"""
         if not uri:
@@ -173,12 +187,15 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             self.canvas.setExtent(extent)
         iface.legendInterface().setLayerVisible(layer, visible)
         self.canvas.refresh()
+        return layer
         
-    def add_background_map(self, group=None):
-        layer_name = 'OpenStreetMap'
+    def add_background_map(self, group=None, extent=None):
+        layer_name = 'GoogleMaps'
         for child in group.children():
             pass
-        layer = QgsRasterLayer(OSM_XML, layer_name)
+        layer = QgsRasterLayer(GOOGLE_XML, layer_name)
+    
+        #layer = QgsRasterLayer("http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer?f=json&pretty=true", "layer")
         remove_layer(layer_name, group)
         QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
         if group:
@@ -189,14 +206,46 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         get_group('Filter')
         get_group('Erreichbarkeiten Auto')
         get_group(u'Erreichbarkeiten ÖPNV')
-        
+        cat_group = get_group('Einrichtungen')
+        self.add_background_map(group=get_group('Hintergrundkarte'))
+        self.canvas.refresh()
+    
+        columns = ['spalte', 'editierbar', 'nur_auswahl_zulassen',
+                   'auswahlmoeglichkeiten', 'alias']
         for category, (table, tree) in self.categories.iteritems():
             symbology = SimpleSymbology(self.colors[category])
-            self.add_db_layer(category, SCHEMA, table, 'geom_gk', symbology,
-                              group=get_group('Einrichtungen'))
+            layer = self.add_db_layer(category, SCHEMA, table, 'geom_gk',
+                                      symbology, group=cat_group, zoom=False)
+            rows = get_values('editierbare_spalten', columns,
+                              self.db_conn, schema='einrichtungen',
+                              where="tabelle='{}'".format(table))
+            editable_columns = [r.spalte for r in rows]
+            if not rows:
+                continue
+            for i, f in enumerate(layer.fields()):
+                try:
+                    idx = editable_columns.index(f.name())
+                    col, is_ed, is_sel, selections, alias = rows[idx]
+                    print((col, is_ed, is_sel, selections, alias))
+                    if not is_ed:
+                        layer.setEditorWidgetV2(i, 'Hidden')
+                        continue
+                    if is_sel:
+                        layer.setEditorWidgetV2(i, 'UniqueValues')
+                    if alias:
+                        f.setAlias()
+                except:
+                    layer.setEditorWidgetV2(i, 'Hidden')
         
-        self.add_background_map(group=get_group('Hintergrundkarte'))
         self.init_filters()
+        # zoom to extent
+        extent = QgsRectangle()
+        extent.setMinimal()
+        for child in cat_group.children():
+            if isinstance(child, QgsLayerTreeLayer):
+                extent.combineExtentWith(child.layer().extent())
+        self.canvas.setExtent(extent)
+        self.canvas.refresh()
             
     def init_filters(self):
         fn = os.path.join(os.path.split(__file__)[0], "filter.xml")
@@ -222,7 +271,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             item.setFlags(QtCore.Qt.ItemIsUserCheckable |
                           QtCore.Qt.ItemIsEnabled)
             column = node.attrib['name'].encode('utf-8')
-            values = get_values(tablename, column, self.db_conn,
+            values = get_values(tablename, [column], self.db_conn,
                                 schema=SCHEMA, where=where)
             
             #stripped = []
@@ -276,6 +325,12 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if not self.login:
             return
         category = self.get_selected_tab()
+        name, ok = QtGui.QInputDialog.getText(self, 'Filter',
+                                              'Name des zu erstellenden Layers',
+                                              text=category)
+        if not ok:
+            return
+        
         table, tree = self.categories[category]
         root = tree.topLevelItem(0)
         queries = []
@@ -287,13 +342,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 subquery = build_queries(child, tree)
                 if subquery:
                     queries.append(subquery)
-        subset = ' AND '.join(queries)
+        subset = u' AND '.join(queries)
         orig_layer = QgsMapLayerRegistry.instance().mapLayersByName(category)[0]
-        name, ok = QtGui.QInputDialog.getText(self, 'Filter',
-                                              'Name des zu erstellenden Layers',
-                                              text=category)
-        if not ok:
-            return
+    
         parent_group = get_group('Filter')
         subgroup = get_group(category, parent_group)
         remove_layer(name, subgroup)
@@ -327,27 +378,30 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                                               item_texts, 0, False)
         if not ok:
             return
-        
-        category, layer_name = items[item_texts.index(sel)]
-        tag = self.err_tags[category]
-        
-        # find the layer and get it's query
-        subgroup = get_group(category, filter_group)
-        for child in subgroup.children():
-            if child.layer().name() == layer_name:
-                query = child.layer().subsetString()
-                break
-        
-        results_group = get_group('Erreichbarkeiten Auto')
-        subgroup = get_group(category, results_group)
-        symbology = GraduatedSymbology('minuten', self.err_color_ranges,
-                                       no_pen=True)
-        update_erreichbarkeiten(tag, self.db_conn, where=query)
-        self.add_db_layer(layer_name, 'erreichbarkeiten',
-                          'matview_err_' + tag, 'geom', key='grid_id',
-                          symbology=symbology, group=subgroup, zoom=False)
-        
-    def calculate_ov(self):
+
+        def run():
+            category, layer_name = items[item_texts.index(sel)]
+            # find the layer and get it's query
+            subgroup = get_group(category, filter_group)
+            for child in subgroup.children():
+                if child.layer().name() == layer_name:
+                    query = child.layer().subsetString()
+                    break
+            
+            tag = self.err_tags[category]
+            results_group = get_group('Erreichbarkeiten Auto')
+            subgroup = get_group(category, results_group)
+            symbology = GraduatedSymbology('minuten', self.err_color_ranges,
+                                               no_pen=True)
+            update_erreichbarkeiten(tag, self.db_conn, where=query)
+            self.add_db_layer(layer_name, 'erreichbarkeiten',
+                                  'matview_err_' + tag, 'geom', key='grid_id',
+                                  symbology=symbology, group=subgroup,
+                                  zoom=False)
+            
+        self.wait_call(run)
+
+    def add_ov_layers(self):
         if not self.login:
             return
         results_group = get_group(u'Erreichbarkeiten ÖPNV')
@@ -365,7 +419,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         symbology = GraduatedSymbology('minuten', self.err_color_ranges,
                                        no_pen=True)
         subgroup_to = get_group('Hinfahrt zu den zentralen Orten',
-                                     results_group)
+                                results_group)
         subgroup_from = get_group(u'Rückfahrt von den zentralen Orten',
                                        results_group)
         for time in times:
@@ -374,7 +428,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                               'matview_err_ov', 'geom', key='id', 
                               symbology=symbology, group=subgroup_to,
                               where="search_time='{}'".format(time),
-                              visible=False)
+                              visible=True)
+        subgroup_to.setIsMutuallyExclusive(
+            True, initialChildIndex=max(len(times), 4))
         for child in subgroup_to.children():
             child.setExpanded(False)
 

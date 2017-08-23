@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
-def get_values(table, column, db_conn, schema='public', where=''):
+def get_values(table, columns, db_conn, schema='public', where=''):
     sql = """
-    SELECT "{column}"
+    SELECT {columns}
     FROM {schema}.{table}
     """
     if where:
         sql += ' WHERE ' + where
     values = db_conn.fetch(sql.format(
-        column=column, table=table, schema=schema))
+        columns=u','.join(['"{}"'.format(c) for c in columns]),
+        table=table, schema=schema))
     return values
 
 def update_erreichbarkeiten(tag, db_conn, where=''):

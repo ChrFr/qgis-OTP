@@ -250,3 +250,58 @@ class RangeSlider(QtGui.QSlider):
         return style.sliderValueFromPosition(self.minimum(), self.maximum(),
                                              pos-slider_min, slider_max-slider_min,
                                              opt.upsideDown)
+
+
+class WaitDialog(QtGui.QDialog):
+    
+    def __init__(self, function, title='...', label='Bitte warten...',
+                 parent=None):
+        super(WaitDialog, self).__init__(parent)
+        self.setWindowTitle(title)
+        vbox_layout = QtGui.QVBoxLayout(self)
+        label = QtGui.QLabel(label)
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        vbox_layout.addWidget(label)
+        self.setModal(True)
+        self.setMinimumSize(200, 20)
+
+
+class WaitThread(QtCore.QThread):
+    finished = QtCore.pyqtSignal()
+    def __init__ (self, function, parent_thread):
+        super(WaitThread, self).__init__(parent_thread)
+        self.function = function
+        self.result = None
+    def run(self):
+        self.result = self.function()
+        self.finished.emit()
+
+
+class WaitDialogThreaded(WaitDialog):
+    finished = QtCore.pyqtSignal()
+    
+    def __init__(self, function, label='Bitte warten...',
+                 parent=None, parent_thread=None):
+        super(WaitDialog2, self).__init__(parent)
+        self.setMinimumSize(200, 75)
+        self.thread = WaitThread(function, parent_thread or parent)
+        self.thread.finished.connect(self._close)
+        self.done = False
+        self.show()
+        self.thread.start()
+        
+    def _close(self):
+        self.done = True
+        self.finished.emit()
+        self.close()
+        
+    @property    
+    def result(self):
+        return self.thread.result
+        
+    # disable closing of wait window
+    def closeEvent(self, evnt):
+        if self.done:
+            super(WaitDialog, self).closeEvent(evnt)
+        else:
+            evnt.ignore() 
