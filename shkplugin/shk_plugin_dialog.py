@@ -78,19 +78,19 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         
         self.err_tags = {
             'Bildungseinrichtungen': 'bildung',
-            'Medizinische Versorgung': 'gesundheit',
+            'Gesundheit': 'gesundheit',
             'Nahversorgung': 'nahversorgung'
         }
         
         self.colors = {
             'Bildungseinrichtungen': 'orange',
-            'Medizinische Versorgung': 'red',
+            'Gesundheit': 'red',
             'Nahversorgung': '#F781F3'
         }
         
         self.categories = {
             'Bildungseinrichtungen': ('bildung_gesamt', self.schools_tree),
-            'Medizinische Versorgung': ('gesundheit_gesamt', self.medicine_tree),
+            'Gesundheit': ('gesundheit_gesamt', self.medicine_tree),
             'Nahversorgung':  ('nahversorgung_gesamt', self.supply_tree)
         }
 
@@ -216,26 +216,26 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             symbology = SimpleSymbology(self.colors[category])
             layer = self.add_db_layer(category, SCHEMA, table, 'geom_gk',
                                       symbology, group=cat_group, zoom=False)
-            rows = get_values('editierbare_spalten', columns,
-                              self.db_conn, schema='einrichtungen',
-                              where="tabelle='{}'".format(table))
-            editable_columns = [r.spalte for r in rows]
-            if not rows:
-                continue
-            for i, f in enumerate(layer.fields()):
-                try:
-                    idx = editable_columns.index(f.name())
-                    col, is_ed, is_sel, selections, alias = rows[idx]
-                    print((col, is_ed, is_sel, selections, alias))
-                    if not is_ed:
-                        layer.setEditorWidgetV2(i, 'Hidden')
-                        continue
-                    if is_sel:
-                        layer.setEditorWidgetV2(i, 'UniqueValues')
-                    if alias:
-                        f.setAlias()
-                except:
-                    layer.setEditorWidgetV2(i, 'Hidden')
+            #rows = get_values('editierbare_spalten', columns,
+                              #self.db_conn, schema='einrichtungen',
+                              #where="tabelle='{}'".format(table))
+            #editable_columns = [r.spalte for r in rows]
+            #if not rows:
+                #continue
+            #for i, f in enumerate(layer.fields()):
+                #try:
+                    #idx = editable_columns.index(f.name())
+                    #col, is_ed, is_sel, selections, alias = rows[idx]
+                    #print((col, is_ed, is_sel, selections, alias))
+                    #if not is_ed:
+                        #layer.setEditorWidgetV2(i, 'Hidden')
+                        #continue
+                    #if is_sel:
+                        #layer.setEditorWidgetV2(i, 'UniqueValues')
+                    #if alias:
+                        #f.setAlias()
+                #except:
+                    #layer.setEditorWidgetV2(i, 'Hidden')
         
         self.init_filters()
         # zoom to extent

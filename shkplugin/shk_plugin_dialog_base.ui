@@ -114,7 +114,7 @@
           </widget>
           <widget class="QWidget" name="medicine_tab">
            <attribute name="title">
-            <string>Medizinische Versorgung</string>
+            <string>Gesundheit</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_2">
             <item row="1" column="0">
