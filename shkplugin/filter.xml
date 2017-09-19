@@ -22,7 +22,7 @@
         <column name="Unterbereich">
             <value name="Hausarzt">
                 <column name="Angebotsform">
-                    <value name="Innere Medizin">
+                    <value name="*">
                         <column name="FILTER_Alter_GROB" alias="Alter"/>
                         <column name="FILTER_Praxiskooperation_GROB" alias="Praxiskooperation"/>
                     </value>
@@ -30,7 +30,7 @@
             </value>
             <value name="Facharzt">
                 <column name="Angebotsform">
-                    <value name="Frauenarzt">
+                    <value name="*">
                         <column name="FILTER_Alter_GROB" alias="Alter"/>
                         <column name="FILTER_Praxiskooperation_GROB" alias="Praxiskooperation"/>
                     </value>

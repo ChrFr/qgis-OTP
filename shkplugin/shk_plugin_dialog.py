@@ -321,7 +321,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             item.column = column
             where = ''
             
-        elif node.tag == 'value':
+        elif node.tag == 'value' and node.attrib['name'] != '*':
             value = node.attrib['name']
             # search parent for entry; if exists, add children to found one
             found = None
@@ -334,7 +334,32 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             if hasattr(parent_item, 'column'):
                 where = """"{c}" = '{v}'""".format(c=parent_item.column,
                                                    v=value)
-            
+        
+        elif node.tag == 'value' and node.attrib['name'] != '*':
+            name = node.attrib['name']
+            # search parent for entry; if exists, add children to found one
+            found = None
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                if child.text(0) == name:
+                    found = child
+                    break
+            item = found
+            if hasattr(parent_item, 'column'):
+                where = u""""{c}" = '{v}'""".format(c=parent_item.column,
+                                                   v=name)
+        # SPECIAL CASE: Joker, do the same for all child nodes
+        elif node.tag == 'value' and node.attrib['name'] == '*':
+            for i in range(parent_item.childCount()):
+                item = parent_item.child(i)
+                if hasattr(parent_item, 'column'):
+                    where = u""""{c}" = '{v}'""".format(c=parent_item.column,
+                                                       v=item.text(0))
+                for child in node.getchildren():
+                    self.add_filter_node(item, child, tablename, tree, where)
+            return
+
+        # recursively build nodes from children
         if item:
             for child in node.getchildren():
                 self.add_filter_node(item, child, tablename, tree, where)
