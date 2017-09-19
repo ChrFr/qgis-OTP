@@ -6,6 +6,7 @@ from qgis.core import (QgsGraduatedSymbolRendererV2, QgsStyleV2,
 
 CSV_FILTER = u'Comma-seperated values (*.csv)'
 KML_FILTER = u'Keyhole Markup Language (*.kml)'
+PDF_FILTER = u'PDF (*.pdf)'
 
 def browse_file(file_preset, title, file_filter, save=True, parent=None):
     

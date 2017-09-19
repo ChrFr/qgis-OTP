@@ -24,11 +24,13 @@
 
 import os
 from PyQt4 import QtGui, uic, QtCore
+from PyQt4.QtXml import QDomDocument
 from osgeo import gdal
 from qgis.core import (QgsDataSourceURI, QgsVectorLayer, 
                        QgsMapLayerRegistry, QgsRasterLayer,
                        QgsProject, QgsLayerTreeLayer, QgsRectangle,
-                       QgsVectorFileWriter)
+                       QgsVectorFileWriter, QgsComposition)
+from qgis.gui import QgsLayerTreeMapCanvasBridge
 from qgis.utils import iface
 import numpy as np
 from xml.etree import ElementTree as ET
@@ -42,14 +44,16 @@ from connection import DBConnection, Login
 from queries import get_values, update_erreichbarkeiten
 from ui_elements import (LabeledRangeSlider, SimpleSymbology,
                          GraduatedSymbology, WaitDialog,
-                         CSV_FILTER, KML_FILTER, browse_file)
+                         CSV_FILTER, KML_FILTER, PDF_FILTER, browse_file)
 
 config = Config()
 
 SCHEMA = 'einrichtungen'
 
-OSM_XML = os.path.join(os.path.split(__file__)[0], 'osm_map.xml')
-GOOGLE_XML = os.path.join(os.path.split(__file__)[0], 'google_maps.xml')
+basepath = os.path.split(__file__)[0]
+OSM_XML = os.path.join(basepath, 'osm_map.xml')
+GOOGLE_XML = os.path.join(basepath, 'google_maps.xml')
+REPORT_TEMPLATE_PATH = os.path.join(basepath, 'report_template.qpt')
 
 
 class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
@@ -113,6 +117,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             lambda: self.export_filter_layer(ext='csv'))
         self.export_kml_button.clicked.connect(
             lambda: self.export_filter_layer(ext='kml'))
+        self.export_pdf_button.clicked.connect(self.create_report)
         
         self.canvas = iface.mapCanvas()
     
@@ -355,13 +360,13 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 if hasattr(parent_item, 'column'):
                     where = u""""{c}" = '{v}'""".format(c=parent_item.column,
                                                        v=item.text(0))
-                for child in node.getchildren():
+                for child in list(node):
                     self.add_filter_node(item, child, tablename, tree, where)
             return
 
         # recursively build nodes from children
         if item:
-            for child in node.getchildren():
+            for child in list(node):
                 self.add_filter_node(item, child, tablename, tree, where)
     
     def apply_filters(self):
@@ -494,7 +499,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         
         file_filter = CSV_FILTER if ext == 'csv' else KML_FILTER
         filepath = browse_file(None, 'Export', file_filter, save=True, 
-                               parent=None)
+                               parent=self)
         if not filepath:
             return
         driver = 'CSV' if ext == 'csv'else 'KML'
@@ -509,6 +514,38 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         relations = rel_manager.relations()
         relation = QgsRelation()
         relations['Bildungseinrichtungen-{}'] = relation
+    
+    def create_report(self):
+        filepath = browse_file(None, 'Export', PDF_FILTER, save=True, 
+                               parent=self)
+        if not filepath:
+            return
+        bridge = QgsLayerTreeMapCanvasBridge(
+            QgsProject.instance().layerTreeRoot(), self.canvas)
+        bridge.setCanvasLayers()
+    
+        template_file = file(REPORT_TEMPLATE_PATH)
+        template_content = template_file.read()
+        template_file.close()
+        document = QDomDocument()
+        document.setContent(template_content)
+        composition = QgsComposition(self.canvas.mapSettings())
+        # You can use this to replace any string like this [key]
+        # in the template with a new value. e.g. to replace
+        # [date] pass a map like this {'date': '1 Jan 2012'}
+        #substitution_map = {
+            #'DATE_TIME_START': 'foo',
+            #'DATE_TIME_END': 'bar'}
+        composition.loadFromTemplate(document)  #, substitution_map)
+        # You must set the id in the template
+        map_item = composition.getComposerItemById('map')
+        map_item.setMapCanvas(self.canvas)
+        map_item.zoomToExtent(self.canvas.extent())
+        # You must set the id in the template
+        legend_item = composition.getComposerItemById('legend')
+        legend_item.updateLegend()
+        composition.refreshItems()
+        composition.exportAsPDF(filepath)
 
 
 def get_group(groupname, parent_group=None):
