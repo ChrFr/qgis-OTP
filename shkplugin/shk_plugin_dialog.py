@@ -27,7 +27,8 @@ from PyQt4 import QtGui, uic, QtCore
 from osgeo import gdal
 from qgis.core import (QgsDataSourceURI, QgsVectorLayer, 
                        QgsMapLayerRegistry, QgsRasterLayer,
-                       QgsProject, QgsLayerTreeLayer, QgsRectangle)
+                       QgsProject, QgsLayerTreeLayer, QgsRectangle,
+                       QgsVectorFileWriter)
 from qgis.utils import iface
 import numpy as np
 from xml.etree import ElementTree as ET
@@ -40,7 +41,8 @@ from config import Config
 from connection import DBConnection, Login
 from queries import get_values, update_erreichbarkeiten
 from ui_elements import (LabeledRangeSlider, SimpleSymbology,
-                         GraduatedSymbology, WaitDialog)
+                         GraduatedSymbology, WaitDialog,
+                         CSV_FILTER, KML_FILTER, browse_file)
 
 config = Config()
 
@@ -106,6 +108,11 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.calculate_car_button.clicked.connect(self.calculate_car)
         self.calculate_ov_button.clicked.connect(
             lambda: self.wait_call(self.add_ov_layers))
+        
+        self.export_excel_button.clicked.connect(
+            lambda: self.export_filter_layer(ext='csv'))
+        self.export_kml_button.clicked.connect(
+            lambda: self.export_filter_layer(ext='kml'))
         
         self.canvas = iface.mapCanvas()
     
@@ -206,8 +213,17 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         get_group('Filter')
         get_group('Erreichbarkeiten Auto')
         get_group(u'Erreichbarkeiten ÖPNV')
+        
         cat_group = get_group('Einrichtungen')
+        border_group = get_group('Verwaltungsgrenzen')
+        for name, tablename in [('Gemeinden', 'gem_2014_ew_svb'),
+                                ('Kreise', 'krs_2014_12'),
+                                ('Verwaltungsgemeinschaften', 'vwg_2014_12')]:
+            self.add_db_layer(name, 'verwaltungsgrenzen', tablename,
+                              'geom', group=border_group)
+
         self.add_background_map(group=get_group('Hintergrundkarte'))
+        
         self.canvas.refresh()
     
         columns = ['spalte', 'editierbar', 'nur_auswahl_zulassen',
@@ -216,26 +232,28 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             symbology = SimpleSymbology(self.colors[category])
             layer = self.add_db_layer(category, SCHEMA, table, 'geom_gk',
                                       symbology, group=cat_group, zoom=False)
-            #rows = get_values('editierbare_spalten', columns,
-                              #self.db_conn, schema='einrichtungen',
-                              #where="tabelle='{}'".format(table))
-            #editable_columns = [r.spalte for r in rows]
-            #if not rows:
-                #continue
-            #for i, f in enumerate(layer.fields()):
-                #try:
-                    #idx = editable_columns.index(f.name())
-                    #col, is_ed, is_sel, selections, alias = rows[idx]
-                    #print((col, is_ed, is_sel, selections, alias))
-                    #if not is_ed:
-                        #layer.setEditorWidgetV2(i, 'Hidden')
-                        #continue
-                    #if is_sel:
-                        #layer.setEditorWidgetV2(i, 'UniqueValues')
-                    #if alias:
-                        #f.setAlias()
-                #except:
-                    #layer.setEditorWidgetV2(i, 'Hidden')
+            rows = get_values('editierbare_spalten', columns,
+                              self.db_conn, schema='einrichtungen',
+                              where="tabelle='{}'".format(table))
+            editable_columns = [r.spalte for r in rows]
+            if not rows:
+                continue
+            for i, f in enumerate(layer.fields()):
+                try:
+                    idx = editable_columns.index(f.name())
+                    col, is_ed, is_sel, selections, alias = rows[idx]
+                    if alias:
+                        layer.addAttributeAlias(i, alias) 
+                    if not is_ed:
+                        layer.setEditorWidgetV2(i, 'Hidden')
+                        continue
+                    if is_sel and selections:
+                        layer.setEditorWidgetV2(i, 'ValueMap')
+                        layer.setEditorWidgetV2Config(i, dict(zip(selections, selections)))
+                    elif is_sel:
+                        layer.setEditorWidgetV2(i, 'UniqueValues')
+                except:
+                    layer.setEditorWidgetV2(i, 'Hidden')
         
         self.init_filters()
         # zoom to extent
@@ -349,7 +367,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         subgroup = get_group(category, parent_group)
         remove_layer(name, subgroup)
         
-        print(subset)
+        #print(subset)
         layer = QgsVectorLayer(orig_layer.source(), name, "postgres")
         QgsMapLayerRegistry.instance().addMapLayer(layer, False)
         subgroup.addLayer(layer)
@@ -357,9 +375,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         symbology = SimpleSymbology(self.colors[category], shape='triangle')
         symbology.apply(layer)
     
-    def calculate_car(self):
-        if not self.login:
-            return
+    def get_filterlayer(self):
+
         items = []
         filter_group = get_group('Filter')
         for category in self.categories.iterkeys():
@@ -371,22 +388,28 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             QtGui.QMessageBox.information(
                 self, 'Fehler', 'Es sind keine gefilterten Layer vorhanden.')
             return
-        
         item_texts = ['{} - {}'.format(l, c) for l, c in items]
         sel, ok = QtGui.QInputDialog.getItem(self, 'Erreichbarkeiten',
                                               u'Gefilterten Layer auswählen',
                                               item_texts, 0, False)
         if not ok:
+            return None
+        category, layer_name = items[item_texts.index(sel)]
+        subgroup = get_group(category, filter_group)
+        for child in subgroup.children():
+            if child.layer().name() == layer_name:
+                return child.layer()
+        return None
+    
+    def calculate_car(self):
+        if not self.login:
+            return
+        layer = self.get_filterlayer()
+        if not layer:
             return
 
         def run():
-            category, layer_name = items[item_texts.index(sel)]
-            # find the layer and get it's query
-            subgroup = get_group(category, filter_group)
-            for child in subgroup.children():
-                if child.layer().name() == layer_name:
-                    query = child.layer().subsetString()
-                    break
+            query = layer.subsetString()
             
             tag = self.err_tags[category]
             results_group = get_group('Erreichbarkeiten Auto')
@@ -438,6 +461,29 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         idx = self.selection_tabs.currentIndex()
         tab_name = self.selection_tabs.tabText(idx)
         return tab_name
+    
+    def export_filter_layer(self, ext='csv'):
+        layer = self.get_filterlayer()
+        if not layer:
+            return
+        
+        file_filter = CSV_FILTER if ext == 'csv' else KML_FILTER
+        filepath = browse_file(None, 'Export', file_filter, save=True, 
+                               parent=None)
+        if not filepath:
+            return
+        driver = 'CSV' if ext == 'csv'else 'KML'
+        createopts = ["SEPARATOR=SEMICOLON"] if ext == 'csv'else []
+        QgsVectorFileWriter.writeAsVectorFormat(
+            layer, filepath, "utf-8", None, driver, False, '', '',
+            createopts)
+
+    def set_relations(self): 
+        proj = QgsProject.instance()
+        rel_manager = proj.relationManager()
+        relations = rel_manager.relations()
+        relation = QgsRelation()
+        relations['Bildungseinrichtungen-{}'] = relation
 
 
 def get_group(groupname, parent_group=None):
@@ -458,7 +504,7 @@ def build_queries(tree_item, tree):
         if hasattr(tree_item, 'input_type'):
             widget = tree.itemWidget(tree_item, 1)
             if tree_item.input_type == 'range':
-                query = '"{c}" BETWEEN {min} AND {max}'.format(
+                query = u'"{c}" BETWEEN {min} AND {max}'.format(
                     c=column, min=widget.min, max=widget.max)
                 ## columns with special input types will not have any children
                 return query
@@ -547,6 +593,7 @@ def remove_layer(name, group=None):
             l = child.layer()
             if l and l.name() == name:
                 QgsMapLayerRegistry.instance().removeMapLayer(l.id())
+        
         
 if __name__ == '__main__':
     print

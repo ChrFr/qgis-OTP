@@ -4,6 +4,26 @@ from qgis.core import (QgsGraduatedSymbolRendererV2, QgsStyleV2,
                        QgsSingleSymbolRendererV2, QgsMarkerSymbolV2,
                        QgsRendererRangeV2, QgsSymbolV2)
 
+CSV_FILTER = u'Comma-seperated values (*.csv)'
+KML_FILTER = u'Keyhole Markup Language (*.kml)'
+
+def browse_file(file_preset, title, file_filter, save=True, parent=None):
+    
+    if save:
+        browse_func = QtGui.QFileDialog.getSaveFileName
+    else:
+        browse_func = QtGui.QFileDialog.getOpenFileName
+        
+    filename = str(
+        browse_func(
+            parent=parent, 
+            caption=title,
+            directory=file_preset,
+            filter=file_filter
+        )
+    )   
+    return filename
+
 
 class Symbology(object):
     def __init__(self):
