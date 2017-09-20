@@ -150,7 +150,6 @@ class Connection(object):
 class DBConnection(object):
     def __init__(self, login):
         self.login = login
-        self.colums_available = None
 
     def fetch(self, sql):
         with Connection(login=self.login) as conn:

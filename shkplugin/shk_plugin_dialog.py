@@ -41,7 +41,8 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 from config import Config
 from connection import DBConnection, Login
-from queries import get_values, update_erreichbarkeiten
+from queries import (get_values, update_erreichbarkeiten,
+                     update_gemeinde_erreichbarkeiten)
 from ui_elements import (LabeledRangeSlider, SimpleSymbology,
                          SimpleFillSymbology, 
                          GraduatedSymbology, WaitDialog,
@@ -450,16 +451,27 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             
             tag = self.err_tags[category]
             results_group = get_group('Erreichbarkeiten PKW')
-            remove_group_layers(results_group)
             layer_name = layer.name()
-            #subgroup = get_group(category, results_group)
-            symbology = GraduatedSymbology('minuten', self.err_color_ranges,
-                                               no_pen=True)
+            subgroup = get_group(category, results_group)
+            remove_group_layers(subgroup)
+            err_table = 'matview_err_' + tag
+            gem_table = 'erreichbarkeiten_gemeinden_' + tag
             update_erreichbarkeiten(tag, self.db_conn, where=query)
+            update_gemeinde_erreichbarkeiten(tag, self.db_conn)
+            
+            symbology = GraduatedSymbology('minuten', self.err_color_ranges,
+                                           no_pen=True)
             self.add_db_layer(layer_name, 'erreichbarkeiten',
-                              'matview_err_' + tag, 'geom', key='grid_id',
-                              symbology=symbology, group=results_group,
+                              err_table, 'geom', key='grid_id',
+                              symbology=symbology, group=subgroup,
                               zoom=False)
+            
+            symbology = GraduatedSymbology('minuten_mittelwert',
+                                           self.err_color_ranges,
+                                           no_pen=True)
+            self.add_db_layer(layer_name + '_Gemeindeebene', 'erreichbarkeiten',
+                              gem_table, 'geom', key='ags',
+                              symbology=symbology, group=subgroup, zoom=False)
             
         self.wait_call(run)
 
