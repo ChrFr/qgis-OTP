@@ -221,9 +221,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         
         cat_group = get_group('Einrichtungen')
         border_group = get_group('Verwaltungsgrenzen')
-        for name, tablename in [('Gemeinden', 'gem_2014_ew_svb'),
-                                ('Kreise', 'krs_2014_12'),
-                                ('Verwaltungsgemeinschaften', 'vwg_2014_12')]:
+        for name, tablename in [('Gemeinden', 'gemeinden_20161231'),
+                                ('Kreise', 'kreis_20161231'),
+                                ('Verwaltungsgemeinschaften', 'vwg_20161231')]:
             self.add_db_layer(name, 'verwaltungsgrenzen', tablename,
                               'geom', group=border_group, visible=False)
 
@@ -452,7 +452,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             update_erreichbarkeiten(tag, self.db_conn, where=query)
             self.add_db_layer(layer_name, 'erreichbarkeiten',
                               'matview_err_' + tag, 'geom', key='grid_id',
-                              symbology=symbology, group=subgroup,
+                              symbology=symbology, group=results_group,
                               zoom=False)
             
         self.wait_call(run)
