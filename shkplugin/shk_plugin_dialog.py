@@ -44,7 +44,7 @@ from connection import DBConnection, Login
 from queries import get_values, update_erreichbarkeiten
 from ui_elements import (LabeledRangeSlider, SimpleSymbology,
                          GraduatedSymbology, WaitDialog,
-                         CSV_FILTER, KML_FILTER, PDF_FILTER, browse_file)
+                         EXCEL_FILTER, KML_FILTER, PDF_FILTER, browse_file)
 
 config = Config()
 
@@ -114,7 +114,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             lambda: self.wait_call(self.add_ov_layers))
         
         self.export_excel_button.clicked.connect(
-            lambda: self.export_filter_layer(ext='csv'))
+            lambda: self.export_filter_layer(ext='xlsx'))
         self.export_kml_button.clicked.connect(
             lambda: self.export_filter_layer(ext='kml'))
         self.export_pdf_button.clicked.connect(self.create_report)
@@ -417,26 +417,27 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if not items:
             QtGui.QMessageBox.information(
                 self, 'Fehler', 'Es sind keine gefilterten Layer vorhanden.')
-            return
+            return 
         item_texts = ['{} - {}'.format(l, c) for l, c in items]
         sel, ok = QtGui.QInputDialog.getItem(self, 'Erreichbarkeiten',
                                               u'Gefilterten Layer auswählen',
                                               item_texts, 0, False)
         if not ok:
-            return None
+            return
         category, layer_name = items[item_texts.index(sel)]
         subgroup = get_group(category, filter_group)
         for child in subgroup.children():
             if child.layer().name() == layer_name:
-                return child.layer()
-        return None
+                return category, child.layer()
+        return
     
     def calculate_car(self):
         if not self.login:
             return
-        layer = self.get_filterlayer()
-        if not layer:
+        res = self.get_filterlayer()
+        if not res:
             return
+        category, layer = res
 
         def run():
             query = layer.subsetString()
@@ -448,9 +449,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                                                no_pen=True)
             update_erreichbarkeiten(tag, self.db_conn, where=query)
             self.add_db_layer(layer_name, 'erreichbarkeiten',
-                                  'matview_err_' + tag, 'geom', key='grid_id',
-                                  symbology=symbology, group=subgroup,
-                                  zoom=False)
+                              'matview_err_' + tag, 'geom', key='grid_id',
+                              symbology=symbology, group=subgroup,
+                              zoom=False)
             
         self.wait_call(run)
 
@@ -492,21 +493,20 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         tab_name = self.selection_tabs.tabText(idx)
         return tab_name
     
-    def export_filter_layer(self, ext='csv'):
-        layer = self.get_filterlayer()
-        if not layer:
+    def export_filter_layer(self, ext='xlsx'):
+        res = self.get_filterlayer()
+        if not res:
             return
+        category, layer = res
         
-        file_filter = CSV_FILTER if ext == 'csv' else KML_FILTER
+        file_filter = EXCEL_FILTER if ext == 'xlsx' else KML_FILTER
         filepath = browse_file(None, 'Export', file_filter, save=True, 
                                parent=self)
         if not filepath:
             return
-        driver = 'CSV' if ext == 'csv'else 'KML'
-        createopts = ["SEPARATOR=SEMICOLON"] if ext == 'csv'else []
+        driver = 'XLSX' if ext == 'xlsx'else 'KML'
         QgsVectorFileWriter.writeAsVectorFormat(
-            layer, filepath, "utf-8", None, driver, False, '', '',
-            createopts)
+            layer, filepath, "utf-8", None, driver, False)
 
     def set_relations(self): 
         proj = QgsProject.instance()

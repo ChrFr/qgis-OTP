@@ -4,7 +4,7 @@ from qgis.core import (QgsGraduatedSymbolRendererV2, QgsStyleV2,
                        QgsSingleSymbolRendererV2, QgsMarkerSymbolV2,
                        QgsRendererRangeV2, QgsSymbolV2)
 
-CSV_FILTER = u'Comma-seperated values (*.csv)'
+EXCEL_FILTER = u'Excel XLSX (*.xlsx)'
 KML_FILTER = u'Keyhole Markup Language (*.kml)'
 PDF_FILTER = u'PDF (*.pdf)'
 
