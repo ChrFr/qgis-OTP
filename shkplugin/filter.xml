@@ -8,8 +8,10 @@
             </value>
             <value name="Schule">
                 <column name="Angebotsform">
-                    <value name="Grundschule">
+                    <value name="*">
                         <column name="Schuelerzahl_2016" alias="Sch&#252;lerzahlen" input="range"/>
+                    </value>
+                    <value name="Grundschule">
                         <column name="FILTER_Ganztagsbetreuungsangebot" alias="Ganztagsbetreuung" />
                     </value>
                 </column>

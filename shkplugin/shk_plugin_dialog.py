@@ -216,7 +216,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
     def refresh(self):
         # just for the right initial order
         get_group('Filter')
-        get_group('Erreichbarkeiten Auto')
+        get_group('Erreichbarkeiten PKW')
         get_group(u'Erreichbarkeiten ÖPNV')
         
         cat_group = get_group('Einrichtungen')
@@ -225,7 +225,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                                 ('Kreise', 'krs_2014_12'),
                                 ('Verwaltungsgemeinschaften', 'vwg_2014_12')]:
             self.add_db_layer(name, 'verwaltungsgrenzen', tablename,
-                              'geom', group=border_group)
+                              'geom', group=border_group, visible=False)
 
         self.add_background_map(group=get_group('Hintergrundkarte'))
         
@@ -309,8 +309,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             
                 if node.attrib['input'] == 'range':
                     values = [v for v, in values if v is not None]
-                    v_min = np.min(values)
-                    v_max = np.max(values)
+                    v_min = np.min(values) if values else 0
+                    v_max = np.max(values) if values else 0
                     slider = LabeledRangeSlider(v_min, v_max)
                     tree.setItemWidget(item, 1, slider)
                 item.input_type = node.attrib['input']
@@ -443,8 +443,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             query = layer.subsetString()
             
             tag = self.err_tags[category]
-            results_group = get_group('Erreichbarkeiten Auto')
-            subgroup = get_group(category, results_group)
+            results_group = get_group('Erreichbarkeiten PKW')
+            remove_group_layers(results_group)
+            layer_name = layer.name()
+            #subgroup = get_group(category, results_group)
             symbology = GraduatedSymbology('minuten', self.err_color_ranges,
                                                no_pen=True)
             update_erreichbarkeiten(tag, self.db_conn, where=query)
@@ -547,7 +549,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         composition.refreshItems()
         composition.exportAsPDF(filepath)
 
-
 def get_group(groupname, parent_group=None):
     if not parent_group:
         parent_group = QgsProject.instance().layerTreeRoot()
@@ -555,6 +556,13 @@ def get_group(groupname, parent_group=None):
     if not group:
         group = parent_group.addGroup(groupname)
     return group
+
+def remove_group_layers(group):
+    for child in group.children():
+        if not hasattr(child, 'layer'):
+            continue
+        l = child.layer()
+        QgsMapLayerRegistry.instance().removeMapLayer(l.id())
     
 def build_queries(tree_item, tree):
     queries = ''
@@ -642,7 +650,7 @@ def filter_clicked(item):
         parent = parent.parent()
 
 def remove_layer(name, group=None):
-
+    
     if not group:
         ex = QgsMapLayerRegistry.instance().mapLayersByName(name)
         if len(ex) > 0:
