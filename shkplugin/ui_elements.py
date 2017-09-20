@@ -2,7 +2,8 @@
 from PyQt4 import QtGui, QtCore, Qt
 from qgis.core import (QgsGraduatedSymbolRendererV2, QgsStyleV2, 
                        QgsSingleSymbolRendererV2, QgsMarkerSymbolV2,
-                       QgsRendererRangeV2, QgsSymbolV2)
+                       QgsRendererRangeV2, QgsSymbolV2,
+                       QgsSimpleFillSymbolLayerV2)
 
 EXCEL_FILTER = u'Excel XLSX (*.xlsx)'
 KML_FILTER = u'Keyhole Markup Language (*.kml)'
@@ -45,6 +46,19 @@ class SimpleSymbology(Symbology):
                                                  'color': self.color})
         self.renderer = QgsSingleSymbolRendererV2(symbol)
         super(SimpleSymbology, self).apply(layer)
+
+
+class SimpleFillSymbology(Symbology):
+    def __init__(self, color):
+        super(SimpleFillSymbology, self).__init__()
+        self.color = color
+        
+    def apply(self, layer):
+        symbol = QgsSymbolV2.defaultSymbol(layer.geometryType())
+        symbol_layer = QgsSimpleFillSymbolLayerV2.create({'color': self.color})
+        self.renderer = QgsSingleSymbolRendererV2(symbol)
+        self.renderer.symbols()[0].changeSymbolLayer(0, symbol_layer)
+        super(SimpleFillSymbology, self).apply(layer)
 
 
 class GraduatedSymbology(Symbology):

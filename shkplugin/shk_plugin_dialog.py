@@ -43,6 +43,7 @@ from config import Config
 from connection import DBConnection, Login
 from queries import get_values, update_erreichbarkeiten
 from ui_elements import (LabeledRangeSlider, SimpleSymbology,
+                         SimpleFillSymbology, 
                          GraduatedSymbology, WaitDialog,
                          EXCEL_FILTER, KML_FILTER, PDF_FILTER, browse_file)
 
@@ -91,7 +92,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.colors = {
             'Bildungseinrichtungen': 'orange',
             'Gesundheit': 'red',
-            'Nahversorgung': '#F781F3'
+            'Nahversorgung': '#F781F3',
+            'Gemeinden': 'green',
+            'Kreise': 'brown',
+            'Verwaltungsgemeinschaften': 'blue'
         }
         
         self.categories = {
@@ -222,10 +226,12 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         cat_group = get_group('Einrichtungen')
         border_group = get_group('Verwaltungsgrenzen')
         for name, tablename in [('Gemeinden', 'gemeinden_20161231'),
-                                ('Kreise', 'kreis_20161231'),
-                                ('Verwaltungsgemeinschaften', 'vwg_20161231')]:
+                                ('Verwaltungsgemeinschaften', 'vwg_20161231'),
+                                ('Kreise', 'kreis_20161231')]:
+            symbology = SimpleFillSymbology(self.colors[name])
             self.add_db_layer(name, 'verwaltungsgrenzen', tablename,
-                              'geom', group=border_group, visible=False)
+                              'geom', group=border_group, visible=False,
+                              symbology=symbology)
 
         self.add_background_map(group=get_group('Hintergrundkarte'))
         
