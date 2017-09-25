@@ -172,6 +172,5 @@ class DBConnection(object):
             try:
                 cursor.execute(sql)
             except psycopg2.ProgrammingError as e:
-                raise psycopg2.ProgrammingError(
-                    os.linesep.join((sql, e.message)))
+                raise psycopg2.ProgrammingError(e.message)
             conn.commit()

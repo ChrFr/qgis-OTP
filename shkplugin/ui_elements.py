@@ -49,13 +49,16 @@ class SimpleSymbology(Symbology):
 
 
 class SimpleFillSymbology(Symbology):
-    def __init__(self, color):
+    def __init__(self, color = '0, 0, 0, 0', border_style=None):
         super(SimpleFillSymbology, self).__init__()
         self.color = color
+        self.border_style = border_style
         
     def apply(self, layer):
         symbol = QgsSymbolV2.defaultSymbol(layer.geometryType())
         symbol_layer = QgsSimpleFillSymbolLayerV2.create({'color': self.color})
+        if self.border_style:
+            symbol_layer.setBorderStyle(self.border_style)
         self.renderer = QgsSingleSymbolRendererV2(symbol)
         self.renderer.symbols()[0].changeSymbolLayer(0, symbol_layer)
         super(SimpleFillSymbology, self).apply(layer)

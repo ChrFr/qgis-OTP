@@ -16,7 +16,7 @@ def update_erreichbarkeiten(tag, db_conn, where=''):
     table = 'matview_err_' + tag
     ein_schema='einrichtungen'
     err_schema='erreichbarkeiten'
-    view_sql =  """
+    view_sql =  u"""
     CREATE OR REPLACE VIEW {err_schema}.view_err_{tag} AS
     SELECT
     g.grid_id, l.geom, min(r.travel_time) / 60 AS minuten
@@ -52,7 +52,7 @@ def update_gemeinde_erreichbarkeiten(tag, db_conn):
     table = 'matview_err_' + tag
     gem_table = 'erreichbarkeiten_gemeinden_' + tag
     err_schema='erreichbarkeiten'
-    view_sql =  """
+    view_sql =  u"""
     CREATE OR REPLACE VIEW {err_schema}.{gem_table} AS
     WITH a AS (
     SELECT
@@ -85,7 +85,10 @@ def update_gemeinde_erreichbarkeiten(tag, db_conn):
     
     GRANT SELECT,DELETE,UPDATE,INSERT,TRUNCATE ON {err_schema}.{gem_table} TO saale_holzland;
     """
-
+    print(view_sql.format(err_schema=err_schema,
+                                    tag=tag, table=table, 
+                                    gem_table=gem_table))
+    
     db_conn.execute(view_sql.format(err_schema=err_schema,
                                     tag=tag, table=table, 
                                     gem_table=gem_table))

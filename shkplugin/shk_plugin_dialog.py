@@ -93,10 +93,13 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.colors = {
             'Bildungseinrichtungen': 'orange',
             'Gesundheit': 'red',
-            'Nahversorgung': '#F781F3',
-            'Gemeinden': 'green',
-            'Kreise': 'brown',
-            'Verwaltungsgemeinschaften': 'blue'
+            'Nahversorgung': '#F781F3'
+        }
+        
+        self.borders = {
+            'Gemeinden': QtCore.Qt.DotLine,
+            'Verwaltungsgemeinschaften': QtCore.Qt.DashLine, 
+            'Kreise': QtCore.Qt.SolidLine
         }
         
         self.categories = {
@@ -206,14 +209,23 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.canvas.refresh()
         return layer
         
-    def add_background_map(self, group=None, extent=None):
+    def add_xml_background_map(self, xml, group=None, visible=True):
         layer_name = 'GoogleMaps'
         for child in group.children():
             pass
-        layer = QgsRasterLayer(GOOGLE_XML, layer_name)
+        layer = QgsRasterLayer(xml, layer_name)
     
         #layer = QgsRasterLayer("http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer?f=json&pretty=true", "layer")
         remove_layer(layer_name, group)
+        QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
+        if group:
+            group.addLayer(layer)
+        iface.legendInterface().setLayerVisible(layer, visible)
+    
+    def add_wms_background_map(self, group=None):
+        url = ('crs=EPSG:31467&dpiMode=7&format=image/png&layers=OSM-WMS&'
+               'styles=&url=http://ows.terrestris.de/osm-gray/service')
+        layer = QgsRasterLayer(url, 'OpenStreetMap WMS - by terrestris', 'wms')
         QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
         if group:
             group.addLayer(layer)
@@ -221,20 +233,23 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
     def refresh(self):
         # just for the right initial order
         get_group('Filter')
+        cat_group = get_group('Einrichtungen')
+        border_group = get_group('Verwaltungsgrenzen')
         get_group('Erreichbarkeiten PKW')
         get_group(u'Erreichbarkeiten ÖPNV')
         
-        cat_group = get_group('Einrichtungen')
-        border_group = get_group('Verwaltungsgrenzen')
         for name, tablename in [('Gemeinden', 'gemeinden_20161231'),
                                 ('Verwaltungsgemeinschaften', 'vwg_20161231'),
                                 ('Kreise', 'kreis_20161231')]:
-            symbology = SimpleFillSymbology(self.colors[name])
+            border_style = self.borders[name]
+            symbology = SimpleFillSymbology(border_style=border_style)
             self.add_db_layer(name, 'verwaltungsgrenzen', tablename,
                               'geom', group=border_group, visible=False,
                               symbology=symbology)
-
-        self.add_background_map(group=get_group('Hintergrundkarte'))
+        self.add_wms_background_map(group=get_group('Hintergrundkarte'))
+        self.add_xml_background_map(GOOGLE_XML,
+                                    group=get_group('Hintergrundkarte'),
+                                    visible=False)
         
         self.canvas.refresh()
     
@@ -425,7 +440,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             QtGui.QMessageBox.information(
                 self, 'Fehler', 'Es sind keine gefilterten Layer vorhanden.')
             return 
-        item_texts = ['{} - {}'.format(l, c) for l, c in items]
+        item_texts = [u'{} - {}'.format(l, c) for l, c in items]
         sel, ok = QtGui.QInputDialog.getItem(self, 'Erreichbarkeiten',
                                               u'Gefilterten Layer auswählen',
                                               item_texts, 0, False)
