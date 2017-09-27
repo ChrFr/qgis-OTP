@@ -180,8 +180,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
 
     def add_db_layer(self, name, schema, tablename, geom,
                      symbology=None, uri=None, key=None, zoom=False,
-                     group=None, where='', visible=True):
-        """type: str, optional vector or polygon"""
+                     group=None, where='', visible=True, to_shape=False):
         if not uri:
             uri = QgsDataSourceURI()
             uri.setConnection(self.login.host,
@@ -194,6 +193,14 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             uri = uri.uri(False)
         layer = QgsVectorLayer(uri, name, "postgres")
         remove_layer(name, group)
+        if to_shape:
+            path = config.save_folder
+            if not os.path.exists(path):
+                os.mkdir(path)
+            fn = os.path.join(path, name + '.shp')
+            QgsVectorFileWriter.writeAsVectorFormat(
+                layer, fn, 'utf-8', None, 'ESRI Shapefile')
+            layer = QgsVectorLayer(fn, name, "ogr")
         # if no group is given, add to layer-root
         QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
         #if where:
@@ -237,6 +244,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         border_group = get_group('Verwaltungsgrenzen')
         get_group('Erreichbarkeiten PKW')
         get_group(u'Erreichbarkeiten ÖPNV')
+        self.add_wms_background_map(group=get_group('Hintergrundkarte'))
+        self.add_xml_background_map(GOOGLE_XML,
+                                    group=get_group('Hintergrundkarte'),
+                                    visible=False)
         
         for name, tablename in [('Gemeinden', 'gemeinden_20161231'),
                                 ('Verwaltungsgemeinschaften', 'vwg_20161231'),
@@ -246,10 +257,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             self.add_db_layer(name, 'verwaltungsgrenzen', tablename,
                               'geom', group=border_group, visible=False,
                               symbology=symbology)
-        self.add_wms_background_map(group=get_group('Hintergrundkarte'))
-        self.add_xml_background_map(GOOGLE_XML,
-                                    group=get_group('Hintergrundkarte'),
-                                    visible=False)
         
         self.canvas.refresh()
     
@@ -297,14 +304,42 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         root = ET.parse(fn).getroot()
         table_filters = dict([(c.attrib['name'], c.getchildren())
                               for c in root.getchildren()])
+        region_node = self.region_node()
         for layername, (tablename, tree) in self.categories.iteritems():
-            tree.clear()
             filter_nodes = table_filters[tablename]
             item = QtGui.QTreeWidgetItem(tree, ['Spalten'])
             item.setExpanded(True)
+            item.addChild(region_node.clone())
             for child in filter_nodes:
                 self.add_filter_node(item, child, tablename, tree)
-            #tree.resizeColumnToContents(0)
+            ##tree.resizeColumnToContents(0)
+    
+    def region_node(self):
+        root = QtGui.QTreeWidgetItem(['Landkreis'])
+        set_checkable(root)
+        columns = ['GEN', 'vwg_name', 'kreis_name']
+        rows = get_values('gemeinden_20161231', columns,
+                          self.db_conn, schema='verwaltungsgrenzen',
+                          where="in_region=TRUE")
+        krs_items = {}
+        vwg_items = {}
+        print(rows)
+        for gem_name, vwg_name, kreis_name in rows:
+            if vwg_name not in vwg_items:
+                if kreis_name not in krs_items:
+                    krs_item = QtGui.QTreeWidgetItem(root, [kreis_name])
+                    krs_items[kreis_name] = krs_item
+                    set_checkable(krs_item)
+                else:
+                    krs_item = krs_items[kreis_name]
+                vwg_item = QtGui.QTreeWidgetItem(krs_item, [vwg_name])
+                vwg_items[vwg_name] = vwg_item
+                set_checkable(vwg_item)
+            else:
+                vwg_item = vwg_items[vwg_name]
+            gem_item = QtGui.QTreeWidgetItem(vwg_item, [gem_name])
+            set_checkable(gem_item)
+        return root
             
     def add_filter_node(self, parent_item, node, tablename, tree, where=''):
         alias = node.attrib['alias'] if node.attrib.has_key('alias') else None
@@ -312,9 +347,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         item = None
         if node.tag == 'column':
             item = QtGui.QTreeWidgetItem(parent_item, [display_name])
-            item.setCheckState(0, QtCore.Qt.Unchecked)
-            item.setFlags(QtCore.Qt.ItemIsUserCheckable |
-                          QtCore.Qt.ItemIsEnabled)
+            set_checkable(item)
             column = node.attrib['name'].encode('utf-8')
             values = get_values(tablename, [column], self.db_conn,
                                 schema=SCHEMA, where=where)
@@ -341,9 +374,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 options = np.sort(np.unique(values))
                 for o in options:
                     option = QtGui.QTreeWidgetItem(item, [o])
-                    option.setCheckState(0, QtCore.Qt.Unchecked)
-                    option.setFlags(QtCore.Qt.ItemIsUserCheckable |
-                                    QtCore.Qt.ItemIsEnabled)
+                    set_checkable(option)
                 
             item.column = column
             where = ''
@@ -468,7 +499,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             results_group = get_group('Erreichbarkeiten PKW')
             layer_name = layer.name()
             subgroup = get_group(category, results_group)
-            remove_group_layers(subgroup)
+            remove_layer(layer_name, subgroup)
             err_table = 'matview_err_' + tag
             gem_table = 'erreichbarkeiten_gemeinden_' + tag
             update_erreichbarkeiten(tag, self.db_conn, where=query)
@@ -479,14 +510,16 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             self.add_db_layer(layer_name, 'erreichbarkeiten',
                               err_table, 'geom', key='grid_id',
                               symbology=symbology, group=subgroup,
-                              zoom=False)
+                              zoom=False, to_shape=True)
             
-            symbology = GraduatedSymbology('minuten_mittelwert',
+            symbology = GraduatedSymbology('minuten_mittelwert'[:10],  # Shapefiles: max field-name length = 10
                                            self.err_color_ranges,
                                            no_pen=True)
-            self.add_db_layer(layer_name + '_Gemeindeebene', 'erreichbarkeiten',
+            layer_name += ' Gemeindeebene'
+            self.add_db_layer(layer_name, 'erreichbarkeiten',
                               gem_table, 'geom', key='ags',
-                              symbology=symbology, group=subgroup, zoom=False)
+                              symbology=symbology, group=subgroup, zoom=False,
+                              to_shape=True)
             
         self.wait_call(run)
 
@@ -581,6 +614,11 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         legend_item.updateLegend()
         composition.refreshItems()
         composition.exportAsPDF(filepath)
+
+def set_checkable(item):
+    item.setCheckState(0, QtCore.Qt.Unchecked)
+    item.setFlags(QtCore.Qt.ItemIsUserCheckable |
+                  QtCore.Qt.ItemIsEnabled)
 
 def get_group(groupname, parent_group=None):
     if not parent_group:

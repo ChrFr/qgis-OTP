@@ -1,14 +1,5 @@
 <root>
     <table name="bildung_gesamt">
-        <column name="Landkreis">
-            <value name="*">
-                <column name="VG" alias="Verwaltungsgemeinschaft">
-                    <value name="*">
-                        <column name="Gemeinde" />
-                    </value>
-                </column>
-            </value>
-        </column>
         <column name="Korrektur" />
         <column name="Unterbereich">
             <value name="Heime">
@@ -30,15 +21,6 @@
         </column>
     </table>
     <table name="gesundheit_gesamt">
-        <column name="Landkreis">
-            <value name="*">
-                <column name="VG" alias="Verwaltungsgemeinschaft">
-                    <value name="*">
-                        <column name="Gemeinde" />
-                    </value>
-                </column>
-            </value>
-        </column>
         <column name="Korrektur" />
         <column name="Unterbereich">
             <value name="Hausarzt">
@@ -60,15 +42,6 @@
         </column>
     </table>
     <table name="nahversorgung_gesamt">
-        <column name="Landkreis">
-            <value name="*">
-                <column name="VG" alias="Verwaltungsgemeinschaft">
-                    <value name="*">
-                        <column name="Gemeinde" />
-                    </value>
-                </column>
-            </value>
-        </column>
         <column name="Korrektur" />
         <column name="Unterbereich">
             <value name="Nahversorger">

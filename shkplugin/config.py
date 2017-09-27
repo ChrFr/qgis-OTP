@@ -7,6 +7,7 @@ ENCODINGS = ['UTF-8', 'CP1252', 'ISO-8859-1']
 DEFAULT_ENCODING = 'UTF-8'
 
 DEFAULT_FILE = os.path.join(expanduser("~"), "shk_plugin.cfg")
+DEFAULT_SAVE_PATH = os.path.join(expanduser("~"), "SHK_Plugin_Saves")
 
 
 class Singleton(type):
@@ -27,7 +28,8 @@ class Config(object):
             'db_name': 'shk',
             'host': 'gis.ggr-planung.de',
             'port': '5432'
-        }
+        }, 
+        'save_folder': DEFAULT_SAVE_PATH
     }
 
     _config = {}
