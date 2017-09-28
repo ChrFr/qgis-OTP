@@ -26,6 +26,16 @@ def browse_file(file_preset, title, file_filter, save=True, parent=None):
     )   
     return filename
 
+def browse_folder(file_preset, title, save=True, parent=None):
+        
+    folder = str(
+        QtGui.QFileDialog.getExistingDirectory(
+            parent=parent, 
+            caption=title,
+            directory=file_preset
+        )
+    )   
+    return folder
 
 class Symbology(object):
     def __init__(self):

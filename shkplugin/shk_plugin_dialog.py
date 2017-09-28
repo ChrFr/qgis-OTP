@@ -46,7 +46,8 @@ from queries import (get_values, update_erreichbarkeiten,
 from ui_elements import (LabeledRangeSlider, SimpleSymbology,
                          SimpleFillSymbology, 
                          GraduatedSymbology, WaitDialog,
-                         EXCEL_FILTER, KML_FILTER, PDF_FILTER, browse_file)
+                         EXCEL_FILTER, KML_FILTER, PDF_FILTER,
+                         browse_file, browse_folder)
 
 config = Config()
 
@@ -70,6 +71,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.setupUi(self)
         self.load_config()
         self.save_button.clicked.connect(self.save_config)
+        self.browse_cache_button.clicked.connect(self.browse_cache)
         self.connect_button.clicked.connect(self.connect)
         self.login = None
 
@@ -136,6 +138,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.db_edit.setText(str(db_config['db_name']))
         self.host_edit.setText(str(db_config['host']))
         self.port_edit.setText(str(db_config['port']))
+        self.cache_edit.setText(str(config.cache_folder))
         
     def save_config(self):
         db_config = config.db_config
@@ -144,8 +147,16 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         db_config['db_name'] = str(self.db_edit.text())
         db_config['host'] = str(self.host_edit.text())
         db_config['port'] = str(self.port_edit.text())
+        config.cache_folder = str(self.cache_edit.text())
 
         config.write()
+
+    def browse_cache(self):
+        folder = browse_folder(self.cache_edit.text(),
+                               u'Verzeichnis für den Cache wählen',
+                               parent=self)
+        if folder:
+            self.cache_edit.setText(folder)
 
     def connect(self):
         
@@ -194,7 +205,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         layer = QgsVectorLayer(uri, name, "postgres")
         remove_layer(name, group)
         if to_shape:
-            path = config.save_folder
+            path = config.cache_folder
             if not os.path.exists(path):
                 os.mkdir(path)
             fn = os.path.join(path, name + '.shp')
