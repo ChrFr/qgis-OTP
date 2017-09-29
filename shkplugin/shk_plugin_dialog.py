@@ -26,6 +26,7 @@ import os
 from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtXml import QDomDocument
 from osgeo import gdal
+from time import time
 from qgis.core import (QgsDataSourceURI, QgsVectorLayer, 
                        QgsMapLayerRegistry, QgsRasterLayer,
                        QgsProject, QgsLayerTreeLayer, QgsRectangle,
@@ -33,8 +34,9 @@ from qgis.core import (QgsDataSourceURI, QgsVectorLayer,
 from qgis.gui import QgsLayerTreeMapCanvasBridge
 from qgis.utils import iface
 import numpy as np
-from xml.etree import ElementTree as ET
 from collections import defaultdict
+import pickle
+from filter_tree import FilterTree
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'shk_plugin_dialog_base.ui'))
@@ -54,9 +56,11 @@ config = Config()
 SCHEMA = 'einrichtungen'
 
 basepath = os.path.split(__file__)[0]
+FILTER_XML = os.path.join(os.path.split(__file__)[0], "filter.xml")
 OSM_XML = os.path.join(basepath, 'osm_map.xml')
 GOOGLE_XML = os.path.join(basepath, 'google_maps.xml')
 REPORT_TEMPLATE_PATH = os.path.join(basepath, 'report_template.qpt')
+PICKLE_EX = '{category}_filter_tree.pickle'
 
 
 class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
@@ -104,20 +108,18 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             'Kreise': QtCore.Qt.SolidLine
         }
         
-        self.categories = {
-            'Bildungseinrichtungen': ('bildung_gesamt', self.schools_tree),
-            'Gesundheit': ('gesundheit_gesamt', self.medicine_tree),
-            'Nahversorgung':  ('nahversorgung_gesamt', self.supply_tree)
-        }
-
-        for (table, tree) in self.categories.itervalues():
-            tree.headerItem().setHidden(True)
-            tree.header().setResizeMode(QtGui.QHeaderView.ResizeToContents)
-            tree.setHeaderLabels(['', ''])
-            tree.itemClicked.connect(filter_clicked)
         
         for button in ['filter_button', 'filter_button_2', 'filter_button_3']:
             getattr(self, button).clicked.connect(self.apply_filters)
+        
+        def refresh_filter():
+            if not self.login:
+                return
+            category = self.get_selected_tab()
+            filter_tree = self.categories[category]
+            self.wait_call(lambda: filter_tree.from_xml(FILTER_XML))
+        for button in ['refresh_button', 'refresh_button_2', 'refresh_button_3']:
+            getattr(self, button).clicked.connect(refresh_filter)
     
         self.calculate_car_button.clicked.connect(self.calculate_car)
         self.calculate_ov_button.clicked.connect(
@@ -130,6 +132,35 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.export_pdf_button.clicked.connect(self.create_report)
         
         self.canvas = iface.mapCanvas()
+        
+    def init_filters(self): 
+        self.categories = {
+            'Bildungseinrichtungen': FilterTree('Bildungseinrichtungen',
+                                                'bildung_gesamt',
+                                                self.db_conn,
+                                                self.schools_tree),
+            'Gesundheit': FilterTree('Gesundheit',
+                                     'gesundheit_gesamt',
+                                     self.db_conn,
+                                     self.medicine_tree),
+            'Nahversorgung': FilterTree('Nahversorgung',
+                                        'nahversorgung_gesamt',
+                                        self.db_conn,
+                                        self.supply_tree)
+        }
+        region_node = FilterTree.region_node(self.db_conn)
+        start = time()
+        for category, filter_tree in self.categories.iteritems():
+            ## loading from pickled tree is preferred
+            #fn = os.path.join(config.cache_folder, PICKLE_EX.format(
+                #category=category))
+            #if os.path.exists(fn):
+                #with open(fn,'r') as f:
+                    #tree = pickle.load(f)
+                #setattr(self, self.categories[category][1], tree)
+            #else:
+            filter_tree.from_xml(FILTER_XML, region_node=region_node)
+        print('Filter init {}s'.format(time() - start))
     
     def load_config(self):
         db_config = config.db_config
@@ -177,8 +208,11 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             return
         #diag = WaitDialogThreaded(self.refresh, parent=self,
                           #parent_thread=iface.mainWindow())
-        self.wait_call(self.refresh)
-        
+        self.connection_label.setText('verbunden')
+        self.connection_label.setStyleSheet('color: green')
+        self.wait_call(self.init_filters)
+        self.wait_call(self.init_layers)
+
     def wait_call(self, function):
         '''
         display wait-dialog while executing function, not threaded
@@ -241,14 +275,16 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         iface.legendInterface().setLayerVisible(layer, visible)
     
     def add_wms_background_map(self, group=None):
+        layer_name = 'OpenStreetMap WMS - by terrestris'
+        remove_layer(layer_name, group)
         url = ('crs=EPSG:31467&dpiMode=7&format=image/png&layers=OSM-WMS&'
                'styles=&url=http://ows.terrestris.de/osm-gray/service')
-        layer = QgsRasterLayer(url, 'OpenStreetMap WMS - by terrestris', 'wms')
+        layer = QgsRasterLayer(url, layer_name, 'wms')
         QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
         if group:
             group.addLayer(layer)
 
-    def refresh(self):
+    def init_layers(self):
         # just for the right initial order
         get_group('Filter')
         cat_group = get_group('Einrichtungen')
@@ -273,7 +309,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
     
         columns = ['spalte', 'editierbar', 'nur_auswahl_zulassen',
                    'auswahlmoeglichkeiten', 'alias']
-        for category, (table, tree) in self.categories.iteritems():
+        for category, filter_tree in self.categories.iteritems():
+            table = filter_tree.tablename
             symbology = SimpleSymbology(self.colors[category])
             layer = self.add_db_layer(category, SCHEMA, table, 'geom_gk',
                                       symbology, group=cat_group, zoom=False)
@@ -299,139 +336,16 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                         layer.setEditorWidgetV2(i, 'UniqueValues')
                 except:
                     layer.setEditorWidgetV2(i, 'Hidden')
-        
-        self.init_filters()
         # zoom to extent
+        self.canvas.refresh()
         extent = QgsRectangle()
         extent.setMinimal()
         for child in cat_group.children():
             if isinstance(child, QgsLayerTreeLayer):
+                #print child.layer().extent()
                 extent.combineExtentWith(child.layer().extent())
         self.canvas.setExtent(extent)
         self.canvas.refresh()
-            
-    def init_filters(self):
-        fn = os.path.join(os.path.split(__file__)[0], "filter.xml")
-        root = ET.parse(fn).getroot()
-        table_filters = dict([(c.attrib['name'], c.getchildren())
-                              for c in root.getchildren()])
-        region_node = self.region_node()
-        for layername, (tablename, tree) in self.categories.iteritems():
-            filter_nodes = table_filters[tablename]
-            item = QtGui.QTreeWidgetItem(tree, ['Spalten'])
-            item.setExpanded(True)
-            item.addChild(region_node.clone())
-            for child in filter_nodes:
-                self.add_filter_node(item, child, tablename, tree)
-            ##tree.resizeColumnToContents(0)
-    
-    def region_node(self):
-        root = QtGui.QTreeWidgetItem(['Landkreis'])
-        set_checkable(root)
-        columns = ['GEN', 'vwg_name', 'kreis_name']
-        rows = get_values('gemeinden_20161231', columns,
-                          self.db_conn, schema='verwaltungsgrenzen',
-                          where="in_region=TRUE")
-        krs_items = {}
-        vwg_items = {}
-        print(rows)
-        for gem_name, vwg_name, kreis_name in rows:
-            if vwg_name not in vwg_items:
-                if kreis_name not in krs_items:
-                    krs_item = QtGui.QTreeWidgetItem(root, [kreis_name])
-                    krs_items[kreis_name] = krs_item
-                    set_checkable(krs_item)
-                else:
-                    krs_item = krs_items[kreis_name]
-                vwg_item = QtGui.QTreeWidgetItem(krs_item, [vwg_name])
-                vwg_items[vwg_name] = vwg_item
-                set_checkable(vwg_item)
-            else:
-                vwg_item = vwg_items[vwg_name]
-            gem_item = QtGui.QTreeWidgetItem(vwg_item, [gem_name])
-            set_checkable(gem_item)
-        return root
-            
-    def add_filter_node(self, parent_item, node, tablename, tree, where=''):
-        alias = node.attrib['alias'] if node.attrib.has_key('alias') else None
-        display_name = alias or node.attrib['name']
-        item = None
-        if node.tag == 'column':
-            item = QtGui.QTreeWidgetItem(parent_item, [display_name])
-            set_checkable(item)
-            column = node.attrib['name'].encode('utf-8')
-            values = get_values(tablename, [column], self.db_conn,
-                                schema=SCHEMA, where=where)
-            
-            #stripped = []
-            #for value, in values:
-                #if type(value) == str:
-                    #value = value.strip()
-                #elif value is None:
-                    #continue
-                #stripped.append(value)
-
-            if node.attrib.has_key('input'):
-            
-                if node.attrib['input'] == 'range':
-                    values = [v for v, in values if v is not None]
-                    v_min = np.min(values) if values else 0
-                    v_max = np.max(values) if values else 0
-                    slider = LabeledRangeSlider(v_min, v_max)
-                    tree.setItemWidget(item, 1, slider)
-                item.input_type = node.attrib['input']
-            else:
-                values = ['' if v is None else v for v, in values]
-                options = np.sort(np.unique(values))
-                for o in options:
-                    option = QtGui.QTreeWidgetItem(item, [o])
-                    set_checkable(option)
-                
-            item.column = column
-            where = ''
-            
-        elif node.tag == 'value' and node.attrib['name'] != '*':
-            value = node.attrib['name']
-            # search parent for entry; if exists, add children to found one
-            found = None
-            for i in range(parent_item.childCount()):
-                child = parent_item.child(i)
-                if child.text(0) == value:
-                    found = child
-                    break
-            item = found
-            if hasattr(parent_item, 'column'):
-                where = """"{c}" = '{v}'""".format(c=parent_item.column,
-                                                   v=value)
-        
-        elif node.tag == 'value' and node.attrib['name'] != '*':
-            name = node.attrib['name']
-            # search parent for entry; if exists, add children to found one
-            found = None
-            for i in range(parent_item.childCount()):
-                child = parent_item.child(i)
-                if child.text(0) == name:
-                    found = child
-                    break
-            item = found
-            if hasattr(parent_item, 'column'):
-                where = u""""{c}" = '{v}'""".format(c=parent_item.column,
-                                                   v=name)
-        # SPECIAL CASE: Joker, do the same for all child nodes
-        elif node.tag == 'value' and node.attrib['name'] == '*':
-            for i in range(parent_item.childCount()):
-                item = parent_item.child(i)
-                if hasattr(parent_item, 'column'):
-                    where = u""""{c}" = '{v}'""".format(c=parent_item.column,
-                                                       v=item.text(0))
-                for child in list(node):
-                    self.add_filter_node(item, child, tablename, tree, where)
-            return
-
-        # recursively build nodes from children
-        if item:
-            for child in list(node):
-                self.add_filter_node(item, child, tablename, tree, where)
     
     def apply_filters(self):
         if not self.login:
@@ -443,25 +357,15 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if not ok:
             return
         
-        table, tree = self.categories[category]
-        root = tree.topLevelItem(0)
-        queries = []
-        for i in range(root.childCount()):
-            child = root.child(i)
-            # root 'Spalten' has columns as children, no need to process them
-            # if not checked
-            if child.checkState(0) != QtCore.Qt.Unchecked:
-                subquery = build_queries(child, tree)
-                if subquery:
-                    queries.append(subquery)
-        subset = u' AND '.join(queries)
+        filter_tree = self.categories[category]
+        subset = filter_tree.to_sql_query()
         orig_layer = QgsMapLayerRegistry.instance().mapLayersByName(category)[0]
     
         parent_group = get_group('Filter')
         subgroup = get_group(category, parent_group)
         remove_layer(name, subgroup)
         
-        #print(subset)
+        print(subset)
         layer = QgsVectorLayer(orig_layer.source(), name, "postgres")
         QgsMapLayerRegistry.instance().addMapLayer(layer, False)
         subgroup.addLayer(layer)
@@ -626,11 +530,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         composition.refreshItems()
         composition.exportAsPDF(filepath)
 
-def set_checkable(item):
-    item.setCheckState(0, QtCore.Qt.Unchecked)
-    item.setFlags(QtCore.Qt.ItemIsUserCheckable |
-                  QtCore.Qt.ItemIsEnabled)
-
 def get_group(groupname, parent_group=None):
     if not parent_group:
         parent_group = QgsProject.instance().layerTreeRoot()
@@ -645,91 +544,6 @@ def remove_group_layers(group):
             continue
         l = child.layer()
         QgsMapLayerRegistry.instance().removeMapLayer(l.id())
-    
-def build_queries(tree_item, tree):
-    queries = ''
-    child_count = tree_item.childCount()
-    
-    ### COLUMN ###
-    if hasattr(tree_item, 'column'):
-        column = tree_item.column
-        if hasattr(tree_item, 'input_type'):
-            widget = tree.itemWidget(tree_item, 1)
-            if tree_item.input_type == 'range':
-                query = u'"{c}" BETWEEN {min} AND {max}'.format(
-                    c=column, min=widget.min, max=widget.max)
-                ## columns with special input types will not have any children
-                return query
-            
-        ## normal columns may have subqueries (if value matches definition in xml)
-        #else:
-        values = []
-        subqueries = []
-        for i in range(tree_item.childCount()):
-            child = tree_item.child(i)
-            if child.checkState(0) != QtCore.Qt.Unchecked:
-                value = child.text(0)
-                if child.childCount() > 0:
-                    sq = build_queries(child, tree)
-                    sq = u' AND ({})'.format(sq) if sq else ''
-                    subquery = u'''("{c}" = '{v}' {s})'''.format(
-                        c=column, v=value, s=sq)
-                    subqueries.append(subquery)
-                else:
-                    values.append(value)
-        query = ''
-        if len(values) > 0:
-            query = u'"{c}" IN ({v})'.format(
-                c=column,  v=u','.join(u"'{}'".format(v) for v in values))
-            queries += u' ' + query
-        if len(subqueries) > 0:
-            if query:
-                queries += u' OR '
-            queries += u'({})'.format(u' OR '.join(subqueries))
-            
-    ### VALUE ###
-    else:
-        if child_count > 0:
-            subqueries = []
-            for i in range(tree_item.childCount()):
-                child = tree_item.child(i)
-                if (child.checkState(0) != QtCore.Qt.Unchecked):
-                    sq = build_queries(child, tree)
-                    if sq:
-                        subqueries.append(sq)
-            queries += u' AND '.join(subqueries)
-            
-    return queries
-
-def filter_clicked(item):
-    
-    # check or uncheck all direct children
-    if item.checkState(0) != QtCore.Qt.PartiallyChecked:
-        state = item.checkState(0)
-        if hasattr(item, 'column'):
-            for i in range(item.childCount()):
-                child = item.child(i)
-                child.setCheckState(0, state)
-
-    parent = item.parent()
-    while (parent and parent.text(0) != 'Spalten'):
-        # check/uncheck/partial check of parent of given item, depending on number of checked children
-        child_count = parent.childCount()
-        checked_count = 0
-        for i in range(child_count):
-            child = parent.child(i)
-            is_checked = False
-            if (child.checkState(0) != QtCore.Qt.Unchecked):
-                checked_count += 1
-                is_checked = True
-        if checked_count == 0:
-            parent.setCheckState(0, QtCore.Qt.Unchecked)
-        elif checked_count == child_count:
-            parent.setCheckState(0, QtCore.Qt.Checked)
-        else:
-            parent.setCheckState(0, QtCore.Qt.PartiallyChecked)
-            
-        parent = parent.parent()
 
 def remove_layer(name, group=None):
     
