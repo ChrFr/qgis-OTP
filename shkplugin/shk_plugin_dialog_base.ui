@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>523</width>
-    <height>560</height>
+    <width>540</width>
+    <height>662</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -50,15 +50,65 @@
      </layout>
     </item>
     <item>
-     <widget class="QTabWidget" name="tabWidget_2">
+     <widget class="QTabWidget" name="main_tabs">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
         <string>Filter Einrichtungen</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_9">
+          <item>
+           <widget class="QPushButton" name="filter_selection_button">
+            <property name="text">
+             <string>nach Karten-Auswahl filtern</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_12">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_11">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>10</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_5">
+          <property name="text">
+           <string>nach Feldern filtern</string>
+          </property>
+         </widget>
+        </item>
         <item>
          <widget class="QTabWidget" name="selection_tabs">
           <property name="currentIndex">
@@ -75,7 +125,7 @@
                <number>2</number>
               </property>
               <attribute name="headerVisible">
-               <bool>true</bool>
+               <bool>false</bool>
               </attribute>
               <column>
                <property name="text">
@@ -716,7 +766,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>523</width>
+     <width>540</width>
      <height>21</height>
     </rect>
    </property>

@@ -112,6 +112,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         for button in ['filter_button', 'filter_button_2', 'filter_button_3']:
             getattr(self, button).clicked.connect(self.apply_filters)
         
+        self.filter_selection_button.clicked.connect(self.filter_selection)
+        
         def refresh_filter():
             if not self.login:
                 return
@@ -132,6 +134,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.export_pdf_button.clicked.connect(self.create_report)
         
         self.canvas = iface.mapCanvas()
+        
+        # disable first tabs at startup (till connection)
+        self.main_tabs.setTabEnabled(0, False)
+        self.main_tabs.setTabEnabled(1, False)
         
     def init_filters(self): 
         self.categories = {
@@ -210,6 +216,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                           #parent_thread=iface.mainWindow())
         self.connection_label.setText('verbunden')
         self.connection_label.setStyleSheet('color: green')
+        self.main_tabs.setTabEnabled(0, True)
+        self.main_tabs.setTabEnabled(1, True)
+        self.main_tabs.setCurrentIndex(0)
         self.wait_call(self.init_filters)
         self.wait_call(self.init_layers)
 
@@ -347,13 +356,68 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.canvas.setExtent(extent)
         self.canvas.refresh()
     
+    def filter_selection(self):
+        if not self.login:
+            return
+        # either name of layer or group have to match a category
+        active_layer = iface.activeLayer()
+        categories = self.categories.keys()
+        layer_error = (u'Sie müssen im Layerfenster einen '
+                       u'Layer aus den Kategorien {} wählen '
+                       u'(wahlweise aus den Gruppen Einrichtungen oder Filter).'
+                       .format(', '.join(categories)))
+        if not active_layer:
+            QtGui.QMessageBox.information(self, 'Fehler', layer_error)
+            return
+        else:
+            layer_name = active_layer.name()
+            if layer_name in categories:
+                category = layer_name
+            else:
+                project_tree = QgsProject.instance().layerTreeRoot()
+                layer_item = project_tree.findLayer(active_layer.id())
+                group = layer_item.parent()
+                group_name = group.name()
+                if group_name in categories:
+                    category = group_name
+                else:
+                    QtGui.QMessageBox.information(self, 'Fehler', layer_error)
+                    return
+            selected_feats = active_layer.selectedFeatures()
+            if not selected_feats:
+                msg = (u'Im ausgewählten Layer {} sind keine '
+                       u'Einrichtungen selektiert.'.format(layer_name))
+                QtGui.QMessageBox.information(self, 'Fehler', layer_error)
+                return
+    
+            parent_group = get_group('Filter')
+            subgroup = get_group(category, parent_group)
+            ids = [str(f.attribute('id')) for f in selected_feats]
+            name, ok = QtGui.QInputDialog.getText(
+                self, 'Filter', 'Name des zu erstellenden Layers',
+                text=get_unique_layer_name(category, subgroup))
+            if not ok:
+                return
+            
+            subset = 'id in ({})'.format(','.join(ids))
+            layer = QgsVectorLayer(active_layer.source(), name, "postgres")
+            remove_layer(name, subgroup)
+            
+            QgsMapLayerRegistry.instance().addMapLayer(layer, False)
+            subgroup.addLayer(layer)
+            layer.setSubsetString(subset)
+            symbology = SimpleSymbology(self.colors[category], shape='triangle')
+            symbology.apply(layer)
+    
     def apply_filters(self):
         if not self.login:
             return
         category = self.get_selected_tab()
-        name, ok = QtGui.QInputDialog.getText(self, 'Filter',
-                                              'Name des zu erstellenden Layers',
-                                              text=category)
+        parent_group = get_group('Filter')
+        subgroup = get_group(category, parent_group)
+        name, ok = QtGui.QInputDialog.getText(
+            self, 'Filter', 'Name des zu erstellenden Layers',
+            text=get_unique_layer_name(category, subgroup))
         if not ok:
             return
         
@@ -361,8 +425,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         subset = filter_tree.to_sql_query()
         orig_layer = QgsMapLayerRegistry.instance().mapLayersByName(category)[0]
     
-        parent_group = get_group('Filter')
-        subgroup = get_group(category, parent_group)
         remove_layer(name, subgroup)
 
         layer = QgsVectorLayer(orig_layer.source(), name, "postgres")
@@ -559,6 +621,20 @@ def remove_layer(name, group=None):
             if l and l.name() == name:
                 QgsMapLayerRegistry.instance().removeMapLayer(l.id())
         
+def get_unique_layer_name(name, group):
+    orig_name = name
+    retry = True
+    i = 2
+    while retry:
+        retry = False
+        for child in group.children():
+            if not hasattr(child, 'layer'):
+                continue
+            l = child.layer()
+            if l and l.name() == name:
+                name = orig_name + '_{}'.format(i)
+                retry = True
+    return name
         
 if __name__ == '__main__':
     print
