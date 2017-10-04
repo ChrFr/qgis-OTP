@@ -363,9 +363,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         active_layer = iface.activeLayer()
         categories = self.categories.keys()
         layer_error = (u'Sie müssen im Layerfenster einen '
-                       u'Layer aus den Kategorien {} wählen '
-                       u'(wahlweise aus den Gruppen Einrichtungen oder Filter).'
-                       .format(', '.join(categories)))
+                       u'Layer auswählen, wahlweise aus den Gruppen '
+                       u'Einrichtungen oder Filter.')
         if not active_layer:
             QtGui.QMessageBox.information(self, 'Fehler', layer_error)
             return
@@ -387,7 +386,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             if not selected_feats:
                 msg = (u'Im ausgewählten Layer {} sind keine '
                        u'Einrichtungen selektiert.'.format(layer_name))
-                QtGui.QMessageBox.information(self, 'Fehler', layer_error)
+                QtGui.QMessageBox.information(self, 'Fehler', msg)
                 return
     
             parent_group = get_group('Filter')
@@ -634,6 +633,8 @@ def get_unique_layer_name(name, group):
             if l and l.name() == name:
                 name = orig_name + '_{}'.format(i)
                 retry = True
+                i += 1
+                break
     return name
         
 if __name__ == '__main__':
