@@ -159,7 +159,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                     #tree = pickle.load(f)
                 #setattr(self, self.categories[category][1], tree)
             #else:
-            filter_tree.from_xml(FILTER_XML, region_node=region_node)
+            filter_tree.from_xml(FILTER_XML)  #, region_node=region_node)
         print('Filter init {}s'.format(time() - start))
     
     def load_config(self):
@@ -277,7 +277,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
     def add_wms_background_map(self, group=None):
         layer_name = 'OpenStreetMap WMS - by terrestris'
         remove_layer(layer_name, group)
-        url = ('crs=EPSG:31467&dpiMode=7&format=image/png&layers=OSM-WMS&'
+        url = ('crs=EPSG:31468&dpiMode=7&format=image/png&layers=OSM-WMS&'
                'styles=&url=http://ows.terrestris.de/osm-gray/service')
         layer = QgsRasterLayer(url, layer_name, 'wms')
         QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
@@ -364,8 +364,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         parent_group = get_group('Filter')
         subgroup = get_group(category, parent_group)
         remove_layer(name, subgroup)
-        
-        print(subset)
+
         layer = QgsVectorLayer(orig_layer.source(), name, "postgres")
         QgsMapLayerRegistry.instance().addMapLayer(layer, False)
         subgroup.addLayer(layer)

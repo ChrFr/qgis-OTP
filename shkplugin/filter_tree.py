@@ -26,13 +26,23 @@ class FilterTree(object):
         self.parent_node.clear()
         table_filters = dict([(c.attrib['name'], c.getchildren())
                               for c in xml_root.getchildren()])
-        if not region_node:
-            region_node = self.region_node(self.db_conn)
+        #if not region_node:
+        region_node = self.region_node(self.db_conn)
+        #else:
+            ## cloning looses appended attributes like column
+            #clone = region_node.clone()
+            #def clone_attr(cloned, original):
+                #if hasattr(original, 'column'):
+                    #cloned.column = original.column
+                #for i in range(original.childCount()):
+                    #clone_attr(cloned.child(i), original.child(i))
+            #clone_attr(clone, region_node)
+            #region_node = clone
             
         filter_nodes = table_filters[self.tablename]
         item = QtGui.QTreeWidgetItem(self.parent_node, ['Spalten'])
         item.setExpanded(True)
-        item.addChild(region_node.clone())
+        item.addChild(region_node)
         for child in filter_nodes:
             self.add_filter_node(item, child, self.tablename, self.parent_node)
         #fn = os.path.join(config.cache_folder, PICKLE_EX.format(
@@ -40,31 +50,41 @@ class FilterTree(object):
         
     @staticmethod
     def region_node(db_conn):
-        root = QtGui.QTreeWidgetItem(['Landkreis'])
-        set_checkable(root)
         columns = ['GEN', 'vwg_name', 'kreis_name']
+        # the names differ in the einrichtungen tables
+        columns_ein_table = ['Gemeinde', 'VG', 'Landkreis']
+        krs_root = QtGui.QTreeWidgetItem(['Landkreis'])
+        krs_root.column = columns_ein_table[2]
+        set_checkable(krs_root)
         rows = get_values('gemeinden_20161231', columns,
                           db_conn, schema='verwaltungsgrenzen',
                           where="in_region=TRUE")
-        krs_items = {}
-        vwg_items = {}
+        vwg_roots = {}
+        gem_roots = {}
         for gem_name, vwg_name, kreis_name in rows:
-            if vwg_name not in vwg_items:
-                if kreis_name not in krs_items:
-                    krs_item = QtGui.QTreeWidgetItem(root, [kreis_name])
-                    krs_items[kreis_name] = krs_item
+            if vwg_name not in gem_roots:
+                if kreis_name not in vwg_roots:
+                    krs_item = QtGui.QTreeWidgetItem(krs_root, [kreis_name])
+                    vwg_root = QtGui.QTreeWidgetItem(
+                        krs_item, ['Verwaltungsgemeinschaft'])
+                    vwg_root.column = columns_ein_table[1]
+                    vwg_roots[kreis_name] = vwg_root
                     set_checkable(krs_item)
+                    set_checkable(vwg_root)
                 else:
-                    krs_item = krs_items[kreis_name]
-                vwg_item = QtGui.QTreeWidgetItem(krs_item, [vwg_name])
-                vwg_items[vwg_name] = vwg_item
+                    vwg_root = vwg_roots[kreis_name]
+                vwg_item = QtGui.QTreeWidgetItem(vwg_root, [vwg_name])
+                gem_root = QtGui.QTreeWidgetItem(vwg_item, ['Gemeinde'])
+                gem_root.column = columns_ein_table[0]
+                gem_roots[vwg_name] = gem_root
                 set_checkable(vwg_item)
+                set_checkable(gem_root)
             else:
-                vwg_item = vwg_items[vwg_name]
-            gem_item = QtGui.QTreeWidgetItem(vwg_item, [gem_name])
+                gem_root = gem_roots[vwg_name]
+            gem_item = QtGui.QTreeWidgetItem(gem_root, [gem_name])
             set_checkable(gem_item)
-        return root
-            
+        return krs_root
+
     def add_filter_node(self, parent_item, node, tablename, tree, where=''):
         alias = node.attrib['alias'] if node.attrib.has_key('alias') else None
         display_name = alias or node.attrib['name']
@@ -128,7 +148,7 @@ class FilterTree(object):
                 item = parent_item.child(i)
                 if hasattr(parent_item, 'column'):
                     where = u""""{c}" = '{v}'""".format(c=parent_item.column,
-                                                       v=item.text(0))
+                                                        v=item.text(0))
                 for child in list(node):
                     self.add_filter_node(item, child, tablename, tree, where)
             return
@@ -140,7 +160,7 @@ class FilterTree(object):
 
     def to_sql_query(self):
         root = self.parent_node.topLevelItem(0)
-        queries = []
+        subqueries = []
         for i in range(root.childCount()):
             child = root.child(i)
             # root 'Spalten' has columns as children, no need to process them
@@ -148,8 +168,8 @@ class FilterTree(object):
             if child.checkState(0) != QtCore.Qt.Unchecked:
                 subquery = self._build_queries(child)
                 if subquery:
-                    queries.append(subquery)
-        query = u' AND '.join(queries)
+                    subqueries.append(subquery)
+        query = u' AND '.join(subqueries)
         return query
     
     def _build_queries(self, tree_item): 
