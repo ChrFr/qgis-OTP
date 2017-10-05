@@ -12,7 +12,7 @@ def set_checkable(item):
 
 class FilterTree(object):
 
-    def __init__(self, category, tablename, db_conn, parent_node):
+    def __init__(self, category, tablename, scenario_id, db_conn, parent_node):
         parent_node.headerItem().setHidden(True)
         parent_node.header().setResizeMode(QtGui.QHeaderView.ResizeToContents)
         parent_node.setHeaderLabels(['', ''])
@@ -20,6 +20,7 @@ class FilterTree(object):
         self.parent_node = parent_node
         self.tablename = tablename
         self.db_conn = db_conn
+        self.scenario_id = scenario_id
     
     def from_xml(self, xml_file, region_node=None):
         xml_root = ET.parse(xml_file).getroot()
@@ -44,7 +45,8 @@ class FilterTree(object):
         item.setExpanded(True)
         item.addChild(region_node)
         for child in filter_nodes:
-            self.add_filter_node(item, child, self.tablename, self.parent_node)
+            self.add_filter_node(item, child, self.tablename,
+                                 self.parent_node)
         #fn = os.path.join(config.cache_folder, PICKLE_EX.format(
             #category=category))
         
@@ -93,6 +95,9 @@ class FilterTree(object):
             item = QtGui.QTreeWidgetItem(parent_item, [display_name])
             set_checkable(item)
             column = node.attrib['name'].encode('utf-8')
+            where = 'szenario_id={s_id} {where}'.format(
+                s_id=self.scenario_id,
+                where=' AND {}'.format(where) if where else '')
             values = get_values(tablename, [column], self.db_conn,
                                 schema='einrichtungen', where=where)
 
@@ -147,8 +152,8 @@ class FilterTree(object):
             for i in range(parent_item.childCount()):
                 item = parent_item.child(i)
                 if hasattr(parent_item, 'column'):
-                    where = u""""{c}" = '{v}'""".format(c=parent_item.column,
-                                                        v=item.text(0))
+                    where = u""""{c}" = '{v}'""".format(
+                        c=parent_item.column, v=item.text(0))
                 for child in list(node):
                     self.add_filter_node(item, child, tablename, tree, where)
             return
@@ -225,8 +230,8 @@ class FilterTree(object):
                         if sq:
                             subqueries.append(sq)
                 queries += u' AND '.join(subqueries)
-                
-        return queries    
+        queries = 'szenario_id={s_id} AND ({})'.format(queries)
+        return queries
 
     def filter_clicked(self, item):
         

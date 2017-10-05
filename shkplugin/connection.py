@@ -166,11 +166,15 @@ class DBConnection(object):
             cursor.copy_expert(sql, fileobject)
 
     def execute(self, sql):
+        ret = None
         with Connection(login=self.login) as conn:
             self.conn = conn
             cursor = self.conn.cursor()
             try:
                 cursor.execute(sql)
+                if cursor.description:
+                    ret = cursor.fetchone()[0]
             except psycopg2.ProgrammingError as e:
                 raise psycopg2.ProgrammingError(e.message)
             conn.commit()
+        return ret

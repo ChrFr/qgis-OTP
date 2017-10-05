@@ -1,5 +1,5 @@
 <root>
-    <table name="bildung_gesamt">
+    <table name="bildung_szenario">
         <column name="Korrektur" />
         <column name="Unterbereich">
             <value name="Heime">
@@ -20,7 +20,7 @@
             </value>
         </column>
     </table>
-    <table name="gesundheit_gesamt">
+    <table name="gesundhei_szenario">
         <column name="Korrektur" />
         <column name="Unterbereich">
             <value name="Hausarzt">
@@ -41,7 +41,7 @@
             </value>
         </column>
     </table>
-    <table name="nahversorgung_gesamt">
+    <table name="nahversorgung_szenario">
         <column name="Korrektur" />
         <column name="Unterbereich">
             <value name="Nahversorger">

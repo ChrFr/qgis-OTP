@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+BASE_SCENARIO_ID = 1
+
+from datetime import datetime
 
 def get_values(table, columns, db_conn, schema='public', where=''):
     sql = """
@@ -92,3 +95,77 @@ def update_gemeinde_erreichbarkeiten(tag, db_conn):
     db_conn.execute(view_sql.format(err_schema=err_schema,
                                     tag=tag, table=table, 
                                     gem_table=gem_table))
+    
+def create_scenario(name, user, db_conn):
+    
+    table = 'szenarien'
+    schema = 'einrichtungen'
+    sql_scen = u"""
+    INSERT INTO {schema}.{table} (name, benutzer, datum)
+    VALUES ('{name}','{user}', '{ts}')
+    RETURNING id
+    """
+    scenario_id = db_conn.execute(
+        sql_scen.format(schema=schema, table=table,
+                        name=name, user=user, ts=datetime.now()))
+    sql_duplicate = u"""
+    SELECT 'INSERT INTO {schema}.{table} (szenario_id, ' || 
+    array_to_string(ARRAY(SELECT '"' || c.column_name || '"'
+            FROM information_schema.columns As c
+                WHERE table_name = '{table}'
+               AND table_schema = '{schema}'
+               AND  c.column_name NOT IN('szenario_id', 'id')
+        ), ',')
+    
+     || ') SELECT {s_id} AS szenario_id, '
+     || array_to_string(ARRAY(SELECT 'o' || '."' || c.column_name || '"'
+            FROM information_schema.columns As c
+                WHERE table_name = '{table}' 
+               AND table_schema = '{schema}'
+               AND  c.column_name NOT IN('szenario_id', 'id')
+        ), ',') || ' FROM {schema}.{table} As o WHERE "szenario_id" = {base_id}' As sqlstmt;
+    """
+    sql2 = """SELECT '"' || c.column_name || '"'
+            FROM information_schema.columns As c
+                WHERE table_name = '{table}'
+               AND table_schema = '{schema}'
+               AND  c.column_name NOT IN('szenario_id', 'id')"""
+    tables = ['bildung_szenario']
+    for table in tables:
+        #b = db_conn.execute(sql2.format(schema=schema, table=table))
+        #print(b)
+        full_sql = db_conn.execute(sql_duplicate.format(schema=schema, table=table,
+                                             s_id=scenario_id, 
+                                             base_id=BASE_SCENARIO_ID))
+        db_conn.execute(full_sql)
+
+def remove_scenario(scenario_id, db_conn):
+    table = 'szenarien'
+    schema = 'einrichtungen'
+    # should not happen, but as a precaution to prevent deleting the base scenario
+    if scenario_id == BASE_SCENARIO_ID:
+        return
+    sql = """
+    DELETE FROM {schema}.{table} WHERE id={s_id}
+    """
+    db_conn.execute(sql.format(schema=schema, table=table, s_id=scenario_id))
+
+
+class Scenario(object):
+    def __init__(self, id, name, user, date, editable):
+        self.id = id
+        self.name = name
+        self.user = user
+        self.date = date
+        self.editable = editable
+
+def get_scenarios(db_conn):
+    table = 'szenarien'
+    schema = 'einrichtungen'
+    columns = ['id', 'name', 'benutzer', 'datum', 'editierbar']
+    rows = get_values(table, columns, db_conn, schema=schema)
+    scenarios = []
+    for id, name, user, date, editable in rows:
+        scenario = Scenario(id, name, user, date, editable)
+        scenarios.append(scenario)
+    return scenarios

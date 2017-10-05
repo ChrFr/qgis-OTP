@@ -44,12 +44,13 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 from config import Config
 from connection import DBConnection, Login
 from queries import (get_values, update_erreichbarkeiten,
-                     update_gemeinde_erreichbarkeiten)
+                     update_gemeinde_erreichbarkeiten, create_scenario,
+                     get_scenarios, remove_scenario)
 from ui_elements import (LabeledRangeSlider, SimpleSymbology,
                          SimpleFillSymbology, 
                          GraduatedSymbology, WaitDialog,
                          EXCEL_FILTER, KML_FILTER, PDF_FILTER,
-                         browse_file, browse_folder)
+                         browse_file, browse_folder, CreateScenarioDialog)
 
 config = Config()
 
@@ -133,27 +134,62 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             lambda: self.export_filter_layer(ext='kml'))
         self.export_pdf_button.clicked.connect(self.create_report)
         
+        self.scen_create_button.clicked.connect(self.create_scenario)
+        self.scen_refresh_button.clicked.connect(self.refresh_scen_list)
+        
         self.canvas = iface.mapCanvas()
         
         # disable first tabs at startup (till connection)
-        self.main_tabs.setTabEnabled(0, False)
-        self.main_tabs.setTabEnabled(1, False)
-        
-    def init_filters(self): 
+        for i in range(3):
+            self.main_tabs.setTabEnabled(i, False)
+            
+        self.active_scenario = None
+        self.active_scenario_label.setText(u'kein Szenario ausgewählt')
+        self.active_scenario_label.setStyleSheet('color: red')
         self.categories = {
-            'Bildungseinrichtungen': FilterTree('Bildungseinrichtungen',
-                                                'bildung_gesamt',
-                                                self.db_conn,
-                                                self.schools_tree),
-            'Gesundheit': FilterTree('Gesundheit',
-                                     'gesundheit_gesamt',
-                                     self.db_conn,
-                                     self.medicine_tree),
-            'Nahversorgung': FilterTree('Nahversorgung',
-                                        'nahversorgung_gesamt',
-                                        self.db_conn,
-                                        self.supply_tree)
+            'Bildungseinrichtungen': None,
+            #'Gesundheit': None,
+            #'Nahversorgung': None
         }
+        
+        def scenario_info(idx):
+            scenario = self.scenario_combo.itemData(idx)
+            if not scenario:
+                name = user = date = '-'
+            else:
+                name = scenario.name
+                user = scenario.user
+                date = '{:%d.%m.%Y - %H:%M}'.format(scenario.date)
+            self.scen_name_edit.setText(name)
+            self.scen_user_edit.setText(user)
+            self.scen_date_edit.setText(date)
+    
+        self.scenario_combo.currentIndexChanged.connect(scenario_info)
+        
+        def get_selected_scenario(): 
+            idx = self.scenario_combo.currentIndex()
+            scenario = self.scenario_combo.itemData(idx)
+            return scenario
+        
+        self.scen_select_button.clicked.connect(
+            lambda: self.activate_scenario(get_selected_scenario()))
+        self.scen_delete_button.clicked.connect(
+            lambda: self.remove_scenario(get_selected_scenario()))
+        
+    def init_filters(self, scenario):
+        if not scenario:
+            return
+        scenario_id = scenario.id
+        self.categories['Bildungseinrichtungen'] = FilterTree(
+            'Bildungseinrichtungen', 'bildung_szenario', scenario_id,
+            self.db_conn, self.schools_tree)
+        #self.categories['Gesundheit'] = FilterTree(
+            #'Gesundheit', 'gesundheit_gesamt', scenario_id,
+            #self.db_conn, self.medicine_tree)
+        #self.categories['Nahversorgung'] = FilterTree(
+            #'Nahversorgung', 'nahversorgung_gesamt', scenario_id,
+            #self.db_conn, self.supply_tree)
+
         region_node = FilterTree.region_node(self.db_conn)
         start = time()
         for category, filter_tree in self.categories.iteritems():
@@ -217,12 +253,36 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.connection_label.setText('verbunden')
         self.connection_label.setStyleSheet('color: green')
         self.main_tabs.setTabEnabled(0, True)
-        self.main_tabs.setTabEnabled(1, True)
         self.main_tabs.setCurrentIndex(0)
-        self.wait_call(self.init_filters)
-        self.wait_call(self.init_layers)
-
+        self.refresh_scen_list()
+        #self.wait_call(self.init_filters)
+        #self.wait_call(self.init_layers)
+    
+    def activate_scenario(self, scenario):
+        # you may pass None as a scenario to deactivate current one
+        activated = True if scenario else False
+        self.wait_call(lambda: self.init_filters(scenario))
+        self.wait_call(lambda: self.init_layers(scenario))
+        self.active_scenario = scenario
+        font = self.active_scenario_label.font()
+        font.setBold(activated)
+        self.active_scenario_label.setFont(font)
+        if activated:
+            label = u'{n} {u}'.format(
+                n=scenario.name,
+                u=u'@{}'.format(scenario.user) if scenario.user else '')
+            self.active_scenario_label.setText(label)
+            self.active_scenario_label.setStyleSheet('color: black')
+        else:
+            self.active_scenario_label.setText(u'kein Szenario ausgewählt')
+            self.active_scenario_label.setStyleSheet('color: red')
+        # activate filters and erreichbarkeiten
+        for i in range(1, 3):
+            self.main_tabs.setTabEnabled(i, activated)
+        self.refresh_scen_list()
+            
     def wait_call(self, function):
+        
         '''
         display wait-dialog while executing function, not threaded
         (arcgis doesn't seem to handle multiple threads well)
@@ -231,6 +291,49 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         diag.show()
         function()
         diag.close()
+    
+    def create_scenario(self):
+        dialog = CreateScenarioDialog(parent=self)
+        result = dialog.exec_()
+        ok = result == QtGui.QDialog.Accepted
+        if not ok:
+            return
+        name = dialog.name
+        user = dialog.user
+        self.wait_call(lambda: create_scenario(name, user, self.db_conn))
+        self.refresh_scen_list()
+        
+    def remove_scenario(self, scenario):
+        msg = QtGui.QMessageBox(QtGui.QMessageBox.Warning, 'Achtung',
+                                u'Wollen Sie das Szenario "{}" und '
+                                u'seine Daten wirklich löschen?'
+                                .format(scenario.name), parent=self)
+        msg.setStandardButtons(QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel)
+        result = msg.exec_()
+        ok = result == QtGui.QMessageBox.Ok
+        if not ok:
+            return
+        remove_scenario(scenario.id, self.db_conn)
+        self.refresh_scen_list()
+        if self.active_scenario and scenario.id == self.active_scenario.id:
+            self.activate_scenario(None)
+    
+    def refresh_scen_list(self):
+        scenarios = get_scenarios(self.db_conn)
+        self.scenario_combo.clear()
+        select = idx = 0
+        for scenario in scenarios:
+            if not scenario.editable:
+                continue
+            label = u'{n} {u}'.format(
+                n=scenario.name,
+                u=u'@{}'.format(scenario.user) if scenario.user else '')
+            if self.active_scenario and self.active_scenario.id == scenario.id:
+                select = idx
+                label += ' (aktiv)'
+            self.scenario_combo.addItem(label, scenario)
+            idx += 1
+        self.scenario_combo.setCurrentIndex(select)
 
     def add_db_layer(self, name, schema, tablename, geom,
                      symbology=None, uri=None, key=None, zoom=False,
@@ -293,13 +396,14 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if group:
             group.addLayer(layer)
 
-    def init_layers(self):
+    def init_layers(self, scenario):
+        scen_group = get_group(scenario.name)
         # just for the right initial order
-        get_group('Filter')
-        cat_group = get_group('Einrichtungen')
-        border_group = get_group('Verwaltungsgrenzen')
-        get_group('Erreichbarkeiten PKW')
-        get_group(u'Erreichbarkeiten ÖPNV')
+        get_group('Filter', scen_group)
+        cat_group = get_group('Einrichtungen', scen_group)
+        border_group = get_group('Verwaltungsgrenzen', scen_group)
+        get_group('Erreichbarkeiten PKW', scen_group)
+        get_group(u'Erreichbarkeiten ÖPNV', scen_group)
         self.add_wms_background_map(group=get_group('Hintergrundkarte'))
         self.add_xml_background_map(GOOGLE_XML,
                                     group=get_group('Hintergrundkarte'),
@@ -322,7 +426,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             table = filter_tree.tablename
             symbology = SimpleSymbology(self.colors[category])
             layer = self.add_db_layer(category, SCHEMA, table, 'geom_gk',
-                                      symbology, group=cat_group, zoom=False)
+                                      symbology, group=cat_group, zoom=False,
+                                      where='szenario_id={}'.format(scenario.id))
             rows = get_values('editierbare_spalten', columns,
                               self.db_conn, schema='einrichtungen',
                               where="tabelle='{}'".format(table))

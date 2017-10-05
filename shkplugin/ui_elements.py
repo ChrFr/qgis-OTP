@@ -352,4 +352,41 @@ class WaitDialogThreaded(WaitDialog):
         if self.done:
             super(WaitDialog, self).closeEvent(evnt)
         else:
-            evnt.ignore() 
+            evnt.ignore()
+
+class CreateScenarioDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        super(CreateScenarioDialog, self).__init__(parent)
+
+        layout = QtGui.QVBoxLayout(self)
+        self.name = self.user = None
+
+        # nice widget for editing the date
+        name_label = QtGui.QLabel(parent=self)
+        name_label.setText('Name des zu erstellenden Szenarios')
+        self.name_edit = QtGui.QLineEdit(parent=self)
+        user_label = QtGui.QLabel(parent=self)
+        user_label.setText('Ihr Name (optional)')
+        self.user_edit = QtGui.QLineEdit(parent=self)
+        
+        layout.addWidget(name_label)
+        layout.addWidget(self.name_edit)
+        layout.addWidget(user_label)
+        layout.addWidget(self.user_edit)
+
+        # OK and Cancel buttons
+        buttons = QtGui.QDialogButtonBox(
+            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+            QtCore.Qt.Horizontal, self)
+        buttons.accepted.connect(self.validate)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+    
+    def validate(self):
+        self.name = self.name_edit.text()
+        self.user = self.user_edit.text()
+        if not self.name:
+            QtGui.QMessageBox.information(
+                self, 'Fehler', 'Sie haben keinen Szenarionamen angegeben.')
+            return
+        self.accept()
