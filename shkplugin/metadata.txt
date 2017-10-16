@@ -10,7 +10,7 @@
 name=SHK
 qgisMinimumVersion=2.0
 description=SHK Erreichbarkeitsanalyse
-version=0.4.3
+version=0.5
 author=GGR
 email=franke@ggr-planung.de
 

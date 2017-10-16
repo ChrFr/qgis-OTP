@@ -95,9 +95,9 @@ class FilterTree(object):
             item = QtGui.QTreeWidgetItem(parent_item, [display_name])
             set_checkable(item)
             column = node.attrib['name'].encode('utf-8')
-            where = 'szenario_id={s_id} {where}'.format(
+            where = u'szenario_id={s_id} {where}'.format(
                 s_id=self.scenario_id,
-                where=' AND {}'.format(where) if where else '')
+                where=u' AND {}'.format(where) if where else '')
             values = get_values(tablename, [column], self.db_conn,
                                 schema='einrichtungen', where=where)
 
@@ -163,7 +163,7 @@ class FilterTree(object):
             for child in list(node):
                 self.add_filter_node(item, child, tablename, tree, where)
 
-    def to_sql_query(self):
+    def to_sql_query(self, scenario_id):
         root = self.parent_node.topLevelItem(0)
         subqueries = []
         for i in range(root.childCount()):
@@ -174,7 +174,8 @@ class FilterTree(object):
                 subquery = self._build_queries(child)
                 if subquery:
                     subqueries.append(subquery)
-        query = u' AND '.join(subqueries)
+        query = 'szenario_id={s_id} AND ({q})'.format(
+            s_id=scenario_id, q=u' AND '.join(subqueries))
         return query
     
     def _build_queries(self, tree_item): 
@@ -230,7 +231,6 @@ class FilterTree(object):
                         if sq:
                             subqueries.append(sq)
                 queries += u' AND '.join(subqueries)
-        queries = 'szenario_id={s_id} AND ({})'.format(queries)
         return queries
 
     def filter_clicked(self, item):

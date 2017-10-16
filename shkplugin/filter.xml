@@ -20,7 +20,7 @@
             </value>
         </column>
     </table>
-    <table name="gesundhei_szenario">
+    <table name="gesundheit_szenario">
         <column name="Korrektur" />
         <column name="Unterbereich">
             <value name="Hausarzt">

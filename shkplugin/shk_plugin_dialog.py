@@ -27,6 +27,7 @@ from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtXml import QDomDocument
 from osgeo import gdal
 from time import time
+import re
 from qgis.core import (QgsDataSourceURI, QgsVectorLayer, 
                        QgsMapLayerRegistry, QgsRasterLayer,
                        QgsProject, QgsLayerTreeLayer, QgsRectangle,
@@ -148,8 +149,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.active_scenario_label.setStyleSheet('color: red')
         self.categories = {
             'Bildungseinrichtungen': None,
-            #'Gesundheit': None,
-            #'Nahversorgung': None
+            'Gesundheit': None,
+            'Nahversorgung': None
         }
         
         def scenario_info(idx):
@@ -183,26 +184,18 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.categories['Bildungseinrichtungen'] = FilterTree(
             'Bildungseinrichtungen', 'bildung_szenario', scenario_id,
             self.db_conn, self.schools_tree)
-        #self.categories['Gesundheit'] = FilterTree(
-            #'Gesundheit', 'gesundheit_gesamt', scenario_id,
-            #self.db_conn, self.medicine_tree)
-        #self.categories['Nahversorgung'] = FilterTree(
-            #'Nahversorgung', 'nahversorgung_gesamt', scenario_id,
-            #self.db_conn, self.supply_tree)
+        self.categories['Gesundheit'] = FilterTree(
+            'Gesundheit', 'gesundheit_szenario', scenario_id,
+            self.db_conn, self.medicine_tree)
+        self.categories['Nahversorgung'] = FilterTree(
+            'Nahversorgung', 'nahversorgung_szenario', scenario_id,
+            self.db_conn, self.supply_tree)
 
         region_node = FilterTree.region_node(self.db_conn)
-        start = time()
+        #start = time()
         for category, filter_tree in self.categories.iteritems():
-            ## loading from pickled tree is preferred
-            #fn = os.path.join(config.cache_folder, PICKLE_EX.format(
-                #category=category))
-            #if os.path.exists(fn):
-                #with open(fn,'r') as f:
-                    #tree = pickle.load(f)
-                #setattr(self, self.categories[category][1], tree)
-            #else:
             filter_tree.from_xml(FILTER_XML)  #, region_node=region_node)
-        print('Filter init {}s'.format(time() - start))
+        #print('Filter init {}s'.format(time() - start))
     
     def load_config(self):
         db_config = config.db_config
@@ -354,7 +347,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             path = config.cache_folder
             if not os.path.exists(path):
                 os.mkdir(path)
-            fn = os.path.join(path, name + '.shp')
+            fn = os.path.join(path, u'{}_{}.shp'.format(
+                self.active_scenario.name, name))
             QgsVectorFileWriter.writeAsVectorFormat(
                 layer, fn, 'utf-8', None, 'ESRI Shapefile')
             layer = QgsVectorLayer(fn, name, "ogr")
@@ -397,7 +391,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             group.addLayer(layer)
 
     def init_layers(self, scenario):
-        scen_group = get_group(scenario.name)
+        if not scenario:
+            return
+        scen_group = get_group(scenario.name, add_at_index=0)
         # just for the right initial order
         get_group('Filter', scen_group)
         cat_group = get_group('Einrichtungen', scen_group)
@@ -517,17 +513,23 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if not self.login:
             return
         category = self.get_selected_tab()
-        parent_group = get_group('Filter')
-        subgroup = get_group(category, parent_group)
+        scenario_group = get_group(self.active_scenario.name)
+        err_group = get_group('Einrichtungen', scenario_group)
+        filter_group = get_group('Filter', scenario_group)
+        subgroup = get_group(category, filter_group)
         name, ok = QtGui.QInputDialog.getText(
             self, 'Filter', 'Name des zu erstellenden Layers',
             text=get_unique_layer_name(category, subgroup))
-        if not ok:
-            return
+        orig_layer = None
+        for child in err_group.children():
+            if child.name() == category:
+                layer_id = child.layerId()
+                orig_layer = QgsMapLayerRegistry.instance().mapLayers()[layer_id]
+                break
         
         filter_tree = self.categories[category]
-        subset = filter_tree.to_sql_query()
-        orig_layer = QgsMapLayerRegistry.instance().mapLayersByName(category)[0]
+        subset = filter_tree.to_sql_query(self.active_scenario.id)
+        matches = QgsMapLayerRegistry.instance().mapLayersByName(category)
     
         remove_layer(name, subgroup)
 
@@ -541,7 +543,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
     def get_filterlayer(self):
 
         items = []
-        filter_group = get_group('Filter')
+        scenario_group = get_group(self.active_scenario.name)
+        filter_group = get_group('Filter', scenario_group)
         for category in self.categories.iterkeys():
             subgroup = get_group(category, filter_group)
             subitems = [(category, c.layer().name())
@@ -553,8 +556,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             return 
         item_texts = [u'{} - {}'.format(l, c) for l, c in items]
         sel, ok = QtGui.QInputDialog.getItem(self, 'Erreichbarkeiten',
-                                              u'Gefilterten Layer auswählen',
-                                              item_texts, 0, False)
+                                             u'Gefilterten Layer auswählen',
+                                             item_texts, 0, False)
         if not ok:
             return
         category, layer_name = items[item_texts.index(sel)]
@@ -571,18 +574,23 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if not res:
             return
         category, layer = res
-
+        #scenario_id = self.get_scenario_id(layer)
+        #if not scenario_id:
+            #return
+        
         def run():
             query = layer.subsetString()
             
             tag = self.err_tags[category]
-            results_group = get_group('Erreichbarkeiten PKW')
+            scenario_group = get_group(self.active_scenario.name)
+            results_group = get_group('Erreichbarkeiten PKW', scenario_group)
             layer_name = layer.name()
             subgroup = get_group(category, results_group)
             remove_layer(layer_name, subgroup)
             err_table = 'matview_err_' + tag
             gem_table = 'erreichbarkeiten_gemeinden_' + tag
-            update_erreichbarkeiten(tag, self.db_conn, where=query)
+            update_erreichbarkeiten(tag, self.db_conn, self.active_scenario.id,
+                                    where=query)
             update_gemeinde_erreichbarkeiten(tag, self.db_conn)
             
             symbology = GraduatedSymbology('minuten', self.err_color_ranges,
@@ -695,12 +703,24 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         composition.refreshItems()
         composition.exportAsPDF(filepath)
 
-def get_group(groupname, parent_group=None):
+    def get_layer_scenario_id(self, layer):
+        provider = layer.dataProvider()
+        uri = provider.dataSourceUri()
+        regex='szenario_id\=(d+)'
+        match=re.search(regex, uri)
+        if not match:
+            return None
+        return match.group(1)
+
+def get_group(groupname, parent_group=None, add_at_index=None):
     if not parent_group:
         parent_group = QgsProject.instance().layerTreeRoot()
     group = parent_group.findGroup(groupname)
     if not group:
-        group = parent_group.addGroup(groupname)
+        if add_at_index is not None:
+            group = parent_group.insertGroup(add_at_index, groupname)
+        else:
+            group = parent_group.addGroup(groupname)
     return group
 
 def remove_group_layers(group):

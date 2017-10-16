@@ -15,7 +15,7 @@ def get_values(table, columns, db_conn, schema='public', where=''):
         table=table, schema=schema))
     return values
 
-def update_erreichbarkeiten(tag, db_conn, where=''):
+def update_erreichbarkeiten(tag, db_conn, szenario_id, where=''):
     table = 'matview_err_' + tag
     ein_schema='einrichtungen'
     err_schema='erreichbarkeiten'
@@ -25,13 +25,14 @@ def update_erreichbarkeiten(tag, db_conn, where=''):
     g.grid_id, l.geom, min(r.travel_time) / 60 AS minuten
     
     FROM
-    {ein_schema}.{tag}_gesamt AS b,
+    {ein_schema}.{tag}_szenario AS b,
     {ein_schema}.{tag}2grid AS bg,
     {err_schema}.grid_points AS g,
     {err_schema}.reisezeiten r,
     laea.grid_poly_100 l
     WHERE
-    b."AngebotsID" = bg."AngebotsID"
+    b.szenario_id = {sid}
+    AND b."AngebotsID" = bg."AngebotsID"
     AND bg.grid_id = r.destination_id
     AND g.grid_id = r.origin_id
     {where}
@@ -46,6 +47,7 @@ def update_erreichbarkeiten(tag, db_conn, where=''):
 
     db_conn.execute(view_sql.format(ein_schema=ein_schema,
                                     err_schema=err_schema,
+                                    sid=szenario_id, 
                                     tag=tag, 
                                     where=where))
 
@@ -74,23 +76,23 @@ def update_gemeinde_erreichbarkeiten(tag, db_conn):
     SELECT
     a.ags,
     g.geom,
-    sum(a.einwohner::double precision / ew_gem_gesamt.ew_gemeinde * minuten::double precision) AS minuten_mittelwert
+    sum(a.einwohner::double precision / ew_gem_szenario.ew_gemeinde * minuten::double precision) AS minuten_mittelwert
     FROM
     (SELECT
     a.ags,
     sum(a.einwohner) AS ew_gemeinde
-    FROM a GROUP BY a.ags) AS ew_gem_gesamt,
+    FROM a GROUP BY a.ags) AS ew_gem_szenario,
     a,
     verwaltungsgrenzen.gemeinden_20161231 g
-    WHERE ew_gem_gesamt.ags = a.ags
+    WHERE ew_gem_szenario.ags = a.ags
     AND a.ags = g."AGS"
     GROUP BY a.ags, g.geom;
     
     GRANT SELECT,DELETE,UPDATE,INSERT,TRUNCATE ON {err_schema}.{gem_table} TO saale_holzland;
     """
     print(view_sql.format(err_schema=err_schema,
-                                    tag=tag, table=table, 
-                                    gem_table=gem_table))
+                          tag=tag, table=table, 
+                          gem_table=gem_table))
     
     db_conn.execute(view_sql.format(err_schema=err_schema,
                                     tag=tag, table=table, 
@@ -130,13 +132,14 @@ def create_scenario(name, user, db_conn):
                 WHERE table_name = '{table}'
                AND table_schema = '{schema}'
                AND  c.column_name NOT IN('szenario_id', 'id')"""
-    tables = ['bildung_szenario']
+    tables = ['bildung_szenario', 'gesundheit_szenario', 'nahversorgung_szenario']
     for table in tables:
         #b = db_conn.execute(sql2.format(schema=schema, table=table))
         #print(b)
-        full_sql = db_conn.execute(sql_duplicate.format(schema=schema, table=table,
-                                             s_id=scenario_id, 
-                                             base_id=BASE_SCENARIO_ID))
+        full_sql = db_conn.execute(sql_duplicate.format(
+            schema=schema, table=table,
+            s_id=scenario_id, 
+            base_id=BASE_SCENARIO_ID))
         db_conn.execute(full_sql)
 
 def remove_scenario(scenario_id, db_conn):
