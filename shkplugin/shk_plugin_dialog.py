@@ -282,8 +282,12 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         '''
         diag = WaitDialog(function, title='Bitte warten', parent=self)
         diag.show()
-        function()
-        diag.close()
+        try:
+            function()
+        except:
+            pass
+        finally:
+            diag.close()
     
     def create_scenario(self):
         dialog = CreateScenarioDialog(parent=self)
@@ -428,9 +432,13 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                               self.db_conn, schema='einrichtungen',
                               where="tabelle='{}'".format(table))
             editable_columns = [r.spalte for r in rows]
-            if not rows:
-                continue
+            #if not rows:
+                #continue
             for i, f in enumerate(layer.fields()):
+                if f.name() == 'szenario_id':
+                    layer.setEditorWidgetV2(i, 'Hidden')
+                    layer.setDefaultValueExpression(i, str(scenario.id))
+                    continue
                 try:
                     idx = editable_columns.index(f.name())
                     col, is_ed, is_sel, selections, alias = rows[idx]
@@ -614,7 +622,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
     def add_ov_layers(self):
         if not self.login:
             return
-        results_group = get_group(u'Erreichbarkeiten ÖPNV')
+        scenario_group = get_group(self.active_scenario.name)
+        results_group = get_group(u'Erreichbarkeiten ÖPNV', scenario_group)
         symbology = SimpleSymbology('yellow', shape='diamond')
         self.add_db_layer('Zentrale Orte', 'erreichbarkeiten',
                           'zentrale_orte', 'geom', key='id',
