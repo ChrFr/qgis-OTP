@@ -136,10 +136,15 @@ def create_scenario(name, user, db_conn):
     for table in tables:
         #b = db_conn.execute(sql2.format(schema=schema, table=table))
         #print(b)
-        full_sql = db_conn.execute(sql_duplicate.format(
+        reply = db_conn.execute(sql_duplicate.format(
             schema=schema, table=table,
             s_id=scenario_id, 
             base_id=BASE_SCENARIO_ID))
+        full_sql = '''
+        SET session_replication_role = replica;
+        {};
+        SET session_replication_role = DEFAULT;
+        '''.format(reply)
         db_conn.execute(full_sql)
 
 def remove_scenario(scenario_id, db_conn):

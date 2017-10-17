@@ -174,7 +174,7 @@ class FilterTree(object):
                 subquery = self._build_queries(child)
                 if subquery:
                     subqueries.append(subquery)
-        query = 'szenario_id={s_id} AND ({q})'.format(
+        query = u'szenario_id={s_id} AND ({q})'.format(
             s_id=scenario_id, q=u' AND '.join(subqueries))
         return query
     

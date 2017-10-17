@@ -1,4 +1,4 @@
-<Composer title="shk" visible="1">
+<Composer title="Report" visible="1">
  <Composition resizeToContentsMarginLeft="0" snapping="0" showPages="1" guidesVisible="1" resizeToContentsMarginTop="0" worldFileMap="" alignmentSnap="1" printResolution="300" paperWidth="210" gridVisible="0" snapGridOffsetX="0" smartGuides="1" snapGridOffsetY="0" resizeToContentsMarginRight="0" snapTolerancePixels="5" printAsRaster="0" generateWorldFile="0" paperHeight="297" numPages="1" snapGridResolution="10" resizeToContentsMarginBottom="0">
   <symbol alpha="1" clip_to_extent="1" type="fill" name="">
    <layer pass="0" class="SimpleFill" locked="0">
@@ -15,7 +15,7 @@
     <prop k="style" v="solid"/>
    </layer>
   </symbol>
-  <ComposerLegend symbolWidth="7" title="Legende" rasterBorderWidth="0" titleAlignment="1" map="0" wmsLegendWidth="50" rasterBorderColor="0,0,0,255" wrapChar="" fontColor="#000000" legendFilterByAtlas="0" columnCount="4" wmsLegendHeight="25" columnSpace="2" symbolHeight="4" equalColumnWidth="0" resizeToContents="1" splitLayer="0" boxSpace="2" rasterBorder="1">
+  <ComposerLegend symbolWidth="7" title="Legende" rasterBorderWidth="0" titleAlignment="1" map="0" wmsLegendWidth="50" rasterBorderColor="0,0,0,255" wrapChar="" fontColor="#000000" legendFilterByAtlas="0" columnCount="4" legendFilterByMap="1" wmsLegendHeight="25" columnSpace="2" symbolHeight="4" equalColumnWidth="0" resizeToContents="0" splitLayer="0" boxSpace="2" rasterBorder="1">
    <styles>
     <style marginBottom="2" name="title">
      <styleFont description="MS Shell Dlg 2,16,-1,5,50,0,0,0,0,0" style=""/>
@@ -33,14 +33,109 @@
      <styleFont description="MS Shell Dlg 2,9,-1,5,50,0,0,0,0,0" style=""/>
     </style>
    </styles>
-   <ComposerItem pagey="177.836" page="1" id="legend" lastValidViewScaleFactor="-1" positionMode="0" positionLock="false" x="9.44857" y="177.836" visibility="1" zValue="2" background="true" transparency="0" frameJoinStyle="miter" blendMode="0" width="190.37" outlineWidth="0.3" excludeFromExports="0" uuid="{c0c6e0cb-6b41-40bd-ab29-aeb21835850c}" height="82.6" itemRotation="0" frame="false" pagex="9.44857">
+   <layer-tree-group expanded="1" checked="Qt::PartiallyChecked" name="">
+    <customproperties/>
+    <layer-tree-group expanded="1" checked="Qt::PartiallyChecked" name="Test">
+     <customproperties>
+      <property key="legend/title-style" value="hidden"/>
+     </customproperties>
+     <layer-tree-group expanded="1" checked="Qt::Checked" name="Filter">
+      <customproperties>
+       <property key="legend/title-style" value="hidden"/>
+      </customproperties>
+      <layer-tree-group expanded="1" checked="Qt::Checked" name="Bildungseinrichtungen">
+       <customproperties>
+        <property key="legend/title-style" value="hidden"/>
+       </customproperties>
+       <layer-tree-layer expanded="1" providerKey="postgres" checked="Qt::Checked" id="Hügelland20171017130542056" source="dbname='shk' host=gis.ggr-planung.de port=5432 user='saale_holzland' key='id' table=&quot;einrichtungen&quot;.&quot;bildung_szenario&quot; (geom_gk) sql=szenario_id=54 AND (((&quot;Landkreis&quot; = 'Saale-Holzland-Kreis'  AND (((&quot;VG&quot; = 'Hügelland/Täler' ))))))" name="Hügelland">
+        <customproperties/>
+       </layer-tree-layer>
+      </layer-tree-group>
+      <layer-tree-group expanded="1" checked="Qt::Checked" name="Nahversorgung">
+       <customproperties>
+        <property key="legend/title-style" value="hidden"/>
+       </customproperties>
+      </layer-tree-group>
+      <layer-tree-group expanded="1" checked="Qt::Checked" name="Gesundheit">
+       <customproperties>
+        <property key="legend/title-style" value="hidden"/>
+       </customproperties>
+      </layer-tree-group>
+     </layer-tree-group>
+     <layer-tree-group expanded="1" checked="Qt::Checked" name="Einrichtungen">
+      <customproperties>
+       <property key="legend/title-style" value="hidden"/>
+      </customproperties>
+      <layer-tree-layer expanded="1" providerKey="postgres" checked="Qt::Checked" id="Bildungseinrichtungen20171017130520927" source="dbname='shk' host=gis.ggr-planung.de port=5432 user='saale_holzland' key='id' table=&quot;einrichtungen&quot;.&quot;bildung_szenario&quot; (geom_gk) sql=szenario_id=54" name="Bildungseinrichtungen">
+       <customproperties/>
+      </layer-tree-layer>
+      <layer-tree-layer expanded="1" providerKey="postgres" checked="Qt::Checked" id="Nahversorgung20171017130521571" source="dbname='shk' host=gis.ggr-planung.de port=5432 user='saale_holzland' key='id' table=&quot;einrichtungen&quot;.&quot;nahversorgung_szenario&quot; (geom_gk) sql=szenario_id=54" name="Nahversorgung">
+       <customproperties/>
+      </layer-tree-layer>
+      <layer-tree-layer expanded="1" providerKey="postgres" checked="Qt::Checked" id="Gesundheit20171017130522306" source="dbname='shk' host=gis.ggr-planung.de port=5432 user='saale_holzland' key='id' table=&quot;einrichtungen&quot;.&quot;gesundheit_szenario&quot; (geom_gk) sql=szenario_id=54" name="Gesundheit">
+       <customproperties/>
+      </layer-tree-layer>
+     </layer-tree-group>
+     <layer-tree-group expanded="1" checked="Qt::Unchecked" name="Verwaltungsgrenzen">
+      <customproperties>
+       <property key="legend/title-style" value="hidden"/>
+      </customproperties>
+      <layer-tree-layer expanded="1" providerKey="postgres" checked="Qt::Unchecked" id="Gemeinden20171017130519486" source="dbname='shk' host=gis.ggr-planung.de port=5432 user='saale_holzland' key='id' table=&quot;verwaltungsgrenzen&quot;.&quot;gemeinden_20161231&quot; (geom) sql=" name="Gemeinden">
+       <customproperties/>
+      </layer-tree-layer>
+      <layer-tree-layer expanded="1" providerKey="postgres" checked="Qt::Unchecked" id="Verwaltungsgemeinschaften20171017130520028" source="dbname='shk' host=gis.ggr-planung.de port=5432 user='saale_holzland' key='id' table=&quot;verwaltungsgrenzen&quot;.&quot;vwg_20161231&quot; (geom) sql=" name="Verwaltungsgemeinschaften">
+       <customproperties/>
+      </layer-tree-layer>
+      <layer-tree-layer expanded="1" providerKey="postgres" checked="Qt::Unchecked" id="Kreise20171017130520450" source="dbname='shk' host=gis.ggr-planung.de port=5432 user='saale_holzland' key='id' table=&quot;verwaltungsgrenzen&quot;.&quot;kreis_20161231&quot; (geom) sql=" name="Kreise">
+       <customproperties/>
+      </layer-tree-layer>
+     </layer-tree-group>
+     <layer-tree-group expanded="1" checked="Qt::PartiallyChecked" name="Erreichbarkeiten PKW">
+      <customproperties>
+       <property key="legend/title-style" value="hidden"/>
+      </customproperties>
+      <layer-tree-group expanded="1" checked="Qt::PartiallyChecked" name="Bildungseinrichtungen">
+       <customproperties>
+        <property key="legend/title-style" value="hidden"/>
+       </customproperties>
+       <layer-tree-layer expanded="1" providerKey="ogr" checked="Qt::Checked" id="Hügelland20171017130637851" source="C:\Users\ggr\Documents\SHK-Plugin\Test_Hügelland.shp" name="Hügelland">
+        <customproperties/>
+       </layer-tree-layer>
+       <layer-tree-layer expanded="1" providerKey="ogr" checked="Qt::Unchecked" id="Hügelland_Gemeindeebene20171017130643282" source="C:\Users\ggr\Documents\SHK-Plugin\Test_Hügelland Gemeindeebene.shp" name="Hügelland Gemeindeebene">
+        <customproperties/>
+       </layer-tree-layer>
+      </layer-tree-group>
+     </layer-tree-group>
+     <layer-tree-group expanded="1" checked="Qt::Checked" name="Erreichbarkeiten ÖPNV">
+      <customproperties>
+       <property key="legend/title-style" value="hidden"/>
+      </customproperties>
+     </layer-tree-group>
+    </layer-tree-group>
+    <layer-tree-group expanded="1" checked="Qt::PartiallyChecked" name="Hintergrundkarte">
+     <customproperties>
+      <property key="legend/title-style" value="hidden"/>
+     </customproperties>
+     <layer-tree-layer expanded="1" providerKey="wms" checked="Qt::Checked" id="OpenStreetMap_WMS___by_terrestris20171017130519451" source="crs=EPSG:31468&amp;dpiMode=7&amp;format=image/png&amp;layers=OSM-WMS&amp;styles=&amp;url=http://ows.terrestris.de/osm-gray/service" name="OpenStreetMap WMS - by terrestris">
+      <customproperties>
+       <property key="legend/title-style" value="hidden"/>
+      </customproperties>
+     </layer-tree-layer>
+     <layer-tree-layer expanded="1" providerKey="gdal" checked="Qt::Unchecked" id="GoogleMaps20171017130519483" source="C:/Users/ggr/.qgis2/python/plugins\shkplugin\google_maps.xml" name="GoogleMaps">
+      <customproperties>
+       <property key="legend/title-style" value="hidden"/>
+      </customproperties>
+     </layer-tree-layer>
+    </layer-tree-group>
+   </layer-tree-group>
+   <ComposerItem pagey="177.836" page="1" id="legend" lastValidViewScaleFactor="-1" positionMode="0" positionLock="false" x="9.44857" y="177.836" visibility="1" zValue="2" background="true" transparency="0" frameJoinStyle="miter" blendMode="0" width="190.369" outlineWidth="0.3" excludeFromExports="0" uuid="{b8051481-8890-4573-969d-961e91b5f764}" height="106.924" itemRotation="0" frame="false" pagex="9.44857">
     <FrameColor alpha="255" red="0" blue="0" green="0"/>
     <BackgroundColor alpha="255" red="255" blue="255" green="255"/>
     <customproperties/>
    </ComposerItem>
   </ComposerLegend>
   <ComposerMap followPreset="false" mapRotation="0" keepLayerSet="false" followPresetName="" id="0" previewMode="Cache" drawCanvasItems="true">
-   <Extent ymin="5564774.59757786151021719" xmin="4364486.01072665303945541" ymax="5765915.22966825868934393" xmax="4622078.49238753318786621"/>
+   <Extent ymin="5564774.59757786151021719" xmin="4364486.01072665303945541" ymax="5765915.36924233287572861" xmax="4622078.49238753318786621"/>
    <LayerSet/>
    <Grid/>
    <ComposerMapGrid rightAnnotationDirection="0" gridFramePenColor="0,0,0,255" show="0" bottomAnnotationPosition="1" annotationPrecision="3" showAnnotation="0" topFrameDivisions="0" uuid="{1c3ba325-8c23-4511-abb6-549c175acdc5}" leftAnnotationDirection="0" topAnnotationPosition="1" rightAnnotationDisplay="0" offsetX="0" offsetY="0" rightFrameDivisions="0" gridStyle="0" annotationFontColor="0,0,0,255" intervalX="0" gridFrameSideFlags="15" intervalY="0" bottomAnnotationDirection="0" leftAnnotationDisplay="0" leftFrameDivisions="0" frameFillColor1="255,255,255,255" annotationExpression="" frameFillColor2="0,0,0,255" crossLength="3" gridFramePenThickness="0.5" bottomAnnotationDisplay="0" unit="0" topAnnotationDisplay="0" leftAnnotationPosition="1" blendMode="0" gridFrameStyle="0" rightAnnotationPosition="1" gridFrameWidth="2" name="Gitter 1" annotationFormat="0" bottomFrameDivisions="0" topAnnotationDirection="0" frameAnnotationDistance="1">
@@ -92,7 +187,7 @@
     <annotationFontProperties description="MS Shell Dlg 2,8.25,-1,5,50,0,0,0,0,0" style=""/>
    </ComposerMapGrid>
    <AtlasMap scalingMode="2" atlasDriven="0" margin="0.10000000000000001"/>
-   <ComposerItem pagey="12" page="1" id="map" lastValidViewScaleFactor="1.30954" positionMode="0" positionLock="false" x="9" y="12" visibility="1" zValue="1" background="true" transparency="0" frameJoinStyle="miter" blendMode="0" width="190.818" outlineWidth="0.3" excludeFromExports="0" uuid="{57c7419a-5a62-4ce7-bef1-d9334c0b761a}" height="149" itemRotation="0" frame="false" pagex="9">
+   <ComposerItem pagey="12" page="1" id="map" lastValidViewScaleFactor="3.75051" positionMode="0" positionLock="false" x="9" y="12" visibility="1" zValue="1" background="true" transparency="0" frameJoinStyle="miter" blendMode="0" width="190.818" outlineWidth="0.3" excludeFromExports="0" uuid="{0b86a341-d7bb-4cb5-b549-b7061b81a873}" height="149" itemRotation="0" frame="false" pagex="9">
     <FrameColor alpha="255" red="0" blue="0" green="0"/>
     <BackgroundColor alpha="255" red="255" blue="255" green="255"/>
     <customproperties/>

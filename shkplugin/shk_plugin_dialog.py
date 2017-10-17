@@ -23,6 +23,8 @@
 """
 
 import os
+import sys
+import subprocess
 from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtXml import QDomDocument
 from osgeo import gdal
@@ -31,7 +33,8 @@ import re
 from qgis.core import (QgsDataSourceURI, QgsVectorLayer, 
                        QgsMapLayerRegistry, QgsRasterLayer,
                        QgsProject, QgsLayerTreeLayer, QgsRectangle,
-                       QgsVectorFileWriter, QgsComposition)
+                       QgsVectorFileWriter, QgsComposition, QgsLegendRenderer,
+                       QgsComposerLegendStyle)
 from qgis.gui import QgsLayerTreeMapCanvasBridge
 from qgis.utils import iface
 import numpy as np
@@ -133,7 +136,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             lambda: self.export_filter_layer(ext='xlsx'))
         self.export_kml_button.clicked.connect(
             lambda: self.export_filter_layer(ext='kml'))
-        self.export_pdf_button.clicked.connect(self.create_report)
+        self.export_pdf_button.clicked.connect(self.export_pdf)
         
         self.scen_create_button.clicked.connect(self.create_scenario)
         self.scen_refresh_button.clicked.connect(self.refresh_scen_list)
@@ -284,8 +287,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         diag.show()
         try:
             function()
-        except:
-            pass
+        except Exception as e:
+            print e
         finally:
             diag.close()
     
@@ -334,7 +337,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
 
     def add_db_layer(self, name, schema, tablename, geom,
                      symbology=None, uri=None, key=None, zoom=False,
-                     group=None, where='', visible=True, to_shape=False):
+                     group=None, where='', visible=True, to_shape=False,
+                     hide_in_composer=False):
         if not uri:
             uri = QgsDataSourceURI()
             uri.setConnection(self.login.host,
@@ -360,8 +364,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
         #if where:
             #layer.setSubsetString(where)
+        treelayer = None
         if group:
-            l = group.addLayer(layer)
+            treelayer = group.addLayer(layer)
         if symbology:
             symbology.apply(layer)
         if zoom:
@@ -369,6 +374,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             self.canvas.setExtent(extent)
         iface.legendInterface().setLayerVisible(layer, visible)
         self.canvas.refresh()
+        if hide_in_composer and treelayer:
+            QgsLegendRenderer.setNodeLegendStyle(
+                treelayer, QgsComposerLegendStyle.Hidden)
         return layer
         
     def add_xml_background_map(self, xml, group=None, visible=True):
@@ -381,7 +389,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         remove_layer(layer_name, group)
         QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
         if group:
-            group.addLayer(layer)
+            treelayer = group.addLayer(layer)
+            QgsLegendRenderer.setNodeLegendStyle(
+                treelayer, QgsComposerLegendStyle.Hidden)
         iface.legendInterface().setLayerVisible(layer, visible)
     
     def add_wms_background_map(self, group=None):
@@ -392,7 +402,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         layer = QgsRasterLayer(url, layer_name, 'wms')
         QgsMapLayerRegistry.instance().addMapLayer(layer, group is None)
         if group:
-            group.addLayer(layer)
+            treelayer = group.addLayer(layer)
+            QgsLegendRenderer.setNodeLegendStyle(
+                treelayer, QgsComposerLegendStyle.Hidden)
 
     def init_layers(self, scenario):
         if not scenario:
@@ -670,8 +682,16 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if not filepath:
             return
         driver = 'XLSX' if ext == 'xlsx'else 'KML'
-        QgsVectorFileWriter.writeAsVectorFormat(
-            layer, filepath, "utf-8", None, driver, False)
+        try:
+            QgsVectorFileWriter.writeAsVectorFormat(
+                layer, filepath, "utf-8", None, driver, False)
+            title = 'Speicherung erfolgreich'
+            msg = 'Die Daten wurden erfolgreich exportiert.'
+        except Exception as e:
+            title = 'Fehler'
+            msg = 'Fehler bei der Speicherung: \n {}'.format(str(e))
+        QtGui.QMessageBox.information(
+            self, title, msg)
 
     def set_relations(self): 
         proj = QgsProject.instance()
@@ -680,7 +700,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         relation = QgsRelation()
         relations['Bildungseinrichtungen-{}'] = relation
     
-    def create_report(self):
+    def export_pdf(self):
         filepath = browse_file(None, 'Export', PDF_FILTER, save=True, 
                                parent=self)
         if not filepath:
@@ -711,6 +731,12 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         legend_item.updateLegend()
         composition.refreshItems()
         composition.exportAsPDF(filepath)
+        if sys.platform.startswith('darwin'):
+            subprocess.call(('open', filepath))
+        elif os.name == 'nt':
+            os.startfile(filepath)
+        elif os.name == 'posix':
+            subprocess.call(('xdg-open', filepath))
 
     def get_layer_scenario_id(self, layer):
         provider = layer.dataProvider()
@@ -721,7 +747,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             return None
         return match.group(1)
 
-def get_group(groupname, parent_group=None, add_at_index=None):
+def get_group(groupname, parent_group=None, add_at_index=None,
+              hide_in_composer=True):
     if not parent_group:
         parent_group = QgsProject.instance().layerTreeRoot()
     group = parent_group.findGroup(groupname)
@@ -730,6 +757,9 @@ def get_group(groupname, parent_group=None, add_at_index=None):
             group = parent_group.insertGroup(add_at_index, groupname)
         else:
             group = parent_group.addGroup(groupname)
+    if hide_in_composer:
+        QgsLegendRenderer.setNodeLegendStyle(
+            group, QgsComposerLegendStyle.Hidden)
     return group
 
 def remove_group_layers(group):
