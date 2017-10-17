@@ -558,7 +558,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 break
         
         filter_tree = self.categories[category]
-        subset = filter_tree.to_sql_query(self.active_scenario.id)
+        subset = filter_tree.to_sql_query(self.active_scenario.id,
+                                          year=self.year_slider.value())
         matches = QgsMapLayerRegistry.instance().mapLayersByName(category)
     
         remove_layer(name, subgroup)

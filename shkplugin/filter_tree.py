@@ -47,6 +47,13 @@ class FilterTree(object):
         for child in filter_nodes:
             self.add_filter_node(item, child, self.tablename,
                                  self.parent_node)
+            
+        # status node
+        status_item = QtGui.QTreeWidgetItem(item, ['Status'])
+        set_checkable(status_item)
+        for s in ['Bestand', 'Geschlossen', 'Neu']:
+            si = QtGui.QTreeWidgetItem(status_item, [s])
+            set_checkable(si)
         #fn = os.path.join(config.cache_folder, PICKLE_EX.format(
             #category=category))
         
@@ -163,7 +170,7 @@ class FilterTree(object):
             for child in list(node):
                 self.add_filter_node(item, child, tablename, tree, where)
 
-    def to_sql_query(self, scenario_id):
+    def to_sql_query(self, scenario_id, year=None):
         root = self.parent_node.topLevelItem(0)
         subqueries = []
         for i in range(root.childCount()):
@@ -171,16 +178,43 @@ class FilterTree(object):
             # root 'Spalten' has columns as children, no need to process them
             # if not checked
             if child.checkState(0) != QtCore.Qt.Unchecked:
-                subquery = self._build_queries(child)
+                if child.text(0) == 'Status':
+                    subquery = self.status_to_query(child, year)
+                    print(subquery)
+                else:
+                    subquery = self._build_queries(child)
                 if subquery:
                     subqueries.append(subquery)
-        query = u'szenario_id={s_id} AND ({q})'.format(
-            s_id=scenario_id, q=u' AND '.join(subqueries))
+        query = u'szenario_id={s_id}'.format(s_id=scenario_id)
+        if subqueries:
+            query += u' AND ({q})'.format(q=u' AND '.join(subqueries))
+        print(query)
+        return query
+    
+    def status_to_query(self, status_node, year):
+        query = u''
+        if year:
+            subqueries = []
+            for i in range(status_node.childCount()):
+                child = status_node.child(i)
+                if child.checkState(0) != QtCore.Qt.Checked:
+                    continue
+                subquery = None
+                if child.text(0) == 'Bestand':
+                    subquery = u'(gueltig_von < {y} AND {y} < gueltig_bis)'.format(y=year)
+                elif child.text(0) == 'Geschlossen':
+                    subquery = u'(gueltig_von > {y} OR {y} > gueltig_bis)'.format(y=year)
+                elif child.text(0) == 'Neu':
+                    subquery = u'gueltig_von = {y}'.format(y=year)
+                if subquery:
+                    subqueries.append(subquery)
+            query = u' AND '.join(subqueries)
+            print query
         return query
     
     def _build_queries(self, tree_item): 
         tree = self.parent_node
-        queries = ''
+        queries = u''
         child_count = tree_item.childCount()
         
         ### COLUMN ###
