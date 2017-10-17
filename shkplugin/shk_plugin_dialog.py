@@ -48,7 +48,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 from config import Config
 from connection import DBConnection, Login
 from queries import (get_values, update_erreichbarkeiten,
-                     update_gemeinde_erreichbarkeiten, create_scenario,
+                     update_gemeinde_erreichbarkeiten, clone_scenario,
                      get_scenarios, remove_scenario)
 from ui_elements import (LabeledRangeSlider, SimpleSymbology,
                          SimpleFillSymbology, 
@@ -138,9 +138,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             lambda: self.export_filter_layer(ext='kml'))
         self.export_pdf_button.clicked.connect(self.export_pdf)
         
-        self.scen_create_button.clicked.connect(self.create_scenario)
-        self.scen_refresh_button.clicked.connect(self.refresh_scen_list)
-        
         self.canvas = iface.mapCanvas()
         
         # disable first tabs at startup (till connection)
@@ -148,7 +145,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             self.main_tabs.setTabEnabled(i, False)
             
         self.active_scenario = None
-        self.active_scenario_label.setText(u'kein Szenario ausgewählt')
+        self.active_scenario_label.setText(u'kein Datensatz ausgewählt')
         self.active_scenario_label.setStyleSheet('color: red')
         self.categories = {
             'Bildungseinrichtungen': None,
@@ -156,19 +153,25 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             'Nahversorgung': None
         }
         
-        def scenario_info(idx):
+        def scenario_select(idx):
             scenario = self.scenario_combo.itemData(idx)
             if not scenario:
                 name = user = date = '-'
+                editable = False
+                self.scen_copy_button.setEnabled(False)
             else:
                 name = scenario.name
-                user = scenario.user
-                date = '{:%d.%m.%Y - %H:%M}'.format(scenario.date)
+                user = scenario.user if scenario.user else '-'
+                date = '{:%d.%m.%Y - %H:%M}'.format(scenario.date) if scenario.date else '-'
+                editable = scenario.editable
+                self.scen_copy_button.setEnabled(True)
+            self.scen_select_button.setEnabled(editable)
+            self.scen_delete_button.setEnabled(editable)
             self.scen_name_edit.setText(name)
             self.scen_user_edit.setText(user)
             self.scen_date_edit.setText(date)
     
-        self.scenario_combo.currentIndexChanged.connect(scenario_info)
+        self.scenario_combo.currentIndexChanged.connect(scenario_select)
         
         def get_selected_scenario(): 
             idx = self.scenario_combo.currentIndex()
@@ -179,6 +182,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             lambda: self.activate_scenario(get_selected_scenario()))
         self.scen_delete_button.clicked.connect(
             lambda: self.remove_scenario(get_selected_scenario()))
+        self.scen_copy_button.clicked.connect(
+            lambda: self.clone_scenario(get_selected_scenario()))
+        self.scen_refresh_button.clicked.connect(self.refresh_scen_list)
         
     def init_filters(self, scenario):
         if not scenario:
@@ -255,6 +261,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         #self.wait_call(self.init_layers)
     
     def activate_scenario(self, scenario):
+        if scenario and not scenario.editable:
+            return
         # you may pass None as a scenario to deactivate current one
         activated = True if scenario else False
         self.wait_call(lambda: self.init_filters(scenario))
@@ -270,7 +278,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             self.active_scenario_label.setText(label)
             self.active_scenario_label.setStyleSheet('color: black')
         else:
-            self.active_scenario_label.setText(u'kein Szenario ausgewählt')
+            self.active_scenario_label.setText(u'kein Datensatz ausgewählt')
             self.active_scenario_label.setStyleSheet('color: red')
         # activate filters and erreichbarkeiten
         for i in range(1, 3):
@@ -292,7 +300,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         finally:
             diag.close()
     
-    def create_scenario(self):
+    def clone_scenario(self, scenario):
         dialog = CreateScenarioDialog(parent=self)
         result = dialog.exec_()
         ok = result == QtGui.QDialog.Accepted
@@ -300,12 +308,14 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             return
         name = dialog.name
         user = dialog.user
-        self.wait_call(lambda: create_scenario(name, user, self.db_conn))
+        self.wait_call(lambda: clone_scenario(scenario.id, name, user, self.db_conn))
         self.refresh_scen_list()
         
     def remove_scenario(self, scenario):
+        if not scenario.editable:
+            return
         msg = QtGui.QMessageBox(QtGui.QMessageBox.Warning, 'Achtung',
-                                u'Wollen Sie das Szenario "{}" und '
+                                u'Wollen Sie den Datensatz "{}" und '
                                 u'seine Daten wirklich löschen?'
                                 .format(scenario.name), parent=self)
         msg.setStandardButtons(QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel)
@@ -323,11 +333,11 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.scenario_combo.clear()
         select = idx = 0
         for scenario in scenarios:
-            if not scenario.editable:
-                continue
             label = u'{n} {u}'.format(
                 n=scenario.name,
                 u=u'@{}'.format(scenario.user) if scenario.user else '')
+            if not scenario.editable:
+                label += ' (nur kopierbar!)'
             if self.active_scenario and self.active_scenario.id == scenario.id:
                 select = idx
                 label += ' (aktiv)'
@@ -536,7 +546,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         scenario_group = get_group(self.active_scenario.name)
         err_group = get_group('Einrichtungen', scenario_group)
         filter_group = get_group('Filter', scenario_group)
-        subgroup = get_group(category, filter_group)
+        subgroup = get_group(category, filter_group, hide_in_composer=False)
         name, ok = QtGui.QInputDialog.getText(
             self, 'Filter', 'Name des zu erstellenden Layers',
             text=get_unique_layer_name(category, subgroup))
@@ -603,7 +613,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             
             tag = self.err_tags[category]
             scenario_group = get_group(self.active_scenario.name)
-            results_group = get_group('Erreichbarkeiten PKW', scenario_group)
+            results_group = get_group('Erreichbarkeiten PKW', scenario_group,
+                                      hide_in_composer=False)
             layer_name = layer.name()
             subgroup = get_group(category, results_group)
             remove_layer(layer_name, subgroup)

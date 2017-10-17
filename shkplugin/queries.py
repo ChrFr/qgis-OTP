@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-BASE_SCENARIO_ID = 1
 
 from datetime import datetime
 
@@ -98,7 +97,7 @@ def update_gemeinde_erreichbarkeiten(tag, db_conn):
                                     tag=tag, table=table, 
                                     gem_table=gem_table))
     
-def create_scenario(name, user, db_conn):
+def clone_scenario(scenario_id, name, user, db_conn):
     
     table = 'szenarien'
     schema = 'einrichtungen'
@@ -107,7 +106,7 @@ def create_scenario(name, user, db_conn):
     VALUES ('{name}','{user}', '{ts}')
     RETURNING id
     """
-    scenario_id = db_conn.execute(
+    new_scenario_id = db_conn.execute(
         sql_scen.format(schema=schema, table=table,
                         name=name, user=user, ts=datetime.now()))
     sql_duplicate = u"""
@@ -138,12 +137,12 @@ def create_scenario(name, user, db_conn):
         #print(b)
         reply = db_conn.execute(sql_duplicate.format(
             schema=schema, table=table,
-            s_id=scenario_id, 
-            base_id=BASE_SCENARIO_ID))
+            s_id=new_scenario_id, 
+            base_id=scenario_id))
         full_sql = '''
-        SET session_replication_role = replica;
+        --SET session_replication_role = replica;
         {};
-        SET session_replication_role = DEFAULT;
+        --SET session_replication_role = DEFAULT;
         '''.format(reply)
         db_conn.execute(full_sql)
 
@@ -151,8 +150,6 @@ def remove_scenario(scenario_id, db_conn):
     table = 'szenarien'
     schema = 'einrichtungen'
     # should not happen, but as a precaution to prevent deleting the base scenario
-    if scenario_id == BASE_SCENARIO_ID:
-        return
     sql = """
     DELETE FROM {schema}.{table} WHERE id={s_id}
     """
