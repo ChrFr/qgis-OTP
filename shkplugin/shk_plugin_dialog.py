@@ -449,7 +449,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.canvas.refresh()
     
         columns = ['spalte', 'editierbar', 'nur_auswahl_zulassen',
-                   'auswahlmoeglichkeiten', 'alias']
+                   'auswahlmoeglichkeiten', 'alias', 'auto_vervollst']
         for category, filter_tree in self.categories.iteritems():
             table = filter_tree.tablename
             symbology = SimpleSymbology(self.colors[category])
@@ -458,7 +458,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                                       where='szenario_id={}'.format(scenario.id))
             rows = get_values('editierbare_spalten', columns,
                               self.db_conn, schema='einrichtungen',
-                              where="tabelle='{}'".format(table))
+                              where="tabelle='{}'".format(table),
+                              order_by='reihenfolge')
             editable_columns = [r.spalte for r in rows]
             #if not rows:
                 #continue
@@ -469,13 +470,16 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                     continue
                 try:
                     idx = editable_columns.index(f.name())
-                    col, is_ed, is_sel, selections, alias = rows[idx]
+                    col, is_ed, is_sel, selections, alias, auto_complete = rows[idx]
                     if alias:
                         layer.addAttributeAlias(i, alias) 
                     if not is_ed:
                         layer.setEditorWidgetV2(i, 'Hidden')
                         continue
-                    if is_sel and selections:
+                    if auto_complete:
+                        layer.setEditorWidgetV2(i, 'UniqueValues')
+                        layer.setEditorWidgetV2Config(i, {u'Editable': True})
+                    elif is_sel and selections:
                         layer.setEditorWidgetV2(i, 'ValueMap')
                         layer.setEditorWidgetV2Config(i, dict(zip(selections, selections)))
                     elif is_sel:
@@ -544,6 +548,16 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             layer.setSubsetString(subset)
             symbology = SimpleSymbology(self.colors[category], shape='triangle')
             symbology.apply(layer)
+            self.copy_editor_attrs(active_layer, layer)
+    
+    def copy_editor_attrs(self, origin_layer, destination_layer):
+        '''important: both layers have to have identical fields in same order!'''
+
+        for i, f in enumerate(origin_layer.fields()):
+            destination_layer.setEditorWidgetV2(i, origin_layer.editorWidgetV2(i))
+            destination_layer.setDefaultValueExpression(i, origin_layer.defaultValueExpression(i))
+            destination_layer.setEditorWidgetV2Config(i, origin_layer.editorWidgetV2Config(i))
+            destination_layer.addAttributeAlias(i, origin_layer.attributeAlias(i))
     
     def apply_filters(self):
         if not self.login:
@@ -576,6 +590,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         layer.setSubsetString(subset)
         symbology = SimpleSymbology(self.colors[category], shape='triangle')
         symbology.apply(layer)
+        self.copy_editor_attrs(orig_layer, layer)
     
     def get_filterlayer(self):
 

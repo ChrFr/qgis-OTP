@@ -70,7 +70,7 @@ class FilterTree(object):
                 if kreis_name not in vwg_roots:
                     krs_item = QtGui.QTreeWidgetItem(krs_root, [kreis_name])
                     vwg_root = QtGui.QTreeWidgetItem(
-                        krs_item, ['Verwaltungsgemeinschaft'])
+                        krs_item, [u'VG / Städte / erf. Gemeinden'])
                     vwg_root.column = columns_ein_table[1]
                     vwg_roots[kreis_name] = vwg_root
                     set_checkable(krs_item)
@@ -175,7 +175,6 @@ class FilterTree(object):
             if child.checkState(0) != QtCore.Qt.Unchecked:
                 if child.text(0) == 'Status':
                     subquery = self.status_to_query(child, year)
-                    print(subquery)
                 else:
                     subquery = self._build_queries(child)
                 if subquery:
@@ -183,7 +182,6 @@ class FilterTree(object):
         query = u'szenario_id={s_id}'.format(s_id=scenario_id)
         if subqueries:
             query += u' AND ({q})'.format(q=u' AND '.join(subqueries))
-        print(query)
         return query
     
     def status_to_query(self, status_node, year):
@@ -205,7 +203,6 @@ class FilterTree(object):
                 if subquery:
                     subqueries.append(subquery)
             query = u' AND '.join(subqueries)
-            print query
         return query
     
     def _build_queries(self, tree_item): 

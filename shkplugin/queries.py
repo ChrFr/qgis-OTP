@@ -2,13 +2,15 @@
 
 from datetime import datetime
 
-def get_values(table, columns, db_conn, schema='public', where=''):
+def get_values(table, columns, db_conn, schema='public', where='', order_by=None):
     sql = u"""
     SELECT {columns}
     FROM {schema}.{table}
     """
     if where:
         sql += u' WHERE ' + where
+    if order_by:
+        sql += u' ORDER BY "{}"'.format(order_by)
     values = db_conn.fetch(sql.format(
         columns=u','.join([u'"{}"'.format(c) for c in columns]),
         table=table, schema=schema))

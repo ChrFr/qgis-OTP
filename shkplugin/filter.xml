@@ -13,12 +13,14 @@
             <value name="Weiterführende Schule">
                 <column name="Angebotsform" alias= "Unterbereich 2. Ebene">
                     <value name="*">
-                        <column name="Schuelerzahl_2016" alias="Sch&#252;lerzahlen" input="range"/>
+                        <column name="Schuelerzahl_aktuell" alias="Schülerzahl aktuell" input="range"/>
+                        <column name="Schuelerzahl_Prognose" alias="Schülerzahl Prognose" input="range"/>
                     </value>
                 </column>
             </value>
             <value name="Grundschule">
-                <column name="Schuelerzahl_2016" alias="Sch&#252;lerzahlen" input="range"/>
+                <column name="Schuelerzahl_aktuell" alias="Schülerzahl aktuell" input="range"/>
+                <column name="Schuelerzahl_Prognose" alias="Schülerzahl Prognose" input="range"/>
                 <column name="FILTER_Ganztagsbetreuungsangebot" alias="Ganztagsbetreuung" />
             </value>
         </column>
