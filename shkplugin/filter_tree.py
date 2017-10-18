@@ -207,7 +207,8 @@ class FilterTree(object):
                 if child.text(0) == 'Bestand':
                     subquery = u'(gueltig_von < {y} AND {y} < gueltig_bis)'.format(y=year)
                 elif child.text(0) == 'Geschlossen':
-                    subquery = u'(gueltig_von > {y} OR {y} > gueltig_bis)'.format(y=year)
+                    #subquery = u'(gueltig_von > {y} OR {y} > gueltig_bis)'.format(y=year)
+                    subquery = u'{y} > gueltig_bis'.format(y=year)
                 elif child.text(0) == 'Neu':
                     subquery = u'gueltig_von = {y}'.format(y=year)
                 if subquery:

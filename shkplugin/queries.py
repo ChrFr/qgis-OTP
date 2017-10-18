@@ -140,10 +140,10 @@ def clone_scenario(scenario_id, name, user, db_conn):
             s_id=new_scenario_id, 
             base_id=scenario_id))
         full_sql = '''
-        --SET session_replication_role = replica;
-        {};
-        --SET session_replication_role = DEFAULT;
-        '''.format(reply)
+        ALTER TABLE {schema}.{table} DISABLE TRIGGER USER;
+        {sql};
+        ALTER TABLE {schema}.{table} ENABLE TRIGGER USER;
+        '''.format(sql=reply, schema=schema, table=table)
         db_conn.execute(full_sql)
 
 def remove_scenario(scenario_id, db_conn):

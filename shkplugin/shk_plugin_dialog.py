@@ -34,7 +34,7 @@ from qgis.core import (QgsDataSourceURI, QgsVectorLayer,
                        QgsMapLayerRegistry, QgsRasterLayer,
                        QgsProject, QgsLayerTreeLayer, QgsRectangle,
                        QgsVectorFileWriter, QgsComposition, QgsLegendRenderer,
-                       QgsComposerLegendStyle)
+                       QgsComposerLegendStyle, QgsLayerTreeGroup)
 from qgis.gui import QgsLayerTreeMapCanvasBridge
 from qgis.utils import iface
 import numpy as np
@@ -323,6 +323,12 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if not ok:
             return
         remove_scenario(scenario.id, self.db_conn)
+        root = QgsProject.instance().layerTreeRoot()
+        scen_to_delete = [child for child in root.children()
+                          if (isinstance(child, QgsLayerTreeGroup)
+                          and child.name() == scenario.name)]
+        for match in scen_to_delete:
+            root.removeChildNode(match)
         self.refresh_scen_list()
         if self.active_scenario and scenario.id == self.active_scenario.id:
             self.activate_scenario(None)
@@ -425,7 +431,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         get_group('Erreichbarkeiten PKW', scen_group)
         get_group(u'Erreichbarkeiten ÖPNV')
         border_group = get_group('Verwaltungsgrenzen')
-        self.add_wms_background_map(group=get_group('Hintergrundkarte'))
+        self.add_wms_background_map(group=get_group('Hintergrundkarte',
+                                                    add_at_index=-1))
         self.add_xml_background_map(GOOGLE_XML,
                                     group=get_group('Hintergrundkarte'),
                                     visible=False)
