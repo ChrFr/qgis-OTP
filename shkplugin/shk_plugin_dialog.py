@@ -50,8 +50,7 @@ from connection import DBConnection, Login
 from queries import (get_values, update_erreichbarkeiten,
                      update_gemeinde_erreichbarkeiten, clone_scenario,
                      get_scenarios, remove_scenario)
-from ui_elements import (LabeledRangeSlider, SimpleSymbology,
-                         SimpleFillSymbology, 
+from ui_elements import (SimpleSymbology, SimpleFillSymbology, 
                          GraduatedSymbology, WaitDialog,
                          EXCEL_FILTER, KML_FILTER, PDF_FILTER,
                          browse_file, browse_folder, CreateScenarioDialog)
@@ -423,9 +422,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         # just for the right initial order
         get_group('Filter', scen_group)
         cat_group = get_group('Einrichtungen', scen_group)
-        border_group = get_group('Verwaltungsgrenzen', scen_group)
         get_group('Erreichbarkeiten PKW', scen_group)
-        get_group(u'Erreichbarkeiten ÖPNV', scen_group)
+        get_group(u'Erreichbarkeiten ÖPNV')
+        border_group = get_group('Verwaltungsgrenzen')
         self.add_wms_background_map(group=get_group('Hintergrundkarte'))
         self.add_xml_background_map(GOOGLE_XML,
                                     group=get_group('Hintergrundkarte'),
@@ -559,7 +558,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         
         filter_tree = self.categories[category]
         subset = filter_tree.to_sql_query(self.active_scenario.id,
-                                          year=self.year_slider.value())
+                                          year=filter_tree.year_slider.value())
         matches = QgsMapLayerRegistry.instance().mapLayersByName(category)
     
         remove_layer(name, subgroup)
@@ -647,7 +646,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if not self.login:
             return
         scenario_group = get_group(self.active_scenario.name)
-        results_group = get_group(u'Erreichbarkeiten ÖPNV', scenario_group)
+        results_group = get_group(u'Erreichbarkeiten ÖPNV')
         symbology = SimpleSymbology('yellow', shape='diamond')
         self.add_db_layer('Zentrale Orte', 'erreichbarkeiten',
                           'zentrale_orte', 'geom', key='id',

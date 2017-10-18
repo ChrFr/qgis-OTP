@@ -101,7 +101,30 @@ class GraduatedSymbology(Symbology):
         super(GraduatedSymbology, self).apply(layer)
 
 
-
+class LabeledSlider(QtGui.QWidget):
+    def __init__(self, label, min, max, value):
+        super(LabeledSlider, self).__init__()
+        self.label = QtGui.QLabel(label)
+        self.value_label = QtGui.QLabel()
+        self.value_label.setText(str(value))
+        self.slider = QtGui.QSlider(Qt.Qt.Horizontal)
+        self.slider.setMinimum(min)
+        self.slider.setMaximum(max)
+        self.slider.setValue(value)
+        self.slider.setMinimumWidth(160)
+        layout = QtGui.QHBoxLayout()
+        layout.addWidget(self.label)
+        layout.addWidget(self.value_label)
+        layout.addWidget(self.slider)
+        self.setLayout(layout)
+        def update(v):
+            self.value_label.setText(str(v))
+        self.slider.valueChanged.connect(update)
+    
+    def value(self):
+        return self.slider.value()
+        
+        
 class LabeledRangeSlider(QtGui.QWidget):
     def __init__(self, min, max):
         super(LabeledRangeSlider, self).__init__()

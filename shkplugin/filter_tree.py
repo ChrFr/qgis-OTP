@@ -2,7 +2,7 @@ from PyQt4 import QtGui, QtCore
 from queries import get_values
 from xml.etree import ElementTree as ET
 import numpy as np
-from ui_elements import LabeledRangeSlider
+from ui_elements import LabeledRangeSlider, LabeledSlider
 
 def set_checkable(item):
     item.setCheckState(0, QtCore.Qt.Unchecked)
@@ -51,6 +51,10 @@ class FilterTree(object):
         # status node
         status_item = QtGui.QTreeWidgetItem(item, ['Status'])
         set_checkable(status_item)
+    
+        self.year_slider = LabeledSlider('mit Stand ', 2000, 2100, 2016)
+        slider_item = QtGui.QTreeWidgetItem(status_item, [''])
+        self.parent_node.setItemWidget(slider_item, 0, self.year_slider)
         for s in ['Bestand', 'Geschlossen', 'Neu']:
             si = QtGui.QTreeWidgetItem(status_item, [s])
             set_checkable(si)
