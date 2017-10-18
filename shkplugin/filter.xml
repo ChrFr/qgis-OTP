@@ -1,28 +1,35 @@
 <root>
     <table name="bildung_szenario">
-        <column name="Unterbereich">
+        <column name="Unterbereich" alias= "Unterbereich 1. Ebene">
             <value name="Heime">
-                <column name="Angebotsform" />
+                <column name="Angebotsform" alias= "Unterbereich 2. Ebene"/>
             </value>
             <value name="Kita">
-                <column name="Angebotsform" />
+                <column name="Angebotsform" alias= "Unterbereich 2. Ebene"/>
             </value>
-            <value name="Schule">
-                <column name="Angebotsform">
+            <value name="Sonstige">
+                <column name="Angebotsform" alias= "Unterbereich 2. Ebene"/>
+            </value>
+            <value name="Weiterführende Schule">
+                <column name="Angebotsform" alias= "Unterbereich 2. Ebene">
                     <value name="*">
                         <column name="Schuelerzahl_2016" alias="Sch&#252;lerzahlen" input="range"/>
                     </value>
-                    <value name="Grundschule">
-                        <column name="FILTER_Ganztagsbetreuungsangebot" alias="Ganztagsbetreuung" />
-                    </value>
                 </column>
+            </value>
+            <value name="Grundschule">
+                <column name="Schuelerzahl_2016" alias="Sch&#252;lerzahlen" input="range"/>
+                <column name="FILTER_Ganztagsbetreuungsangebot" alias="Ganztagsbetreuung" />
             </value>
         </column>
     </table>
     <table name="gesundheit_szenario">
-        <column name="Unterbereich">
+        <column name="Unterbereich" alias= "Unterbereich 1. Ebene">
+            <value name="Feuerwehr">
+                <column name="Angebotsform" alias= "Unterbereich 2. Ebene"/>
+            </value>
             <value name="Hausarzt">
-                <column name="Angebotsform">
+                <column name="Angebotsform" alias= "Unterbereich 2. Ebene">
                     <value name="*">
                         <column name="FILTER_Alter_GROB" alias="Alter"/>
                         <column name="FILTER_Praxiskooperation_GROB" alias="Praxiskooperation"/>
@@ -30,7 +37,7 @@
                 </column>
             </value>
             <value name="Facharzt">
-                <column name="Angebotsform">
+                <column name="Angebotsform" alias= "Unterbereich 2. Ebene">
                     <value name="*">
                         <column name="FILTER_Alter_GROB" alias="Alter"/>
                         <column name="FILTER_Praxiskooperation_GROB" alias="Praxiskooperation"/>
@@ -40,7 +47,7 @@
         </column>
     </table>
     <table name="nahversorgung_szenario">
-        <column name="Unterbereich">
+        <column name="Unterbereich" alias= "Unterbereich 1. Ebene">
             <value name="Nahversorger">
                 <column name="FILTER_FLAECHE" alias='Fl&#228;che (m&#178;)' />
             </value>

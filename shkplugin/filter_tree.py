@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from PyQt4 import QtGui, QtCore
 from queries import get_values
 from xml.etree import ElementTree as ET
@@ -27,18 +29,7 @@ class FilterTree(object):
         self.parent_node.clear()
         table_filters = dict([(c.attrib['name'], c.getchildren())
                               for c in xml_root.getchildren()])
-        #if not region_node:
         region_node = self.region_node(self.db_conn)
-        #else:
-            ## cloning looses appended attributes like column
-            #clone = region_node.clone()
-            #def clone_attr(cloned, original):
-                #if hasattr(original, 'column'):
-                    #cloned.column = original.column
-                #for i in range(original.childCount()):
-                    #clone_attr(cloned.child(i), original.child(i))
-            #clone_attr(clone, region_node)
-            #region_node = clone
             
         filter_nodes = table_filters[self.tablename]
         item = QtGui.QTreeWidgetItem(self.parent_node, ['Spalten'])
@@ -105,7 +96,7 @@ class FilterTree(object):
         if node.tag == 'column':
             item = QtGui.QTreeWidgetItem(parent_item, [display_name])
             set_checkable(item)
-            column = node.attrib['name'].encode('utf-8')
+            column = node.attrib['name']
             where = u'szenario_id={s_id} {where}'.format(
                 s_id=self.scenario_id,
                 where=u' AND {}'.format(where) if where else '')
@@ -142,8 +133,8 @@ class FilterTree(object):
                     break
             item = found
             if hasattr(parent_item, 'column'):
-                where = """"{c}" = '{v}'""".format(c=parent_item.column,
-                                                   v=value)
+                where = u""""{c}" = '{v}'""".format(c=parent_item.column,
+                                                    v=value)
         
         elif node.tag == 'value' and node.attrib['name'] != '*':
             name = node.attrib['name']
@@ -273,6 +264,12 @@ class FilterTree(object):
         return queries
 
     def filter_clicked(self, item):
+
+        #def traverse_check(item, state):
+            #item.setCheckState(0, state)
+            #for i in range(item.childCount()):
+                #child = item.child(i)
+                #traverse_check(child, state)
         
         # check or uncheck all direct children
         if item.checkState(0) != QtCore.Qt.PartiallyChecked:

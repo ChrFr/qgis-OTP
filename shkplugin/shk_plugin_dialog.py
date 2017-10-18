@@ -25,6 +25,7 @@
 import os
 import sys
 import subprocess
+import traceback
 from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtXml import QDomDocument
 from osgeo import gdal
@@ -96,13 +97,13 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         
         self.err_tags = {
             'Bildungseinrichtungen': 'bildung',
-            'Gesundheit': 'gesundheit',
+            'Gesundheit und Feuerwehr': 'gesundheit',
             'Nahversorgung': 'nahversorgung'
         }
         
         self.colors = {
             'Bildungseinrichtungen': 'orange',
-            'Gesundheit': 'red',
+            'Gesundheit und Feuerwehr': 'red',
             'Nahversorgung': '#F781F3'
         }
         
@@ -148,7 +149,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.active_scenario_label.setStyleSheet('color: red')
         self.categories = {
             'Bildungseinrichtungen': None,
-            'Gesundheit': None,
+            'Gesundheit und Feuerwehr': None,
             'Nahversorgung': None
         }
         
@@ -192,8 +193,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.categories['Bildungseinrichtungen'] = FilterTree(
             'Bildungseinrichtungen', 'bildung_szenario', scenario_id,
             self.db_conn, self.schools_tree)
-        self.categories['Gesundheit'] = FilterTree(
-            'Gesundheit', 'gesundheit_szenario', scenario_id,
+        self.categories['Gesundheit und Feuerwehr'] = FilterTree(
+            'Gesundheit und Feuerwehr', 'gesundheit_szenario', scenario_id,
             self.db_conn, self.medicine_tree)
         self.categories['Nahversorgung'] = FilterTree(
             'Nahversorgung', 'nahversorgung_szenario', scenario_id,
@@ -233,7 +234,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             self.cache_edit.setText(folder)
 
     def connect(self):
-        
         db_config = config.db_config
         self.login = Login(host=db_config['host'], port=db_config['port'],
                            user=db_config['username'],
@@ -295,7 +295,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         try:
             function()
         except Exception as e:
-            print e
+            traceback.print_exc()
         finally:
             diag.close()
     
