@@ -119,14 +119,14 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         
         self.filter_selection_button.clicked.connect(self.filter_selection)
         
-        def refresh_filter():
-            if not self.login:
-                return
-            category = self.get_selected_tab()
-            filter_tree = self.categories[category]
-            self.wait_call(lambda: filter_tree.from_xml(FILTER_XML))
-        for button in ['refresh_button', 'refresh_button_2', 'refresh_button_3']:
-            getattr(self, button).clicked.connect(refresh_filter)
+        #def refresh_filter():
+            #if not self.login:
+                #return
+            #category = self.get_selected_tab()
+            #filter_tree = self.categories[category]
+            #self.wait_call(lambda: filter_tree.from_xml(FILTER_XML))
+        #for button in ['refresh_button', 'refresh_button_2', 'refresh_button_3']:
+            #getattr(self, button).clicked.connect(refresh_filter)
     
         self.calculate_car_button.clicked.connect(self.calculate_car)
         self.calculate_ov_button.clicked.connect(
@@ -141,8 +141,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.canvas = iface.mapCanvas()
         
         # disable first tabs at startup (till connection)
-        for i in range(3):
+        for i in range(2):
             self.main_tabs.setTabEnabled(i, False)
+        self.car_groupbox.setEnabled(False)
+        self.ov_groupbox.setEnabled(False)
             
         self.active_scenario = None
         self.active_scenario_label.setText(u'kein Datensatz ausgewählt')
@@ -254,6 +256,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.connection_label.setText('verbunden')
         self.connection_label.setStyleSheet('color: green')
         self.main_tabs.setTabEnabled(0, True)
+        self.ov_groupbox.setEnabled(True)
         self.main_tabs.setCurrentIndex(0)
         self.refresh_scen_list()
         #self.wait_call(self.init_filters)
@@ -280,8 +283,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             self.active_scenario_label.setText(u'kein Datensatz ausgewählt')
             self.active_scenario_label.setStyleSheet('color: red')
         # activate filters and erreichbarkeiten
-        for i in range(1, 3):
+        for i in range(1, 2):
             self.main_tabs.setTabEnabled(i, activated)
+        self.car_groupbox.setEnabled(activated)
         self.refresh_scen_list()
             
     def wait_call(self, function):
@@ -481,7 +485,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                         layer.setEditorWidgetV2Config(i, {u'Editable': True})
                     elif is_sel and selections:
                         layer.setEditorWidgetV2(i, 'ValueMap')
-                        layer.setEditorWidgetV2Config(i, dict(zip(selections, selections)))
+                        d = dict([((s).decode('utf-8'),(s).decode('utf-8')) for s in selections])
+                        layer.setEditorWidgetV2Config(i, d)
                     elif is_sel:
                         layer.setEditorWidgetV2(i, 'UniqueValues')
                 except:
@@ -532,14 +537,14 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
     
             parent_group = get_group('Filter')
             subgroup = get_group(category, parent_group)
-            ids = [str(f.attribute('id')) for f in selected_feats]
+            ids = [str(f.attribute('sel_id')) for f in selected_feats]
             name, ok = QtGui.QInputDialog.getText(
                 self, 'Filter', 'Name des zu erstellenden Layers',
                 text=get_unique_layer_name(category, subgroup))
             if not ok:
                 return
             
-            subset = 'id in ({})'.format(','.join(ids))
+            subset = 'sel_id in ({})'.format(','.join(ids))
             layer = QgsVectorLayer(active_layer.source(), name, "postgres")
             remove_layer(name, subgroup)
             
@@ -570,6 +575,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         name, ok = QtGui.QInputDialog.getText(
             self, 'Filter', 'Name des zu erstellenden Layers',
             text=get_unique_layer_name(category, subgroup))
+        if not ok or not name:
+            return
         orig_layer = None
         for child in err_group.children():
             if child.name() == category:
@@ -667,7 +674,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
     def add_ov_layers(self):
         if not self.login:
             return
-        scenario_group = get_group(self.active_scenario.name)
         results_group = get_group(u'Erreichbarkeiten ÖPNV')
         symbology = SimpleSymbology('yellow', shape='diamond')
         self.add_db_layer('Zentrale Orte', 'erreichbarkeiten',
@@ -675,28 +681,33 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                           symbology=symbology, 
                           group=results_group)
         schema = 'erreichbarkeiten'
-        mat_view = 'matview_err_ov'
-        rows = self.db_conn.fetch(
-            'SELECT DISTINCT(search_time) from {s}.{v}'.format(
-            s=schema, v=mat_view))
-        times = sorted([r.search_time for r in rows])
-        symbology = GraduatedSymbology('minuten', self.err_color_ranges,
-                                       no_pen=True)
-        subgroup_to = get_group('Hinfahrt zu den zentralen Orten',
-                                results_group)
-        subgroup_from = get_group(u'Rückfahrt von den zentralen Orten',
-                                       results_group)
-        for time in times:
-            layer_name = time.strftime("%H:%M")
-            self.add_db_layer(layer_name, 'erreichbarkeiten',
-                              'matview_err_ov', 'geom', key='id', 
-                              symbology=symbology, group=subgroup_to,
-                              where="search_time='{}'".format(time),
-                              visible=True)
-        subgroup_to.setIsMutuallyExclusive(
-            True, initialChildIndex=max(len(times), 4))
-        for child in subgroup_to.children():
-            child.setExpanded(False)
+        def add_mat_view(mat_view, group): 
+            rows = self.db_conn.fetch(
+                'SELECT DISTINCT(search_time) from {s}.{v}'.format(
+                s=schema, v=mat_view))
+            times = sorted([r.search_time for r in rows])
+            symbology = GraduatedSymbology('minuten', self.err_color_ranges,
+                                           no_pen=True)
+            for time in times:
+                layer_name = time.strftime("%H:%M")
+                self.add_db_layer(layer_name, 'erreichbarkeiten',
+                                  mat_view, 'geom', key='id', 
+                                  symbology=symbology, group=group,
+                                  where="search_time='{}'".format(time),
+                                  visible=True)
+            group.setIsMutuallyExclusive(
+                True, initialChildIndex=max(len(times), 4))
+            for child in group.children():
+                child.setExpanded(False)
+            
+        mat_view = 'matview_err_ov_hin'
+        group = get_group('Hinfahrt zu den zentralen Orten',
+                          results_group)
+        add_mat_view(mat_view, group)
+        mat_view = 'matview_err_ov_zurueck'
+        group = get_group(u'Rückfahrt von den zentralen Orten',
+                          results_group)
+        add_mat_view(mat_view, group)
 
     def get_selected_tab(self):
         idx = self.selection_tabs.currentIndex()
@@ -704,7 +715,11 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         return tab_name
     
     def export_filter_layer(self, ext='xlsx'):
-        res = self.get_filterlayer()
+        try:
+            res = self.get_filterlayer()
+        except:
+            traceback.print_exc()
+            return
         if not res:
             return
         category, layer = res
@@ -715,9 +730,15 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         if not filepath:
             return
         driver = 'XLSX' if ext == 'xlsx'else 'KML'
+        #fields = []
+        #for i, f in enumerate(layer.fields()):
+            #if layer.editorWidgetV2(i) == 'Hidden':
+                #continue
+            #fields.append(f.name())
         try:
             QgsVectorFileWriter.writeAsVectorFormat(
                 layer, filepath, "utf-8", None, driver, False)
+                #attributes=fields)
             title = 'Speicherung erfolgreich'
             msg = 'Die Daten wurden erfolgreich exportiert.'
         except Exception as e:

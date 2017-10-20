@@ -40,18 +40,17 @@ def update_erreichbarkeiten(tag, db_conn, szenario_id, where=''):
     AND l.cellcode = g.cellcode
     GROUP BY g.grid_id, l.geom;
     """
-    
+
     refresh_sql = """
     REFRESH MATERIALIZED VIEW {err_schema}.matview_err_{tag};"""
     if where:
         where = ' AND ' + where
-
+    
     db_conn.execute(view_sql.format(ein_schema=ein_schema,
                                     err_schema=err_schema,
                                     sid=szenario_id, 
                                     tag=tag, 
                                     where=where))
-
     db_conn.execute(refresh_sql.format(err_schema=err_schema, tag=tag))
 
 def update_gemeinde_erreichbarkeiten(tag, db_conn):

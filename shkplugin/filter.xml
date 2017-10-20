@@ -6,6 +6,7 @@
             </value>
             <value name="Kita">
                 <column name="Angebotsform" alias= "Unterbereich 2. Ebene"/>
+                <column name="FILTER_Ganztagsbetreuungsangebot" alias="Ganztagsbetreuung" />
             </value>
             <value name="Sonstige">
                 <column name="Angebotsform" alias= "Unterbereich 2. Ebene"/>
@@ -17,6 +18,7 @@
                         <column name="Schuelerzahl_Prognose" alias="Schülerzahl Prognose" input="range"/>
                     </value>
                 </column>
+                <column name="FILTER_Ganztagsbetreuungsangebot" alias="Ganztagsbetreuung" />
             </value>
             <value name="Grundschule">
                 <column name="Schuelerzahl_aktuell" alias="Schülerzahl aktuell" input="range"/>

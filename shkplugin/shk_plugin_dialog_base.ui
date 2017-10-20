@@ -130,7 +130,7 @@
           <item>
            <widget class="QPushButton" name="scen_select_button">
             <property name="text">
-             <string>Aktivieren</string>
+             <string>Aktivieren/Aktualisieren</string>
             </property>
            </widget>
           </item>
@@ -389,13 +389,6 @@
                    </property>
                   </spacer>
                  </item>
-                 <item>
-                  <widget class="QPushButton" name="refresh_button">
-                   <property name="text">
-                    <string>Aktualisieren</string>
-                   </property>
-                  </widget>
-                 </item>
                 </layout>
                </item>
                <item row="2" column="0">
@@ -454,13 +447,6 @@
                    </property>
                   </spacer>
                  </item>
-                 <item>
-                  <widget class="QPushButton" name="refresh_button_2">
-                   <property name="text">
-                    <string>Aktualisieren</string>
-                   </property>
-                  </widget>
-                 </item>
                 </layout>
                </item>
                <item row="0" column="0">
@@ -498,13 +484,6 @@
                     </size>
                    </property>
                   </spacer>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="refresh_button_3">
-                   <property name="text">
-                    <string>Aktualisieren</string>
-                   </property>
-                  </widget>
                  </item>
                 </layout>
                </item>
@@ -608,9 +587,9 @@
          </spacer>
         </item>
         <item row="3" column="1">
-         <widget class="QGroupBox" name="groupBox_4">
+         <widget class="QGroupBox" name="ov_groupbox">
           <property name="title">
-           <string>Öffentlicher Personennahverkehr</string>
+           <string>Öffentlicher Personennahverkehr (allgemeingültig)</string>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_7">
            <item>
@@ -654,9 +633,9 @@
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QGroupBox" name="groupBox_3">
+         <widget class="QGroupBox" name="car_groupbox">
           <property name="title">
-           <string>PKW</string>
+           <string>PKW (datensatzspezifisch)</string>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_6">
            <item>
