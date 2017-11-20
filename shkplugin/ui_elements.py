@@ -37,6 +37,7 @@ def browse_folder(file_preset, title, save=True, parent=None):
     )   
     return folder
 
+
 class Symbology(object):
     def __init__(self):
         pass
@@ -91,7 +92,8 @@ class GraduatedSymbology(Symbology):
             symbol = QgsSymbolV2.defaultSymbol(layer.geometryType())
             symbol.setColor(color)
             if self.no_pen:
-                symbol.setOutputUnit(1)
+                #symbol.setColorBorder('255, 0, 0, 0')
+                symbol.symbolLayer(0).setOutlineColor(QtGui.QColor(255, 0, 0, 0))
             ranges.append(QgsRendererRangeV2(lower, upper, symbol, label))
         self.renderer = QgsGraduatedSymbolRendererV2(self.field, ranges)
         #self.renderer.setClassAttribute(self.field)
@@ -386,7 +388,7 @@ class CreateScenarioDialog(QtGui.QDialog):
 
         # nice widget for editing the date
         name_label = QtGui.QLabel(parent=self)
-        name_label.setText('Name des zu erstellenden Szenarios')
+        name_label.setText('Name des zu erstellenden Datensatzes')
         self.name_edit = QtGui.QLineEdit(parent=self)
         user_label = QtGui.QLabel(parent=self)
         user_label.setText('Ihr Name (optional)')

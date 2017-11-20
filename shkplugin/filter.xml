@@ -32,7 +32,7 @@
             <value name="Feuerwehr">
                 <column name="Angebotsform" alias= "Unterbereich 2. Ebene"/>
             </value>
-            <value name="Hausarzt">
+            <value name="Hausärzte und hausärztlich tätige Fachärzte" >
                 <column name="Angebotsform" alias= "Unterbereich 2. Ebene">
                     <value name="*">
                         <column name="FILTER_Alter_GROB" alias="Alter"/>
@@ -40,13 +40,16 @@
                     </value>
                 </column>
             </value>
-            <value name="Facharzt">
+            <value name="Fachärzte (nicht hausärztlich tätig)">
                 <column name="Angebotsform" alias= "Unterbereich 2. Ebene">
                     <value name="*">
                         <column name="FILTER_Alter_GROB" alias="Alter"/>
                         <column name="FILTER_Praxiskooperation_GROB" alias="Praxiskooperation"/>
                     </value>
                 </column>
+            </value>
+            <value name="Sonstige Medizinische Versorgung">
+                <column name="Angebotsform" alias= "Unterbereich 2. Ebene"/>
             </value>
         </column>
     </table>
