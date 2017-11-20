@@ -105,7 +105,7 @@ def clone_scenario(scenario_id, name, user, db_conn):
     sql_scen = u"""
     INSERT INTO {schema}.{table} (name, benutzer, datum)
     VALUES ('{name}','{user}', '{ts}')
-    RETURNING id
+    RETURNING id 
     """
     new_scenario_id = db_conn.execute(
         sql_scen.format(schema=schema, table=table,
@@ -116,7 +116,7 @@ def clone_scenario(scenario_id, name, user, db_conn):
             FROM information_schema.columns As c
                 WHERE table_name = '{table}'
                AND table_schema = '{schema}'
-               AND  c.column_name NOT IN('szenario_id', 'id')
+               AND  c.column_name NOT IN('szenario_id', 'sel_id')
         ), ',')
     
      || ') SELECT {s_id} AS szenario_id, '
@@ -124,14 +124,14 @@ def clone_scenario(scenario_id, name, user, db_conn):
             FROM information_schema.columns As c
                 WHERE table_name = '{table}' 
                AND table_schema = '{schema}'
-               AND  c.column_name NOT IN('szenario_id', 'id')
+               AND  c.column_name NOT IN('szenario_id', 'sel_id')
         ), ',') || ' FROM {schema}.{table} As o WHERE "szenario_id" = {base_id}' As sqlstmt;
     """
     sql2 = """SELECT '"' || c.column_name || '"'
             FROM information_schema.columns As c
                 WHERE table_name = '{table}'
                AND table_schema = '{schema}'
-               AND  c.column_name NOT IN('szenario_id', 'id')"""
+               AND  c.column_name NOT IN('szenario_id', 'sel_id')"""
     tables = ['bildung_szenario', 'gesundheit_szenario', 'nahversorgung_szenario']
     for table in tables:
         #b = db_conn.execute(sql2.format(schema=schema, table=table))
