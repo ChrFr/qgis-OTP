@@ -453,7 +453,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.canvas.refresh()
     
         columns = ['spalte', 'editierbar', 'nur_auswahl_zulassen',
-                   'auswahlmoeglichkeiten', 'alias', 'auto_vervollst']
+                   'auswahlmoeglichkeiten', 'alias', 'auto_vervollst',
+                   'typ', 'min', 'max']
         for category, filter_tree in self.categories.iteritems():
             table = filter_tree.tablename
             symbology = SimpleSymbology(self.colors[category])
@@ -474,23 +475,33 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                     continue
                 try:
                     idx = editable_columns.index(f.name())
-                    col, is_ed, is_sel, selections, alias, auto_complete = rows[idx]
-                    if alias:
-                        layer.addAttributeAlias(i, alias) 
-                    if not is_ed:
-                        layer.setEditorWidgetV2(i, 'Hidden')
-                        continue
-                    if auto_complete:
-                        layer.setEditorWidgetV2(i, 'UniqueValues')
-                        layer.setEditorWidgetV2Config(i, {u'Editable': True})
-                    elif is_sel and selections:
-                        layer.setEditorWidgetV2(i, 'ValueMap')
-                        d = dict([((s).decode('utf-8'),(s).decode('utf-8')) for s in selections])
-                        layer.setEditorWidgetV2Config(i, d)
-                    elif is_sel:
-                        layer.setEditorWidgetV2(i, 'UniqueValues')
                 except:
                     layer.setEditorWidgetV2(i, 'Hidden')
+                    continue
+                col, is_ed, is_sel, selections, alias, auto_complete, typ, min_value, max_value = rows[idx]
+                if alias:
+                    layer.addAttributeAlias(i, alias) 
+                if not is_ed:
+                    layer.setEditorWidgetV2(i, 'Hidden')
+                    continue
+                # type range (integers)
+                if typ == 'range':
+                    layer.setEditorWidgetV2(i, 'Range')
+                    layer.setEditorWidgetV2Config(
+                        i, {'AllowNull': False,
+                            'Min': min_value, 'Max': max_value})
+                # auto complete: take all existing unique values of field,
+                # text will can be auto completed to one of those in UI
+                if auto_complete:
+                    layer.setEditorWidgetV2(i, 'UniqueValues')
+                    layer.setEditorWidgetV2Config(i, {u'Editable': True})
+                # selectable values are predefined in database
+                elif is_sel and selections:
+                    layer.setEditorWidgetV2(i, 'ValueMap')
+                    d = dict([((s).decode('utf-8'),(s).decode('utf-8')) for s in selections])
+                    layer.setEditorWidgetV2Config(i, d)
+                elif is_sel:
+                    layer.setEditorWidgetV2(i, 'UniqueValues')
         # zoom to extent
         self.canvas.refresh()
         extent = QgsRectangle()
