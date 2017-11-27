@@ -415,3 +415,18 @@ class CreateScenarioDialog(QtGui.QDialog):
                 self, 'Fehler', 'Sie haben keinen Szenarionamen angegeben.')
             return
         self.accept()
+
+class HelpDialog(QtGui.QDialog):
+
+    def __init__(self, help_text, title=None, parent=None):
+        QtGui.QDialog.__init__(self, parent)
+        self.setWindowTitle(title or 'Hilfe')
+        self.resize(400, 600)
+        # create main layout of the dialog
+        layout = QtGui.QVBoxLayout()
+        edit = QtGui.QTextEdit(self)
+        # read the file and get the content
+        edit.setHtml(help_text)
+        edit.setReadOnly(True)
+        layout.addWidget(edit)
+        self.setLayout(layout)

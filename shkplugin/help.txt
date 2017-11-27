@@ -1,0 +1,16 @@
+{
+
+"connect": 
+
+"",
+
+"settings": 
+
+"<h2>Datenbank</h2>
+Hier geben Sie die Zugangsdaten zur Datenbank ein, welche die für diese Anwendung benötigten Einrichtungen des Saale-Holzland-Kreises hält.<br><br>
+Falls Ihnen die Zugangsdaten nicht vorliegen, wenden Sie sich bitte an ihren Systemadministrator oder an die Gertz Gutsche Rümenapp GbR.
+<h2>Pfade</h2>
+<b>Cache-Verzeichnis</b><br>
+Pfad zu irgendwas"
+
+}

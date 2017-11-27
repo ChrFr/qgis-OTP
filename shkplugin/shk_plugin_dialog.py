@@ -31,6 +31,7 @@ from PyQt4.QtXml import QDomDocument
 from osgeo import gdal
 from time import time, sleep
 import re
+import json
 from qgis.core import (QgsDataSourceURI, QgsVectorLayer, 
                        QgsMapLayerRegistry, QgsRasterLayer,
                        QgsProject, QgsLayerTreeLayer, QgsRectangle,
@@ -54,7 +55,8 @@ from queries import (get_values, update_erreichbarkeiten,
 from ui_elements import (SimpleSymbology, SimpleFillSymbology, 
                          GraduatedSymbology, WaitDialog,
                          EXCEL_FILTER, KML_FILTER, PDF_FILTER,
-                         browse_file, browse_folder, CreateScenarioDialog)
+                         browse_file, browse_folder, CreateScenarioDialog,
+                         HelpDialog)
 
 config = Config()
 
@@ -64,6 +66,7 @@ basepath = os.path.split(__file__)[0]
 FILTER_XML = os.path.join(os.path.split(__file__)[0], "filter.xml")
 OSM_XML = os.path.join(basepath, 'osm_map.xml')
 GOOGLE_XML = os.path.join(basepath, 'google_maps.xml')
+HELP_FILE = os.path.join(basepath, 'help.txt')
 REPORT_TEMPLATE_PATH = os.path.join(basepath, 'report_template.qpt')
 PICKLE_EX = '{category}_filter_tree.pickle'
 
@@ -187,6 +190,13 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.scen_copy_button.clicked.connect(
             lambda: self.clone_scenario(get_selected_scenario()))
         self.scen_refresh_button.clicked.connect(self.refresh_scen_list)
+        
+        # Help Buttons
+        
+        self.conn_help_button.clicked.connect(
+            lambda: show_help(self, 'connect', HELP_FILE))
+        self.settings_help_button.clicked.connect(
+            lambda: show_help(self, 'settings', HELP_FILE))
         
     def init_filters(self, scenario):
         if not scenario:
@@ -864,6 +874,13 @@ def get_unique_layer_name(name, group):
                 i += 1
                 break
     return name
+
+def show_help(parent, key, json_file):
+    with open(json_file) as f:
+        data = f.read().replace('\n', '').replace('\r', '')
+        text = json.loads(data)[key]
+        dialog = HelpDialog(text, parent=parent)
+        dialog.exec_()
         
 if __name__ == '__main__':
     print
