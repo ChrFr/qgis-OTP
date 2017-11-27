@@ -29,7 +29,7 @@ import traceback
 from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtXml import QDomDocument
 from osgeo import gdal
-from time import time
+from time import time, sleep
 import re
 from qgis.core import (QgsDataSourceURI, QgsVectorLayer, 
                        QgsMapLayerRegistry, QgsRasterLayer,
@@ -503,7 +503,6 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 elif is_sel:
                     layer.setEditorWidgetV2(i, 'UniqueValues')
         # zoom to extent
-        self.canvas.refresh()
         extent = QgsRectangle()
         extent.setMinimal()
         for child in cat_group.children():

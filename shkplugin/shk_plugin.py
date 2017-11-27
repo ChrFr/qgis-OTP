@@ -65,8 +65,8 @@ class SHKPlugin:
         self.actions = []
         self.menu = self.tr(u'&SHK Plugin')
         # TODO: We are going to let the user set this up in a future iteration
-        self.toolbar = self.iface.addToolBar(u'SHKPlugin')
-        self.toolbar.setObjectName(u'SHKPlugin')
+        self.toolbar = self.iface.addToolBar(u'SHK Plugin')
+        self.toolbar.setObjectName(u'SHK Plugin')
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -166,7 +166,7 @@ class SHKPlugin:
         icon_path = ':/plugins/SHKPlugin/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u''),
+            text=self.tr(u'SHK Plugin'),
             callback=self.run,
             parent=self.iface.mainWindow())
 

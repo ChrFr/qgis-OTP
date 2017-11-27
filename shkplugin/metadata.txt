@@ -28,11 +28,11 @@ repository=github.com
 # Tags are comma separated with spaces allowed
 tags=SHK,Saale-Holzland-Kreis
 
-homepage=
+homepage=http://www.ggr-planung.de/
 category=Plugins
 icon=icon.png
 # experimental flag
-experimental=True
+experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
