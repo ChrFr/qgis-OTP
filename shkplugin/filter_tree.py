@@ -46,7 +46,7 @@ class FilterTree(object):
         self.year_slider = LabeledSlider('mit Stand ', 2000, 2100, 2016)
         slider_item = QtGui.QTreeWidgetItem(status_item, [''])
         self.parent_node.setItemWidget(slider_item, 0, self.year_slider)
-        for s in ['Bestand', 'Geschlossen', 'Neu']:
+        for s in ['Bestand (inkl. Neu)', 'Geschlossen', 'Neu']:
             si = QtGui.QTreeWidgetItem(status_item, [s])
             set_checkable(si)
         #fn = os.path.join(config.cache_folder, PICKLE_EX.format(
@@ -193,7 +193,7 @@ class FilterTree(object):
                 if child.checkState(0) != QtCore.Qt.Checked:
                     continue
                 subquery = None
-                if child.text(0) == 'Bestand':
+                if child.text(0) == 'Bestand (inkl. Neu)':
                     subquery = u'(gueltig_von <= {y} AND {y} <= gueltig_bis)'.format(y=year)
                 elif child.text(0) == 'Geschlossen':
                     #subquery = u'(gueltig_von > {y} OR {y} > gueltig_bis)'.format(y=year)

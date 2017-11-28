@@ -383,6 +383,7 @@ class CreateScenarioDialog(QtGui.QDialog):
     def __init__(self, parent=None):
         super(CreateScenarioDialog, self).__init__(parent)
 
+        self.setWindowTitle('Datensatz kopieren')
         layout = QtGui.QVBoxLayout(self)
         self.name = self.user = None
 

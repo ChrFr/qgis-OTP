@@ -323,6 +323,11 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         user = dialog.user
         self.wait_call(lambda: clone_scenario(scenario.id, name, user, self.db_conn))
         self.refresh_scen_list()
+        QtGui.QMessageBox.information(self, 'Kopieren erfolgreich',
+                                      u'Der Datensatz "{}" wurde angelegt '
+                                      u'und kann über das Auswahlmenü '
+                                      u'"Bestehende Datensätze" aktiviert werden.'
+                                      .format(name))
         
     def remove_scenario(self, scenario):
         if not scenario.editable:
@@ -346,6 +351,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.refresh_scen_list()
         if self.active_scenario and scenario.id == self.active_scenario.id:
             self.activate_scenario(None)
+        QtGui.QMessageBox.information(self, u'Löschen erfolgreich',
+                                      u'Der Datensatz "{}" wurde gelöscht. '
+                                      .format(scenario.name))
     
     def refresh_scen_list(self):
         scenarios = get_scenarios(self.db_conn)
@@ -508,7 +516,16 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 # selectable values are predefined in database
                 elif is_sel and selections:
                     layer.setEditorWidgetV2(i, 'ValueMap')
-                    d = dict([((s).decode('utf-8'),(s).decode('utf-8')) for s in selections])
+                    sel = []
+                    print (selections)
+                    for s in selections:
+                        try:
+                            s = s.decode('utf-8')
+                        except:
+                            pass
+                        sel.append(s)
+                    print (sel)
+                    d = dict([(s, s) for s in sel])
                     layer.setEditorWidgetV2Config(i, d)
                 elif is_sel:
                     layer.setEditorWidgetV2(i, 'UniqueValues')
