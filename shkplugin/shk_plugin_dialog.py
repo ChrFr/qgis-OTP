@@ -63,12 +63,15 @@ config = Config()
 SCHEMA = 'einrichtungen'
 
 basepath = os.path.split(__file__)[0]
+
+# file containing structure of filter-tree
 FILTER_XML = os.path.join(os.path.split(__file__)[0], "filter.xml")
-OSM_XML = os.path.join(basepath, 'osm_map.xml')
+# background map definitions for google maps-layer
 GOOGLE_XML = os.path.join(basepath, 'google_maps.xml')
+# contains help-texts when clicking on question-marks in UI
 HELP_FILE = os.path.join(basepath, 'help.txt')
+# composer-template for exporting to pdf
 REPORT_TEMPLATE_PATH = os.path.join(basepath, 'report_template.qpt')
-PICKLE_EX = '{category}_filter_tree.pickle'
 
 
 class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
