@@ -87,7 +87,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.connect_button.clicked.connect(self.connect)
         self.login = None
 
-        self.err_color_ranges =  [
+        # colors of reachability layers
+        self.reach_color_ranges =  [
             (0, 5, 'unter 5 Minuten', QtGui.QColor(37, 52, 148)), 
             (5, 10, '10 bis 15 Minuten', QtGui.QColor(42, 111, 176)), 
             (10, 15, '15 bis 20 Minuten', QtGui.QColor(56, 160, 191)), 
@@ -98,39 +99,34 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             (120, 99999999, 'mehr als 120 Minuten', QtGui.QColor(227, 88, 88)), 
         ]
         
-        self.err_tags = {
+        # tags internally used for the the institutions
+        self.ein_tags = {
             'Bildungseinrichtungen': 'bildung',
             'Gesundheit und Feuerwehr': 'gesundheit',
             'Nahversorgung': 'nahversorgung'
         }
         
+        # colors of institutions in map
         self.colors = {
             'Bildungseinrichtungen': 'orange',
             'Gesundheit und Feuerwehr': 'red',
             'Nahversorgung': '#F781F3'
         }
         
+        # borders in map
         self.borders = {
             'Gemeinden': QtCore.Qt.DotLine,
             'Verwaltungsgemeinschaften': QtCore.Qt.DashLine, 
             'Kreise': QtCore.Qt.SolidLine
         }
         
-        
+        # filter buttons
         for button in ['filter_button', 'filter_button_2', 'filter_button_3']:
             getattr(self, button).clicked.connect(self.apply_filters)
         
         self.filter_selection_button.clicked.connect(self.filter_selection)
-        
-        #def refresh_filter():
-            #if not self.login:
-                #return
-            #category = self.get_selected_tab()
-            #filter_tree = self.categories[category]
-            #self.wait_call(lambda: filter_tree.from_xml(FILTER_XML))
-        #for button in ['refresh_button', 'refresh_button_2', 'refresh_button_3']:
-            #getattr(self, button).clicked.connect(refresh_filter)
     
+        # reachability buttons
         self.calculate_car_button.clicked.connect(self.calculate_car)
         self.calculate_ov_button.clicked.connect(
             lambda: self.wait_call(self.add_ov_layers))
@@ -158,6 +154,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             'Nahversorgung': None
         }
         
+        # on change scenario-combo:
+        # enable/disable buttons, fill fields with info about selected scenario
         def scenario_select(idx):
             scenario = self.scenario_combo.itemData(idx)
             if not scenario:
@@ -178,11 +176,13 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
     
         self.scenario_combo.currentIndexChanged.connect(scenario_select)
         
+        # get the currently selected scenario in combo
         def get_selected_scenario(): 
             idx = self.scenario_combo.currentIndex()
             scenario = self.scenario_combo.itemData(idx)
             return scenario
         
+        # scenario- related buttons
         self.scen_select_button.clicked.connect(
             lambda: self.activate_scenario(get_selected_scenario()))
         self.scen_delete_button.clicked.connect(
@@ -199,9 +199,13 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             lambda: show_help(self, 'settings', HELP_FILE))
         
     def init_filters(self, scenario):
+        '''
+        build the filter-tree for given scenario
+        '''
         if not scenario:
             return
         scenario_id = scenario.id
+        
         self.categories['Bildungseinrichtungen'] = FilterTree(
             'Bildungseinrichtungen', 'bildung_szenario', scenario_id,
             self.db_conn, self.schools_tree)
@@ -219,6 +223,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         #print('Filter init {}s'.format(time() - start))
     
     def load_config(self):
+        '''
+        load the config from config file into the settings-form
+        '''
         db_config = config.db_config
         self.user_edit.setText(str(db_config['username']))
         self.pass_edit.setText(str(db_config['password']))
@@ -228,6 +235,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.cache_edit.setText(str(config.cache_folder))
         
     def save_config(self):
+        '''
+        save settings-form into config-file
+        '''
         db_config = config.db_config
         db_config['username'] = str(self.user_edit.text())
         db_config['password'] = str(self.pass_edit.text())
@@ -239,6 +249,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         config.write()
 
     def browse_cache(self):
+        '''
+        user input for cache-path
+        '''
         folder = browse_folder(self.cache_edit.text(),
                                u'Verzeichnis für den Cache wählen',
                                parent=self)
@@ -246,6 +259,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             self.cache_edit.setText(folder)
 
     def connect(self):
+        '''
+        connect to database as stored in config
+        '''
         db_config = config.db_config
         self.login = Login(host=db_config['host'], port=db_config['port'],
                            user=db_config['username'],
@@ -273,6 +289,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         #self.wait_call(self.init_layers)
     
     def activate_scenario(self, scenario):
+        '''
+        activate the given scenario, init filters and adapt ui to scenario
+        '''
         if scenario and not scenario.editable:
             return
         # you may pass None as a scenario to deactivate current one
@@ -283,6 +302,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         font = self.active_scenario_label.font()
         font.setBold(activated)
         self.active_scenario_label.setFont(font)
+        # show active scenario in ui
         if activated:
             label = u'{n} {u}'.format(
                 n=scenario.name,
@@ -299,10 +319,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.refresh_scen_list()
             
     def wait_call(self, function):
-        
         '''
-        display wait-dialog while executing function, not threaded
-        (arcgis doesn't seem to handle multiple threads well)
+        display wait-dialog while executing given function, not threaded
+        (qgis doesn't seem to handle multiple threads well)
         '''
         diag = WaitDialog(function, title='Bitte warten', parent=self)
         diag.show()
@@ -314,6 +333,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             diag.close()
     
     def clone_scenario(self, scenario):
+        '''
+        make a copy of given scenario in database
+        '''
         dialog = CreateScenarioDialog(parent=self)
         result = dialog.exec_()
         ok = result == QtGui.QDialog.Accepted
@@ -330,6 +352,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                                       .format(name))
         
     def remove_scenario(self, scenario):
+        '''
+        remove given scenario from database
+        '''
+        
         if not scenario.editable:
             return
         msg = QtGui.QMessageBox(QtGui.QMessageBox.Warning, 'Achtung',
@@ -356,6 +382,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                                       .format(scenario.name))
     
     def refresh_scen_list(self):
+        '''
+        refresh the combobox holding available scenarios
+        '''
         scenarios = get_scenarios(self.db_conn)
         self.scenario_combo.clear()
         select = idx = 0
@@ -376,6 +405,29 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                      symbology=None, uri=None, key=None, zoom=False,
                      group=None, where='', visible=True, to_shape=False,
                      hide_in_composer=False):
+        """
+        add a layer with database as source to the qgis-layer-window
+        
+        Parameters
+        ----------
+        name: layer-label that will be displayed in layer-window
+        schema: name of database schema
+        tablename: name of table in schema
+        where: optional, sql-where-clause to limit the query-response
+        geom: name of the geometry-column to use to display on map
+        key: optional, primary key
+        visible: optional, if True, added layer will be unchecked in layer-window
+        uri: optional, specific uri to source (qgis-style), if not given it will
+                       be created from login and database info
+        zoom: optional, zoom to layer after adding, if True
+        to_shape: optional, if True, store the database-layer to a file in the cache-
+                            folder, adds the link to this file to layer-window
+                            instead of direct link to database
+        group: optional, name of the group to add the layer to, if not given
+                         layer is added to root
+        hide_in_composer: optional, if True, the layer will not be displayed in
+                                    the legend when exporting to pdf
+        """
         if not uri:
             uri = QgsDataSourceURI()
             uri.setConnection(self.login.host,
@@ -416,8 +468,11 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 treelayer, QgsComposerLegendStyle.Hidden)
         return layer
         
-    def add_xml_background_map(self, xml, group=None, visible=True):
-        layer_name = 'GoogleMaps'
+    def add_xml_background_map(self, xml, layer_name = 'GoogleMaps',
+                               group=None, visible=True):
+        '''
+        add background map from xml file to given group (or root)
+        '''
         for child in group.children():
             pass
         layer = QgsRasterLayer(xml, layer_name)
@@ -432,6 +487,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         iface.legendInterface().setLayerVisible(layer, visible)
     
     def add_wms_background_map(self, group=None):
+        '''
+        add b/w terrestris-wms-layer to given group (or root)
+        '''
         layer_name = 'OpenStreetMap WMS - by terrestris'
         remove_layer(layer_name, group)
         url = ('crs=EPSG:31468&dpiMode=7&format=image/png&layers=OSM-WMS&'
@@ -444,6 +502,11 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 treelayer, QgsComposerLegendStyle.Hidden)
 
     def init_layers(self, scenario):
+        '''
+        initialize the layers in layer-window for given scenario
+        including adding groups and background-layers and setting the
+        editability of the institutional layers
+        '''
         if not scenario:
             return
         scen_group = get_group(scenario.name, add_at_index=0)
@@ -469,6 +532,8 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                               symbology=symbology)
         
         self.canvas.refresh()
+        
+        ### SET THE EDITABILITY OF INSTITUTIONAL LAYER-FIELDS###
     
         columns = ['spalte', 'editierbar', 'nur_auswahl_zulassen',
                    'auswahlmoeglichkeiten', 'alias', 'auto_vervollst',
@@ -538,6 +603,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.canvas.refresh()
     
     def filter_selection(self):
+        '''
+        filter the active layer by selected objects
+        '''
         if not self.login:
             return
         # either name of layer or group have to match a category
@@ -600,6 +668,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             destination_layer.addAttributeAlias(i, origin_layer.attributeAlias(i))
     
     def apply_filters(self):
+        '''
+        filter a layer with settings made by user in filter-tree
+        '''
         if not self.login:
             return
         category = self.get_selected_tab()
@@ -635,7 +706,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.copy_editor_attrs(orig_layer, layer)
     
     def get_filterlayer(self):
-
+        '''
+        user-input for selecting a filter-layer
+        layer will be returned, if user clicks ok, else None
+        '''
         items = []
         scenario_group = get_group(self.active_scenario.name)
         filter_group = get_group('Filter', scenario_group)
@@ -662,6 +736,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         return
     
     def calculate_car(self):
+        '''
+        calculate and display the reachability by car
+        '''
         if not self.login:
             return
         res = self.get_filterlayer()
@@ -675,7 +752,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         def run():
             query = layer.subsetString()
             
-            tag = self.err_tags[category]
+            tag = self.ein_tags[category]
             scenario_group = get_group(self.active_scenario.name)
             results_group = get_group('Erreichbarkeiten PKW', scenario_group,
                                       hide_in_composer=False)
@@ -688,7 +765,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                                     where=query)
             update_gemeinde_erreichbarkeiten(tag, self.db_conn)
             
-            symbology = GraduatedSymbology('minuten', self.err_color_ranges,
+            symbology = GraduatedSymbology('minuten', self.reach_color_ranges,
                                            no_pen=True)
             self.add_db_layer(layer_name, 'erreichbarkeiten',
                               err_table, 'geom', key='grid_id',
@@ -696,7 +773,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                               zoom=False, to_shape=True)
             
             symbology = GraduatedSymbology('minuten_mittelwert'[:10],  # Shapefiles: max field-name length = 10
-                                           self.err_color_ranges,
+                                           self.reach_color_ranges,
                                            no_pen=True)
             layer_name += ' Gemeindeebene'
             self.add_db_layer(layer_name, 'erreichbarkeiten',
@@ -707,6 +784,9 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         self.wait_call(run)
 
     def add_ov_layers(self):
+        '''
+        display the reachability by OEPNV and the central places
+        '''
         if not self.login:
             return
         results_group = get_group(u'Erreichbarkeiten ÖPNV')
@@ -721,7 +801,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 'SELECT DISTINCT(search_time) from {s}.{v}'.format(
                 s=schema, v=mat_view))
             times = sorted([r.search_time for r in rows])
-            symbology = GraduatedSymbology('minuten', self.err_color_ranges,
+            symbology = GraduatedSymbology('minuten', self.reach_color_ranges,
                                            no_pen=True)
             for time in times:
                 layer_name = time.strftime("%H:%M")
@@ -745,11 +825,17 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         add_mat_view(mat_view, group)
 
     def get_selected_tab(self):
+        '''
+        return currently selected institution-tab
+        '''
         idx = self.selection_tabs.currentIndex()
         tab_name = self.selection_tabs.tabText(idx)
         return tab_name
     
     def export_filter_layer(self, ext='xlsx'):
+        '''
+        export a filter-layer (opens user-input) to excel or kml
+        '''
         try:
             res = self.get_filterlayer()
         except:
@@ -781,15 +867,11 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             msg = 'Fehler bei der Speicherung: \n {}'.format(str(e))
         QtGui.QMessageBox.information(
             self, title, msg)
-
-    def set_relations(self): 
-        proj = QgsProject.instance()
-        rel_manager = proj.relationManager()
-        relations = rel_manager.relations()
-        relation = QgsRelation()
-        relations['Bildungseinrichtungen-{}'] = relation
     
     def export_pdf(self, title=''):
+        '''
+        Export Composition (map view and checked layers) to PDF
+        '''
         title = self.active_scenario.name if self.active_scenario else ''
         dialog = ExportPDFDialog(title=title, parent=self)
         result = dialog.exec_()
@@ -846,6 +928,16 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
 
 def get_group(groupname, parent_group=None, add_at_index=None,
               hide_in_composer=True):
+    '''
+    get a group from qgis-layer-window, if exists, else add it
+    
+    Parameters
+    ----------
+    groupname: name of group
+    parent_group: optional, parent to look for group in, if not given root
+    add_at_index: optional, add the layer to given index (relative to other siblings)
+    hide_in_composer: optional, if True, hide group in legend, when exporting to pdf
+    '''
     if not parent_group:
         parent_group = QgsProject.instance().layerTreeRoot()
     group = parent_group.findGroup(groupname)
@@ -860,6 +952,9 @@ def get_group(groupname, parent_group=None, add_at_index=None,
     return group
 
 def remove_group_layers(group):
+    '''
+    remove group and it's children from qgis-layer-window
+    '''
     for child in group.children():
         if not hasattr(child, 'layer'):
             continue
@@ -867,6 +962,9 @@ def remove_group_layers(group):
         QgsMapLayerRegistry.instance().removeMapLayer(l.id())
 
 def remove_layer(name, group=None):
+    '''
+    remove layer from qgis-layer-window
+    '''
     
     if not group:
         ex = QgsMapLayerRegistry.instance().mapLayersByName(name)
@@ -882,6 +980,10 @@ def remove_layer(name, group=None):
                 QgsMapLayerRegistry.instance().removeMapLayer(l.id())
         
 def get_unique_layer_name(name, group):
+    '''
+    look for given layername in group,
+    if it already exists a suffix is prepended to make it unique
+    '''
     orig_name = name
     retry = True
     i = 2
@@ -899,6 +1001,10 @@ def get_unique_layer_name(name, group):
     return name
 
 def show_help(parent, key, json_file):
+    '''
+    show a help-dialog with text from json_file,
+    the entry is identified by given key
+    '''
     with open(json_file) as f:
         data = f.read().replace('\n', '').replace('\r', '')
         text = json.loads(data)[key]
