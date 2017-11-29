@@ -1,4 +1,4 @@
-<Composer title="bla" visible="1">
+<Composer title="Template" visible="1">
  <Composition resizeToContentsMarginLeft="0" snapping="0" showPages="1" guidesVisible="1" resizeToContentsMarginTop="0" worldFileMap="" alignmentSnap="1" printResolution="300" paperWidth="210" gridVisible="0" snapGridOffsetX="0" smartGuides="1" snapGridOffsetY="0" resizeToContentsMarginRight="0" snapTolerancePixels="5" printAsRaster="0" generateWorldFile="0" paperHeight="297" numPages="1" snapGridResolution="10" resizeToContentsMarginBottom="0">
   <symbol alpha="1" clip_to_extent="1" type="fill" name="">
    <layer pass="0" class="SimpleFill" locked="0">
@@ -15,7 +15,25 @@
     <prop k="style" v="solid"/>
    </layer>
   </symbol>
-  <ComposerLegend symbolWidth="7" title="Legende" rasterBorderWidth="0" titleAlignment="1" map="0" wmsLegendWidth="50" rasterBorderColor="0,0,0,255" wrapChar="" fontColor="#000000" legendFilterByAtlas="0" columnCount="4" legendFilterByMap="1" wmsLegendHeight="25" columnSpace="2" symbolHeight="4" equalColumnWidth="0" resizeToContents="0" splitLayer="0" boxSpace="2" rasterBorder="1">
+  <ComposerLabel valign="32" marginX="1" marginY="1" labelText="[DATE_TIME]" htmlState="0" halign="2">
+   <LabelFont description="MS Shell Dlg 2,8,-1,5,50,0,0,0,0,0" style=""/>
+   <FontColor red="0" blue="0" green="0"/>
+   <ComposerItem pagey="14.6258" page="1" id="" lastValidViewScaleFactor="-1" positionMode="0" positionLock="false" x="151.136" y="14.6258" visibility="1" zValue="4" background="false" transparency="0" frameJoinStyle="miter" blendMode="0" width="48.9694" outlineWidth="0.3" excludeFromExports="0" uuid="{e7e0934c-b5aa-42ed-936f-6acb61a4a196}" height="7.75055" itemRotation="0" frame="false" pagex="151.136">
+    <FrameColor alpha="255" red="0" blue="0" green="0"/>
+    <BackgroundColor alpha="255" red="255" blue="255" green="255"/>
+    <customproperties/>
+   </ComposerItem>
+  </ComposerLabel>
+  <ComposerLabel valign="32" marginX="4" marginY="1" labelText="[TITLE] " htmlState="0" halign="1">
+   <LabelFont description="MS Shell Dlg 2,16,-1,5,50,0,0,0,0,0" style=""/>
+   <FontColor red="0" blue="0" green="0"/>
+   <ComposerItem pagey="11.6652" page="1" id="" lastValidViewScaleFactor="-1" positionMode="0" positionLock="false" x="5.591" y="11.6652" visibility="1" zValue="4" background="false" transparency="0" frameJoinStyle="miter" blendMode="0" width="126.91" outlineWidth="0.3" excludeFromExports="0" uuid="{48ab52e8-c50c-4d6a-b792-e9a963c439ba}" height="10.7112" itemRotation="0" frame="false" pagex="5.591">
+    <FrameColor alpha="255" red="0" blue="0" green="0"/>
+    <BackgroundColor alpha="255" red="255" blue="255" green="255"/>
+    <customproperties/>
+   </ComposerItem>
+  </ComposerLabel>
+  <ComposerLegend symbolWidth="7" title="Legende" rasterBorderWidth="0" titleAlignment="1" map="0" wmsLegendWidth="50" rasterBorderColor="0,0,0,255" wrapChar="" fontColor="#000000" legendFilterByAtlas="0" columnCount="2" legendFilterByMap="1" wmsLegendHeight="25" columnSpace="2" symbolHeight="4" equalColumnWidth="0" resizeToContents="0" splitLayer="0" boxSpace="2" rasterBorder="1">
    <styles>
     <style marginBottom="2" name="title">
      <styleFont description="MS Shell Dlg 2,16,-1,5,50,0,0,0,0,0" style=""/>
@@ -33,7 +51,7 @@
      <styleFont description="MS Shell Dlg 2,9,-1,5,50,0,0,0,0,0" style=""/>
     </style>
    </styles>
-   <ComposerItem pagey="177.836" page="1" id="legend" lastValidViewScaleFactor="-1" positionMode="0" positionLock="false" x="9.44857" y="177.836" visibility="1" zValue="2" background="true" transparency="0" frameJoinStyle="miter" blendMode="0" width="190.369" outlineWidth="0.3" excludeFromExports="0" uuid="{cd12a9cd-9e5f-4f44-8eaa-f495788407b9}" height="106.924" itemRotation="0" frame="false" pagex="9.44857">
+   <ComposerItem pagey="185.586" page="1" id="legend" lastValidViewScaleFactor="-1" positionMode="0" positionLock="false" x="9.22407" y="185.586" visibility="1" zValue="2" background="true" transparency="0" frameJoinStyle="miter" blendMode="0" width="190.656" outlineWidth="0.3" excludeFromExports="0" uuid="{78b2f48b-6564-437a-95ad-624c32510503}" height="84.999" itemRotation="0" frame="false" pagex="9.22407">
     <FrameColor alpha="255" red="0" blue="0" green="0"/>
     <BackgroundColor alpha="255" red="255" blue="255" green="255"/>
     <customproperties/>
@@ -92,7 +110,7 @@
     <annotationFontProperties description="MS Shell Dlg 2,8.25,-1,5,50,0,0,0,0,0" style=""/>
    </ComposerMapGrid>
    <AtlasMap scalingMode="2" atlasDriven="0" margin="0.10000000000000001"/>
-   <ComposerItem pagey="12" page="1" id="map" lastValidViewScaleFactor="3.75051" positionMode="0" positionLock="false" x="9" y="12" visibility="1" zValue="1" background="true" transparency="0" frameJoinStyle="miter" blendMode="0" width="190.818" outlineWidth="0.3" excludeFromExports="0" uuid="{85383b28-5174-4f7d-add6-82d6a515e3f2}" height="149" itemRotation="0" frame="false" pagex="9">
+   <ComposerItem pagey="27.0462" page="1" id="map" lastValidViewScaleFactor="3.75051" positionMode="0" positionLock="false" x="9.22407" y="27.0462" visibility="1" zValue="1" background="true" transparency="0" frameJoinStyle="miter" blendMode="0" width="190.818" outlineWidth="0.3" excludeFromExports="0" uuid="{49aa309c-9a7a-42b1-983e-aedb6e6ca1cf}" height="149" itemRotation="0" frame="false" pagex="9.22407">
     <FrameColor alpha="255" red="0" blue="0" green="0"/>
     <BackgroundColor alpha="255" red="255" blue="255" green="255"/>
     <customproperties/>

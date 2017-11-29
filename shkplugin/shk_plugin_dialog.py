@@ -56,7 +56,7 @@ from ui_elements import (SimpleSymbology, SimpleFillSymbology,
                          GraduatedSymbology, WaitDialog,
                          EXCEL_FILTER, KML_FILTER, PDF_FILTER,
                          browse_file, browse_folder, CreateScenarioDialog,
-                         HelpDialog)
+                         HelpDialog, ExportPDFDialog)
 
 config = Config()
 
@@ -517,14 +517,12 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
                 elif is_sel and selections:
                     layer.setEditorWidgetV2(i, 'ValueMap')
                     sel = []
-                    print (selections)
                     for s in selections:
                         try:
                             s = s.decode('utf-8')
                         except:
                             pass
                         sel.append(s)
-                    print (sel)
                     d = dict([(s, s) for s in sel])
                     layer.setEditorWidgetV2Config(i, d)
                 elif is_sel:
@@ -791,7 +789,15 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         relation = QgsRelation()
         relations['Bildungseinrichtungen-{}'] = relation
     
-    def export_pdf(self):
+    def export_pdf(self, title=''):
+        title = self.active_scenario.name if self.active_scenario else ''
+        dialog = ExportPDFDialog(title=title, parent=self)
+        result = dialog.exec_()
+        ok = result == QtGui.QDialog.Accepted
+        if not ok:
+            return
+        title = dialog.title
+        date = dialog.date
         filepath = browse_file(None, 'Export', PDF_FILTER, save=True, 
                                parent=self)
         if not filepath:
@@ -809,10 +815,10 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         # You can use this to replace any string like this [key]
         # in the template with a new value. e.g. to replace
         # [date] pass a map like this {'date': '1 Jan 2012'}
-        #substitution_map = {
-            #'DATE_TIME_START': 'foo',
-            #'DATE_TIME_END': 'bar'}
-        composition.loadFromTemplate(document)  #, substitution_map)
+        substitution_map = {
+            'TITLE': title,
+            'DATE_TIME': date}
+        composition.loadFromTemplate(document, substitution_map)
         # You must set the id in the template
         map_item = composition.getComposerItemById('map')
         map_item.setMapCanvas(self.canvas)

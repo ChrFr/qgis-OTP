@@ -4,6 +4,7 @@ from qgis.core import (QgsGraduatedSymbolRendererV2, QgsStyleV2,
                        QgsSingleSymbolRendererV2, QgsMarkerSymbolV2,
                        QgsRendererRangeV2, QgsSymbolV2,
                        QgsSimpleFillSymbolLayerV2)
+from datetime import datetime
 
 EXCEL_FILTER = u'Excel XLSX (*.xlsx)'
 KML_FILTER = u'Keyhole Markup Language (*.kml)'
@@ -431,3 +432,39 @@ class HelpDialog(QtGui.QDialog):
         edit.setReadOnly(True)
         layout.addWidget(edit)
         self.setLayout(layout)
+
+class ExportPDFDialog(QtGui.QDialog):
+    def __init__(self, title='', parent=None):
+        super(ExportPDFDialog, self).__init__(parent)
+
+        self.setWindowTitle('Export PDF')
+        layout = QtGui.QVBoxLayout(self)
+        self.name = self.user = None
+
+        # nice widget for editing the date
+        title_label = QtGui.QLabel(parent=self)
+        title_label.setText('Titel')
+        self.title_edit = QtGui.QLineEdit(parent=self)
+        self.title_edit.setText(title)
+        date_label = QtGui.QLabel(parent=self)
+        date_label.setText('Datum')
+        self.date_edit = QtGui.QLineEdit(parent=self)
+        self.date_edit.setText(datetime.now().strftime('%d.%m.%Y'))
+        
+        layout.addWidget(title_label)
+        layout.addWidget(self.title_edit)
+        layout.addWidget(date_label)
+        layout.addWidget(self.date_edit)
+
+        # OK and Cancel buttons
+        buttons = QtGui.QDialogButtonBox(
+            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+            QtCore.Qt.Horizontal, self)
+        buttons.accepted.connect(self.validate)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+    
+    def validate(self):
+        self.title = self.title_edit.text()
+        self.date = self.date_edit.text()
+        self.accept()
