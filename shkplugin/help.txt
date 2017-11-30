@@ -36,11 +36,11 @@ Im Layerfenster lassen sich dagegen mehrere nacheinander aktivierte Datensätze 
 
 <h2>Kopieren</h2>
 Es wird ein neuer Datensatz erzeugt, dem der ausgewählte Datensatz als Datengrundlage dient. 
-Bei Klick erscheint ein Fenster, in dem Sie aufgefordert werden den Namen des Datensatzes festzulegen. 
-Optional kann auch ein Nutzername eingetragen werden. Die Angaben dienen der Übersichtlichkeit der Liste der Datensätze.
+Bei Klick erscheint ein Fenster, in dem Sie aufgefordert werden, den Namen des Datensatzes festzulegen. 
+Optional kann auch ein Nutzername eingetragen werden. Die Angaben dienen der Übersichtlichkeit der Liste der Datensätze. 
 Die erzeugte Kopie liegt nicht lokal, sondern in der Datenbank vor, so dass alle Nutzer Zugriff darauf haben können. <br><br>
 <i>Die Kopie ist komplett eigenständig verwendbar. Änderungen an ihr haben keine 
-Auswirkungen auf an-dere bestehende Datensätze.</i>
+Auswirkungen auf andere bestehende Datensätze.</i>
 
 <h2>Löschen</h2>
 Der ausgewählte Datensatz und seine Daten werden <b>unwiderruflich</b> aus der Datenbank gelöscht.
@@ -96,15 +96,15 @@ Der untere Layer aggregiert auf Gemeindeebene einen bevölkerungsgewichteten Err
 <h2>ÖPNV-Erreichbarkeit</h2>
 Diese Schaltfläche gibt die Erreichbarkeitswerte für den ÖPNV zum nächstgelegenen Zentralen Ort und zurück zu bestimmten Tageszeiten aus. 
 Die Berechnung ist unabhängig vom aktiven Datensatz.<br><br>
-Es werden zwei Layergruppen zum Layerfenster für die Erreichbarkeit bei An- und Abfahrt zu den Zentralen Orten hinzugefügt. 
-Jede Gruppe enthält pro Zeitscheibe einen Layer, der entsprechend ihrer Erreichbarkeit eingefärbte Siedlungsraster (100x100m) anzeigt.
+Es werden zwei Layergruppen zum Layerfenster für die Erreichbarkeit bei Hin- und Rückfahrt zu den Zentralen Orten hinzugefügt. 
+Jede Gruppe enthält pro Zeitscheibe einen Layer, der entsprechend ihrer Erreichbarkeit eingefärbte Siedlungsraster (100x100m) anzeigt. 
 Zudem werden die Zentralen Orte in einem eigenen Layer angezeigt.
 ",
 
 "oepnv_info":
 
 "
-Die Erreichbarkeiten wurden anhand der Fahrplandaten vom <b> Donnerstag, den 07.12.2017</b> erstellt.
+Die Erreichbarkeiten wurden anhand der Fahrplandaten vom <b> Donnerstag, den 07.12.2017</b> berechnet.
 ",
 
 
@@ -127,7 +127,8 @@ Nach Bestätigung wird der Layer als Keyhole-Markup-Language-Datei in den gewäh
 "
 <h2>PDF Report erstellen</h2>
 Exportiert die aktuelle Kartenansicht in eine PDF-Datei. 
-Nach Klick können Sie den Titel und das Datum festlegen (alternativ frei lassen) und den Ordner wählen.
+Nach Klick können Sie den Titel und das Datum festlegen (alternativ frei lassen) und den Ordner wählen. <br><br>
+Nach erfolgtem Export wird die Datei automatisch in einem externen Anzeigeprogramm geöffnet.
 ",
 
 
