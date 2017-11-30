@@ -420,10 +420,11 @@ class CreateScenarioDialog(QtGui.QDialog):
 
 class HelpDialog(QtGui.QDialog):
 
-    def __init__(self, help_text, title=None, parent=None):
+    def __init__(self, help_text, height=None, title=None, parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowTitle(title or 'Hilfe')
-        self.resize(400, 600)
+        height = height or 600
+        self.resize(400, height)
         # create main layout of the dialog
         layout = QtGui.QVBoxLayout()
         edit = QtGui.QTextEdit(self)

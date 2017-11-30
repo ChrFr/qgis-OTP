@@ -147,6 +147,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
             self.main_tabs.setTabEnabled(i, False)
         self.car_groupbox.setEnabled(False)
         self.ov_groupbox.setEnabled(False)
+        self.export_groupbox.setEnabled(False)
             
         self.active_scenario = None
         self.active_scenario_label.setText(u'kein Datensatz ausgewählt')
@@ -197,9 +198,25 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         # Help Buttons
         
         self.conn_help_button.clicked.connect(
-            lambda: show_help(self, 'connect', HELP_FILE))
+            lambda: show_help(self, 'connection', HELP_FILE))
         self.settings_help_button.clicked.connect(
             lambda: show_help(self, 'settings', HELP_FILE))
+        self.datasets_help_button.clicked.connect(
+            lambda: show_help(self, 'datasets', HELP_FILE))
+        self.filter_sel_help_button.clicked.connect(
+            lambda: show_help(self, 'filter_selection', HELP_FILE))
+        self.filter_fields_help_button.clicked.connect(
+            lambda: show_help(self, 'filter', HELP_FILE))
+        self.car_help_button.clicked.connect(
+            lambda: show_help(self, 'reachability_car', HELP_FILE))
+        self.oepnv_help_button.clicked.connect(
+            lambda: show_help(self, 'reachability_oepnv', HELP_FILE))
+        self.export_inst_help_button.clicked.connect(
+            lambda: show_help(self, 'export', HELP_FILE))
+        self.export_pdf_help_button.clicked.connect(
+            lambda: show_help(self, 'export_pdf', HELP_FILE))
+        self.oepnv_info_button.clicked.connect(
+            lambda: show_help(self, 'oepnv_info', HELP_FILE, height=100))
         
     def init_filters(self, scenario):
         '''
@@ -319,6 +336,7 @@ class SHKPluginDialog(QtGui.QMainWindow, FORM_CLASS):
         for i in range(1, 2):
             self.main_tabs.setTabEnabled(i, activated)
         self.car_groupbox.setEnabled(activated)
+        self.export_groupbox.setEnabled(activated)
         self.refresh_scen_list()
             
     def wait_call(self, function):
@@ -1003,7 +1021,7 @@ def get_unique_layer_name(name, group):
                 break
     return name
 
-def show_help(parent, key, json_file):
+def show_help(parent, key, json_file, height=None):
     '''
     show a help-dialog with text from json_file,
     the entry is identified by given key
@@ -1011,7 +1029,7 @@ def show_help(parent, key, json_file):
     with open(json_file) as f:
         data = f.read().replace('\n', '').replace('\r', '')
         text = json.loads(data)[key]
-        dialog = HelpDialog(text, parent=parent)
+        dialog = HelpDialog(text, height=height, parent=parent)
         dialog.exec_()
         
 if __name__ == '__main__':
