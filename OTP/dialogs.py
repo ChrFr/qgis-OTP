@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from ui_progress import Ui_ProgressDialog
-from PyQt4 import QtCore, QtGui
+from builtins import str
+from .ui_progress import Ui_ProgressDialog
+from qgis.PyQt import QtCore, QtGui, QtWidgets
 import copy, os, re, sys, datetime
 
 # WARNING: doesn't work in QGIS, because it doesn't support the QString module anymore (autocast to str)
@@ -53,7 +54,7 @@ QProgressBar::chunk {
 """
 
                     
-class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
+class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
     """
     Dialog showing progress in textfield and bar after starting a certain task with run()
     """

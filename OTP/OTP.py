@@ -21,27 +21,28 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import (QSettings, QTranslator, qVersion, 
-                          QCoreApplication, QProcess, QDateTime,
-                          QVariant, QLocale, QDate)
-from PyQt4.QtGui import (QAction, QIcon, QListWidgetItem, 
-                         QCheckBox, QMessageBox, QLabel,
-                         QDoubleSpinBox, QFileDialog,
-                         QInputDialog, QLineEdit)
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
+from builtins import object
+from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QProcess, QDateTime, QVariant, QLocale, QDate
+from qgis.PyQt.QtWidgets import QAction, QListWidgetItem, QCheckBox, QMessageBox, QLabel, QDoubleSpinBox, QFileDialog, QInputDialog, QLineEdit
+from qgis.PyQt.QtGui import QIcon
 
 # Initialize Qt resources from file resources.py
-import resources
+from . import resources
 # Import the code for the dialog
-from OTP_dialog import OTPDialog
+from .OTP_dialog import OTPDialog
 import os
-from config import (GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
+from .config import (GRAPH_PATH, AVAILABLE_TRAVERSE_MODES, 
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES, 
                     DEFAULT_FILE, CALC_REACHABILITY_MODE, 
                     VM_MEMORY_RESERVED, Config)
-from dialogs import ExecOTPDialog
-from qgis._core import (QgsVectorLayer, QgsVectorJoinInfo, 
+from .dialogs import ExecOTPDialog
+from qgis._core import (QgsVectorLayer, QgsVectorLayerJoinInfo, 
                         QgsCoordinateReferenceSystem, QgsField)
-from qgis.core import QgsVectorFileWriter, QgsMapLayerRegistry
+from qgis.core import QgsVectorFileWriter, QgsProject
 import locale
 import tempfile
 import shutil
@@ -70,7 +71,7 @@ JAR_FILTER = u'Java Archive (*.jar)'
 
 config = Config()
 
-class OTP:
+class OTP(object):
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
@@ -146,7 +147,7 @@ class OTP:
         self.layer_list = []    
         self.layers = None
         
-        layers = self.iface.legendInterface().layers()    
+        layers = [layer for layer in QgsProject.instance().mapLayers().values()]
         self.fill_layer_combos(layers)        
         
         # refresh layer ids on selection of different layer
@@ -171,7 +172,7 @@ class OTP:
            
         # combobox with modes
         
-        self.dlg.aggregation_mode_combo.addItems(AGGREGATION_MODES.keys())
+        self.dlg.aggregation_mode_combo.addItems(list(AGGREGATION_MODES.keys()))
         agg_mode_combo = self.dlg.aggregation_mode_combo
         agg_layout = self.dlg.aggregation_value_edit
         agg_help_button = self.dlg.agg_help_button
@@ -179,7 +180,7 @@ class OTP:
         agg_mode_combo.currentIndexChanged.connect(
             lambda: self.set_mode_params(AGGREGATION_MODES, agg_mode_combo, agg_layout, agg_help_button))   
         
-        self.dlg.accumulation_mode_combo.addItems(ACCUMULATION_MODES.keys())
+        self.dlg.accumulation_mode_combo.addItems(list(ACCUMULATION_MODES.keys()))
         acc_mode_combo = self.dlg.accumulation_mode_combo
         acc_layout = self.dlg.accumulation_value_edit
         acc_help_button = self.dlg.acc_help_button
@@ -461,7 +462,7 @@ class OTP:
         if len(self.layer_list) == 0 or (layer_combo.currentIndex() >= len(self.layer_list)):
             return
         layer = self.layer_list[layer_combo.currentIndex()]
-        fields = layer.pendingFields()
+        fields = layer.fields()
         old_idx = 0
         for i, field in enumerate(fields):
             if field.name() == old_id_field:
@@ -473,7 +474,7 @@ class OTP:
         selected = mode_combo.currentText()  
         
         # clear layout
-        for i in reversed(range(edit_layout.count())):
+        for i in reversed(list(range(edit_layout.count()))):
             widget = edit_layout.itemAt(i).widget()
             edit_layout.removeWidget(widget)
             widget.setParent(None)
@@ -482,7 +483,7 @@ class OTP:
         except Exception: pass        
         
             
-        if selected in modes.keys():
+        if selected in list(modes.keys()):
             
             def show_help():                
                 msg_box = QMessageBox(
@@ -497,15 +498,15 @@ class OTP:
             for param in modes[selected]["params"]:
                 label = QLabel(param["label"])
                 edit = QDoubleSpinBox()
-                step = param["step"] if param.has_key("step") else 1
+                step = param["step"] if "step" in param else 1
                 edit.setSingleStep(step)
-                if param.has_key("max"):
+                if "max" in param:
                     edit.setMaximum(param["max"])
-                if param.has_key("min"):
+                if "min" in param:
                     edit.setMinimum(param["min"])
-                if param.has_key("default"):
+                if "default" in param:
                     edit.setValue(param["default"])
-                if param.has_key("decimals"):
+                if "decimals" in param:
                     edit.setDecimals(param["decimals"])
                 edit_layout.addRow(label, edit)
                 
@@ -527,7 +528,7 @@ class OTP:
         '''
         
         # reload layer combos, if layers changed on rerun
-        layers = self.iface.legendInterface().layers()     
+        layers = [layer for layer in QgsProject.instance().mapLayers().values()]
         if layers != self.layers:
             self.fill_layer_combos(layers)
         
@@ -591,7 +592,8 @@ class OTP:
         agg_acc['mode'] = self.dlg.aggregation_mode_combo.currentText() 
         agg_acc['processed_field'] = \
             self.dlg.aggregation_field_combo.currentText() 
-        print agg_acc['processed_field']
+        # fix_print_with_import
+        print(agg_acc['processed_field'])
         agg_acc['params'] = self.get_widget_values(
             self.dlg.aggregation_value_edit)
         
@@ -759,7 +761,8 @@ class OTP:
             attributes=non_geom_fields,
             layerOptions=["GEOMETRY=AS_YX"])
         
-        print 'wrote origins and destinations to temporary folder "{}"'.format(tmp_dir)                  
+        # fix_print_with_import
+        print('wrote origins and destinations to temporary folder "{}"'.format(tmp_dir))                  
         
         if target_file is not None:            
             # copy config to file with similar name as results file
@@ -784,7 +787,7 @@ class OTP:
             msg_box.exec_()
             return    
         
-        otp_jar=self.dlg.otp_jar_edit.text()       
+        otp_jar=self.dlg.otp_jar_edit.text()
         if not os.path.exists(otp_jar):
             msg_box = QMessageBox(
                 QMessageBox.Warning, "Fehler", 
@@ -857,7 +860,7 @@ class OTP:
             join.targetFieldName = config.settings['origin']['id_field']      
             origin_layer.addJoin(join)
         
-class ConfigurationControl():
+class ConfigurationControl(object):
     
     def __init__(self, dlg):
         self.dlg = dlg 
@@ -918,7 +921,7 @@ class ConfigurationControl():
                     
         # TRAVERSE MODES    
         modes = router_config['traverse_modes']
-        for index in xrange(self.dlg.mode_list_view.count()):
+        for index in range(self.dlg.mode_list_view.count()):
             checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
             if str(checkbox.text()) in modes :
                 checkbox.setChecked(True) 
@@ -988,7 +991,7 @@ class ConfigurationControl():
                 
         # TRAVERSE MODES    
         selected_modes = []
-        for index in xrange(self.dlg.mode_list_view.count()):
+        for index in range(self.dlg.mode_list_view.count()):
             checkbox = self.dlg.mode_list_view.itemWidget(self.dlg.mode_list_view.item(index))
             if checkbox.isChecked():
                 selected_modes.append(str(checkbox.text()))   
@@ -1030,7 +1033,7 @@ class ConfigurationControl():
         '''
         save config in selectable file
         '''     
-        filename = str(
+        filename, __ = str(
             QFileDialog.getSaveFileName(
                 self.dlg, u'Konfigurationsdatei wählen',
                 directory=DEFAULT_FILE,
@@ -1044,7 +1047,7 @@ class ConfigurationControl():
         '''
         read config from selectable file
         '''
-        filename = str(
+        filename, __ = str(
             QFileDialog.getOpenFileName(
                 self.dlg, u'Konfigurationsdatei wählen',
                 filter=XML_FILTER)
@@ -1066,7 +1069,7 @@ def browse_file(file_preset, title, file_filter, save=True, parent=None):
             caption=title,
             directory=file_preset,
             filter=file_filter
-        )
+        )[0]
     )   
     return filename 
 

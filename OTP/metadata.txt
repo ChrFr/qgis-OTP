@@ -8,7 +8,7 @@
 
 [general]
 name=OTP
-qgisMinimumVersion=2.0
+qgisMinimumVersion=3.0
 description=OTP Erreichbarkeitsanalyse
 version=0.1
 author=GGR
