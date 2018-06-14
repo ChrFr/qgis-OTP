@@ -667,7 +667,7 @@ class OTP(object):
         reach_field_name = 'erreichbare_Ziele'
         agg_acc['mode'] = CALC_REACHABILITY_MODE       
         # field already exists -> try to take unique name
-        if temp_dest_layer.fieldNameIndex(reach_field_name) > -1:
+        if temp_dest_layer.dataProvider().fieldNameIndex(reach_field_name) > -1:
             reach_field_name += '_' + now_string
         reach_field = QgsField(reach_field_name, QVariant.Int)
         temp_dest_layer.addExpressionField('1', reach_field)
@@ -748,7 +748,7 @@ class OTP(object):
             "utf-8", 
             wgs84, 
             "CSV",
-            onlySelected=True,
+            onlySelected=(origin_layer.selectedFeatureCount() > 0),
             attributes=non_geom_fields,
             layerOptions=["GEOMETRY=AS_YX"])
         
@@ -759,7 +759,7 @@ class OTP(object):
             "utf-8", 
             wgs84, 
             "CSV", 
-            onlySelected=True,
+            onlySelected=(destination_layer.selectedFeatureCount() > 0),
             attributes=non_geom_fields,
             layerOptions=["GEOMETRY=AS_YX"])
         
@@ -859,7 +859,7 @@ class OTP(object):
         QgsProject.instance().addMapLayer(result_layer)
             
         if join_results:
-            join = QgsVectorJoinInfo()
+            join = QgsVectorLayerJoinInfo()
             join.joinLayerId = result_layer.id()
             join.joinFieldName = 'origin id'  
             join.targetFieldName = config.settings['origin']['id_field']      
