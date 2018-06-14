@@ -747,7 +747,8 @@ class OTP(object):
             orig_tmp_filename, 
             "utf-8", 
             wgs84, 
-            "CSV", 
+            "CSV",
+            onlySelected=True,
             attributes=non_geom_fields,
             layerOptions=["GEOMETRY=AS_YX"])
         
@@ -758,6 +759,7 @@ class OTP(object):
             "utf-8", 
             wgs84, 
             "CSV", 
+            onlySelected=True,
             attributes=non_geom_fields,
             layerOptions=["GEOMETRY=AS_YX"])
         
@@ -849,9 +851,12 @@ class OTP(object):
                                                    self.dlg.origins_combo.currentText())
             result_layer_name += '-' + now_string
         # WARNING: csv layer is only link to file, if temporary is removed you won't see anything later
-        result_layer = self.iface.addVectorLayer(target_file, 
-                                                 result_layer_name, 
-                                                 'delimitedtext')
+        #result_layer = self.iface.addVectorLayer(target_file, 
+                                                 #result_layer_name, 
+                                                 #'delimitedtext')
+        uri = 'file://' + target_file + '?type=csv&delimiter=;'
+        result_layer = QgsVectorLayer(uri, result_layer_name, 'delimitedtext')
+        QgsProject.instance().addMapLayer(result_layer)
             
         if join_results:
             join = QgsVectorJoinInfo()
