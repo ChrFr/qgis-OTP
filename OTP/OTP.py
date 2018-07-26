@@ -697,10 +697,10 @@ class OTP(object):
                   join_results=do_join)  
         
         #remove temporary layer
-        QgsMapLayerRegistry.instance().removeMapLayer(temp_dest_layer.id())   
+        QgsProject.instance().removeMapLayer(temp_dest_layer.id())
         
     def call(self, target_file=None, origin_layer=None, destination_layer=None, 
-             add_results=False, join_results=False, result_layer_name=None):   
+             add_results=False, join_results=False, result_layer_name=None):
         now_string = datetime.now().strftime(DATETIME_FORMAT)
                 
         # update settings
@@ -764,7 +764,7 @@ class OTP(object):
             layerOptions=["GEOMETRY=AS_YX"])
         
         # fix_print_with_import
-        print('wrote origins and destinations to temporary folder "{}"'.format(tmp_dir))                  
+        print('wrote origins and destinations to temporary folder "{}"'.format(tmp_dir))
         
         if target_file is not None:            
             # copy config to file with similar name as results file
@@ -931,7 +931,7 @@ class ConfigurationControl(object):
             if str(checkbox.text()) in modes :
                 checkbox.setChecked(True) 
             else:
-                checkbox.setChecked(False)                 
+                checkbox.setChecked(False)
                 
         # TIMES
         times = config.settings['time']
