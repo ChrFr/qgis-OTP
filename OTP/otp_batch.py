@@ -8,7 +8,7 @@ to be used with Jython (Java Bindings!)
 '''
 #!/usr/bin/jython
 from config import (DATETIME_FORMAT, INFINITE)
-from otp_eval import OTPEvaluation
+from otp_eval import OTPEvaluation, CSVWriter
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
 import sys
@@ -108,8 +108,10 @@ if __name__ == '__main__':
         
         dt = date_times[0]
         step_delta = timedelta(0, time_step * 60) # days, seconds ...
-        while dt < date_time_end:
+        while True:
             dt += step_delta
+            if dt > date_time_end:
+                break
             date_times.append(dt)                            
     
     # post processing
@@ -162,7 +164,15 @@ if __name__ == '__main__':
     # merge results over time, if aggregation or accumulation is requested or bestof
     do_merge = True if mode is not None or bestof else False
     
-    results = otpEval.evaluate(date_times, long(max_time), origins_csv, destinations_csv, do_merge=do_merge)
+    csv_writer = CSVWriter(target_csv, oid, did, mode, field, 
+                           params, bestof, arrive_by=arrive_by, 
+                           write_dest_data=write_dest_data, 
+                           calculate_details=calculate_details)
+    
+    results = otpEval.evaluate(date_times, long(max_time), 
+                               origins_csv, destinations_csv,
+                               csv_writer,
+                               do_merge=do_merge)
                 
-    otpEval.results_to_csv(results, target_csv, oid, did, mode, field, params, bestof, arrive_by=arrive_by, write_dest_data=write_dest_data) 
+    #otpEval.results_to_csv(results, target_csv, oid, did, mode, field, params, bestof, arrive_by=arrive_by, write_dest_data=write_dest_data) 
         

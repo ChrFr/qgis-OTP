@@ -220,8 +220,8 @@ class Config():
         tree = etree.parse(filename)
         f_set = xml_to_dict(tree.getroot())
         # update subkeys to match file settings
-        for key, value in f_set.iteritems():
-            if self.settings.has_key(key):
+        for key, value in f_set.items():
+            if key in self.settings:
                 self.settings[key].update(value)
             
     def reset(self):        
@@ -257,7 +257,7 @@ class Config():
             run_set['META'] = meta
         xml_tree = etree.Element('CONFIG')
         dict_to_xml(xml_tree, run_set)
-        etree.ElementTree(xml_tree).write(str(filename), pretty_print=True)
+        etree.ElementTree(xml_tree).write(str(filename))
 
 def dict_to_xml(element, dictionary):
     '''

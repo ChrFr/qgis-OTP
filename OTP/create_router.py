@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 from shutil import move
 from argparse import ArgumentParser
@@ -31,9 +32,11 @@ def main():
     dst_file = os.path.join(target_folder, "Graph.obj")
     if os.path.exists(dst_file):
         os.remove(dst_file)
-        print "overwriting old file..."
+        # fix_print_with_import
+        print("overwriting old file...")
     move(graph_file, dst_file)  
-    print "Graph moved to " + dst_file
+    # fix_print_with_import
+    print("Graph moved to " + dst_file)
 
 if __name__ == "__main__":
     main()

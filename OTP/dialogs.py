@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from ui_progress import Ui_ProgressDialog
-from PyQt4 import QtCore, QtGui
+from builtins import str
+from .ui_progress import Ui_ProgressDialog
+from qgis.PyQt import QtCore, QtGui, QtWidgets
 import copy, os, re, sys, datetime
 
 # WARNING: doesn't work in QGIS, because it doesn't support the QString module anymore (autocast to str)
@@ -53,7 +54,7 @@ QProgressBar::chunk {
 """
 
                     
-class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
+class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
     """
     Dialog showing progress in textfield and bar after starting a certain task with run()
     """
@@ -81,10 +82,10 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
             self.close()
 
     def show_status(self, text, progress=None):
-        if hasattr(text, 'toLocal8Bit'):
-            text = str(text.toLocal8Bit())
-        else:
-            text = _fromUtf8(text)
+        #if hasattr(text, 'toLocal8Bit'):
+            #text = str(text.toLocal8Bit())
+        #else:
+            #text = _fromUtf8(text)
         self.log_edit.insertHtml(text + '<br>')
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
         if progress:
@@ -139,8 +140,10 @@ class ExecOTPDialog(ProgressDialog):
         max_progress = 98.
         
         def show_progress():
-            out = str(self.process.readAllStandardOutput())
-            err = str(self.process.readAllStandardError())
+            out = self.process.readAllStandardOutput()
+            out = str(out.data(), encoding='utf-8')
+            err = self.process.readAllStandardError()
+            err = str(err.data(), encoding='utf-8')
             if len(out):                 
                 self.show_status(out)
                 if tick_indicator in out and n_ticks:
