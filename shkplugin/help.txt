@@ -104,7 +104,7 @@ Zudem werden die Zentralen Orte in einem eigenen Layer angezeigt.
 "oepnv_info":
 
 "
-Die Erreichbarkeiten wurden anhand der Fahrplandaten vom <b> Donnerstag, den 07.12.2017</b> berechnet.
+Die Erreichbarkeiten wurden anhand der Fahrplandaten vom <b> Donnerstag, den 07.12.2017</b> berechnet. Der maximale Fußweg, der auf einer Transitstrecke zum beziehungsweise vom zentralen Ort zurückgelegt werden darf, beträgt 2000 Meter.
 ",
 
 
