@@ -3,20 +3,25 @@
 # jython does not support lxml (contains c-bindings)
 try:
     from lxml import etree
-    import OTP    
+    import OTP
 except:
     from xml.etree import ElementTree as etree
 import os, sys, copy
 from collections import OrderedDict
+from os.path import expanduser
 
-DEFAULT_OTP_JAR='/opt/OpenTripPlanner/otp-ggr-stable.jar'
-GRAPH_PATH='/home/ggr/gis/otp_graphs'
+path, f = os.path.split(os.path.realpath(__file__))
+
+DEFAULT_OTP_JAR = os.path.join(path, 'otp-ggr-stable.jar')
+DEFAULT_JYTHON_PATH = os.path.join(path, 'jython-standalone-2.7.0.jar')
+DEFAULT_GRAPH_PATH = os.path.join(expanduser('~'), 'otp_graphs')
+JAVA_DEFAULT = ''
 LATITUDE_COLUMN = 'Y' # field-name used for storing lat values in csv files
 LONGITUDE_COLUMN = 'X' # field-name used for storing lon values in csv files
 ID_COLUMN = 'id' # field-name used for storing the ids in csv files
 VM_MEMORY_RESERVED = 3 # max. memory the virtual machine running OTP can allocate
 DATETIME_FORMAT = "%d/%m/%Y-%H:%M:%S" # format of time stored in xml files
-        
+
 OUTPUT_DATE_FORMAT = 'dd.MM.yyyy HH:mm:ss' # format of the time in the results
 CALC_REACHABILITY_MODE = "THRESHOLD_SUM_AGGREGATOR" # agg. mode that is used to calculate number of reachable destinations (note: threshold is taken from set max travel time)
 INFINITE = 2147483647 # represents indefinite values in the UI, pyqt spin boxes are limited to max int32
@@ -25,10 +30,10 @@ INFINITE = 2147483647 # represents indefinite values in the UI, pyqt spin boxes 
 # order of parameters in list has to be the same, the specific mode requires them
 AGGREGATION_MODES = {
     "THRESHOLD_SUM_AGGREGATOR": {
-        "description": (u"Summiert die Werte der Ziele auf,\n" + 
-                        u"deren Verbindungsdauer den Schwellwert\n" + 
+        "description": (u"Summiert die Werte der Ziele auf,\n" +
+                        u"deren Verbindungsdauer den Schwellwert\n" +
                         u"nicht überschreitet."),
-        "params": [            
+        "params": [
             {
                 "label": "Schwellwert (sek)", # label of the param (UI only)
                 "min": 0, # minimum value
@@ -40,9 +45,9 @@ AGGREGATION_MODES = {
         ]
     },
     "THRESHOLD_CUMMULATIVE_AGGREGATOR": {
-        "description": (u"Summiert die gewichteten Werte der Ziele auf,\n" + 
-                        u"deren Verbindungsdauer t den Schwellwert s\n" + 
-                        u"nicht überschreitet.\n\n" + 
+        "description": (u"Summiert die gewichteten Werte der Ziele auf,\n" +
+                        u"deren Verbindungsdauer t den Schwellwert s\n" +
+                        u"nicht überschreitet.\n\n" +
                         u"Gewichtung: s - t"),
         "params": [
             {
@@ -56,23 +61,23 @@ AGGREGATION_MODES = {
         ]
     },
     "WEIGHTED_AVERAGE_AGGREGATOR": {
-        "description": (u"Bildet eine gewichtetes Mittel über die\n" + 
-                        u"Werte der erreichbaren Ziele.\n\n" + 
+        "description": (u"Bildet eine gewichtetes Mittel über die\n" +
+                        u"Werte der erreichbaren Ziele.\n\n" +
                         u"Gewichtung: Verbindungsdauer"),
         "params": [
         ]
     },
     "DECAY_AGGREGATOR": {
-        "description": (u"Summiert die gewichteten Werte der Ziele auf,\n" + 
-                        u"deren Verbindungsdauer t den Schwellwert\n" + 
-                        u"nicht überschreitet.\n\n" + 
-                        u"Gewichtung: e^(lambda * (t / 60))"),        
+        "description": (u"Summiert die gewichteten Werte der Ziele auf,\n" +
+                        u"deren Verbindungsdauer t den Schwellwert\n" +
+                        u"nicht überschreitet.\n\n" +
+                        u"Gewichtung: e^(lambda * (t / 60))"),
         "params": [
             {
                 "label": "Schwellwert (sek)",
                 "min": 0,
                 "max": 24 * 60 * 60,
-                "default": 60 * 60, 
+                "default": 60 * 60,
                 "step": 1,
                 "decimals": 0
             },
@@ -88,11 +93,11 @@ AGGREGATION_MODES = {
     }
 }
 
-ACCUMULATION_MODES = {    
+ACCUMULATION_MODES = {
     "DECAY_ACCUMULATOR": {
-        "description": (u"Summiert die gewichteten Werte der Ziele auf.\n\n" + 
-                        u"Gewichtung: e^(-lambda * t)\n" + 
-                        u"mit lambda = 1 / (Halbwertszeit * 60)"),        
+        "description": (u"Summiert die gewichteten Werte der Ziele auf.\n\n" +
+                        u"Gewichtung: e^(-lambda * t)\n" +
+                        u"mit lambda = 1 / (Halbwertszeit * 60)"),
         "params": [
             {
                 "label": "Halbwertszeit (min)",
@@ -101,23 +106,23 @@ ACCUMULATION_MODES = {
                 "default": 1,
                 "step": 1,
                 "decimals": 0
-            } 
+            }
         ]
     },
     "THRESHOLD_ACCUMULATOR": {
-        "description": (u"Summiert die Werte der Ziele auf,\n" + 
-                        u"deren Verbindungsdauer den Schwellwert\n" + 
-                        u"nicht überschreitet."),        
+        "description": (u"Summiert die Werte der Ziele auf,\n" +
+                        u"deren Verbindungsdauer den Schwellwert\n" +
+                        u"nicht überschreitet."),
         "params": [
             {
                 "label": "Schwellwert (min)",
                 "min": 0,
                 "max": 24 * 60,
-                "default": 3600, 
+                "default": 3600,
                 "step": 1,
                 "decimals": 0
             }
-        ]    
+        ]
     }
 }
 
@@ -138,10 +143,7 @@ AVAILABLE_TRAVERSE_MODES = [
     'WALK'
 ]
 
-# QGIS can't handle this one on startup, but will work strangely anyhow. just annoying so different approach next line
-#DEFAULT_FILE = os.path.join(os.path.split((sys.argv)[0])[0], "otp_config.xml")
-#DEFAULT_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "otp_config.xml")
-DEFAULT_FILE = os.path.join(os.environ['HOME'], '.qgis2', 'otp_config.xml')
+DEFAULT_FILE = os.path.join(expanduser('~'), 'otp_config.xml')
 
 # structure of config-object, composition of xml is the same
 # contains the DEFAULT values as presets for the UI
@@ -156,20 +158,23 @@ setting_struct = OrderedDict([
     }),
     ('system', {
         'otp_jar_file': DEFAULT_OTP_JAR,
-        'n_threads': 1
+        'n_threads': 1,
+        'jython_jar_file': DEFAULT_JYTHON_PATH,
+        'java': JAVA_DEFAULT,
     }),
     ('time', {
-        'datetime': '', # == now,        
-        'arrive_by': False,        
+        'datetime': '', # == now,
+        'arrive_by': False,
         'time_batch': {
             'active': False,
             'smart_search': False,
             'datetime_end': '',
             'time_step': ''
-        },        
+        },
     }),
     ('router_config', {
-        'router': '', 
+        'path': DEFAULT_GRAPH_PATH,
+        'router': '',
         'traverse_modes': [
             'TRANSIT',
             'WALK'
@@ -192,7 +197,7 @@ setting_struct = OrderedDict([
             'active': False,
             'mode': '',
             'params': [],
-            'processed_field': ''        
+            'processed_field': ''
         }
     })
 ])
@@ -212,7 +217,7 @@ class Config():
 
         if not filename:
             filename = DEFAULT_FILE
-        
+
         self.settings = copy.deepcopy(setting_struct)
         # create file with default settings if it does not exist
         if not os.path.isfile(filename) and do_create:
@@ -223,14 +228,14 @@ class Config():
         for key, value in f_set.items():
             if key in self.settings:
                 self.settings[key].update(value)
-            
-    def reset(self):        
-        self.settings = copy.deepcopy(setting_struct)        
+
+    def reset(self):
+        self.settings = copy.deepcopy(setting_struct)
 
     def write(self, filename=None, hide_inactive=False, meta=None):
         '''
         write the config as xml to given file (default config.xml)
-        
+
         Parameters
         ----------
         filename: file including path to write current settings to
@@ -252,7 +257,7 @@ class Config():
             bestof = run_set['post_processing']['best_of']
             if not bestof:
                 del run_set['post_processing']['best_of']
-                
+
         if meta:
             run_set['META'] = meta
         xml_tree = etree.Element('CONFIG')
@@ -284,7 +289,7 @@ def xml_to_dict(tree):
     else:
         value = tree.text
         if not value:
-            value = ''            
+            value = ''
         value = value.split(',')
         if len(value) == 1:
             value = value[0]
