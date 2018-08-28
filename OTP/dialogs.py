@@ -171,8 +171,7 @@ class ExecOTPDialog(ProgressDialog):
         self.process.readyReadStandardOutput.connect(show_progress)
         self.process.readyReadStandardError.connect(show_progress)
         def error(sth):
-            print(str(sth))
-            print(self.process.exitStatus())
+            self.kill()
         self.process.errorOccurred.connect(error)
 
         self.timer = QtCore.QTimer(self)

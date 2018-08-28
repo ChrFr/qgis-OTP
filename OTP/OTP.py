@@ -857,7 +857,7 @@ class OTP(object):
         if not os.path.exists(javacmd):
             msg_box = QMessageBox(
                 QMessageBox.Warning, "Fehler",
-                u'Der angegebene Jython Interpreter existiert nicht!')
+                u'Der angegebene Java-Pfad existiert nicht!')
             msg_box.exec_()
             return
         # ToDo: add parameter-Xmx{ram_GB}G after java, causes errors atm
