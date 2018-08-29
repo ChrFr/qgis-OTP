@@ -21,14 +21,13 @@
  *                                                                         *
  ***************************************************************************/
 """
-from __future__ import print_function
-from __future__ import absolute_import
 from builtins import str
 from builtins import range
 from builtins import object
 from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QProcess, QDateTime, QVariant, QLocale, QDate
 from qgis.PyQt.QtWidgets import QAction, QListWidgetItem, QCheckBox, QMessageBox, QLabel, QDoubleSpinBox, QFileDialog, QInputDialog, QLineEdit
 from qgis.PyQt.QtGui import QIcon
+from sys import platform
 
 # Initialize Qt resources from file resources.py
 from . import resources
@@ -170,7 +169,46 @@ class OTP(object):
             self.dlg.java_edit.setText(java_file)
         self.dlg.java_browse_button.clicked.connect(browse_java)
 
-        self.dlg.close_button.clicked.connect(self.close) #ToDo: save on close
+        def auto_java():
+            '''
+            you don't have access to the environment variables of the system,
+            use some tricks depending on the system
+            '''
+            java_file = None
+            if platform.startswith('win'):
+                import winreg
+                # ToDo: find 32 Bit installation
+                try:
+                    java_key = winreg.OpenKey(
+                        winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE),
+                        'SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment'
+                    )
+                    ver_key = winreg.OpenKey(java_key, "1.8")
+                    path = os.path.join(
+                        winreg.QueryValueEx(ver_key, 'JavaHome')[0],
+                        'bin', 'java.exe'
+                    )
+                    if os.path.exists(path):
+                        java_file = path
+                except WindowsError:
+                    pass
+            if platform.startswith('linux'):
+                # that is just the default path
+                path = '/usr/bin/java'
+                # ToDo: find right version
+                if os.path.exists(path):
+                    java_file = path
+            if path:
+                self.dlg.java_edit.setText(java_file)
+            else:
+                msg_box = QMessageBox(
+                    QMessageBox.Warning, "Fehler",
+                    u'Java 1.8 konnte nicht auf dem System gefunden werden.'
+                    'Bitte suchen Sie es manuell.')
+                msg_box.exec_()
+        self.dlg.search_java_button.clicked.connect(auto_java)
+
+        self.dlg.close_button.clicked.connect(self.close)
 
         # available layers are stored in here
         self.layer_list = []
@@ -642,7 +680,6 @@ class OTP(object):
         agg_acc['mode'] = self.dlg.aggregation_mode_combo.currentText()
         agg_acc['processed_field'] = \
             self.dlg.aggregation_field_combo.currentText()
-        # fix_print_with_import
         print(agg_acc['processed_field'])
         agg_acc['params'] = self.get_widget_values(
             self.dlg.aggregation_value_edit)
@@ -813,7 +850,6 @@ class OTP(object):
             attributes=non_geom_fields,
             layerOptions=["GEOMETRY=AS_YX"])
 
-        # fix_print_with_import
         print('wrote origins and destinations to temporary folder "{}"'.format(tmp_dir))
 
         if target_file is not None:
@@ -920,7 +956,7 @@ class OTP(object):
         #result_layer = self.iface.addVectorLayer(target_file,
                                                  #result_layer_name,
                                                  #'delimitedtext')
-        uri = 'file://' + target_file + '?type=csv&delimiter=;'
+        uri = 'file:///' + target_file + '?type=csv&delimiter=;'
         result_layer = QgsVectorLayer(uri, result_layer_name, 'delimitedtext')
         QgsProject.instance().addMapLayer(result_layer)
 
