@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from ui_progress import Ui_ProgressDialog
-from PyQt4 import QtCore, QtGui
+from builtins import str
+from .ui_progress import Ui_ProgressDialog
+from qgis.PyQt import QtCore, QtGui, QtWidgets
 import copy, os, re, sys, datetime
 
 # WARNING: doesn't work in QGIS, because it doesn't support the QString module anymore (autocast to str)
@@ -9,7 +10,7 @@ try:
 except AttributeError:
     def _fromUtf8(s):
         return s
-    
+
 DEFAULT_STYLE = """
 QProgressBar{
     border: 2px solid grey;
@@ -52,8 +53,8 @@ QProgressBar::chunk {
 }
 """
 
-                    
-class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
+
+class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
     """
     Dialog showing progress in textfield and bar after starting a certain task with run()
     """
@@ -81,10 +82,10 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
             self.close()
 
     def show_status(self, text, progress=None):
-        if hasattr(text, 'toLocal8Bit'):
-            text = str(text.toLocal8Bit())
-        else:
-            text = _fromUtf8(text)
+        #if hasattr(text, 'toLocal8Bit'):
+            #text = str(text.toLocal8Bit())
+        #else:
+            #text = _fromUtf8(text)
         self.log_edit.insertHtml(text + '<br>')
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
         if progress:
@@ -93,14 +94,14 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
             self.progress_bar.setValue(progress)
 
     # task needs to be overridden
-    def run(self):        
+    def run(self):
         pass
 
 
 class ExecOTPDialog(ProgressDialog):
     """
     ProgressDialog extented by an executable external process
-    
+
     Parameters
     ----------
     n_iterations: number of iterations (like multiple time windows)
@@ -115,12 +116,12 @@ class ExecOTPDialog(ProgressDialog):
         self.auto_close = auto_close
         self.command = command
         self.start_time = 0
-        
+
         self.success = False
 
         # aux. variable to determine if process was killed, because exit code of killed process can't be distinguished from normal exit in linux
         self.killed = False
-        
+
         self.ticks = 0.
         self.iterations = 0
 
@@ -128,49 +129,54 @@ class ExecOTPDialog(ProgressDialog):
         # Disable the button when process starts, and enable it when it finishes
         self.process.started.connect(self.running)
         self.process.finished.connect(self.finished)
-        
+
         # how often will the stdout-indicator written before reaching 100%
-        n_ticks = float(n_points) / points_per_tick  
+        n_ticks = float(n_points) / points_per_tick
         n_ticks *= n_iterations
         tick_indicator = 'Processing:'
         iteration_finished_indicator = 'A total of'
-        
+
         # leave some space for post processing
         max_progress = 98.
-        
+
         def show_progress():
-            out = str(self.process.readAllStandardOutput())
-            err = str(self.process.readAllStandardError())
-            if len(out):                 
+            out = self.process.readAllStandardOutput()
+            out = str(out.data(), encoding='utf-8')
+            err = self.process.readAllStandardError()
+            err = str(err.data(), encoding='utf-8')
+            if len(out):
                 self.show_status(out)
                 if tick_indicator in out and n_ticks:
                     self.ticks += max_progress / n_ticks
-                    self.progress_bar.setValue(min(max_progress, int(self.ticks)))           
+                    self.progress_bar.setValue(min(max_progress, int(self.ticks)))
                 elif iteration_finished_indicator in out:
-                    self.iterations += 1                      
-                    self.progress_bar.setValue(self.iterations * max_progress / n_iterations)  
-                        
+                    self.iterations += 1
+                    self.progress_bar.setValue(self.iterations * max_progress / n_iterations)
+
                 '''  this approach shows progress more accurately, but may cause extreme lags -> deactivated (alternative: thread this)
                 if out.startswith(progress_indicator):
                     # sometimes the stdout comes in too fast, you have to split it (don't split other than progress messages, warnings tend to be very long with multiple breaks, bad performance)
-                    for out_split in out.split("\n"):    
+                    for out_split in out.split("\n"):
                         if (len(out_split) == 0):
                             continue
-                        self.show_status(out_split)                        
+                        self.show_status(out_split)
                         if(total_ticks and out_split.startswith(progress_indicator)):
                             self.ticks += 100. / total_ticks
-                            self.progress_bar.setValue(min(100, int(self.ticks)))       
-                else:                  
-                    self.show_status(out)                                        
+                            self.progress_bar.setValue(min(100, int(self.ticks)))
+                else:
+                    self.show_status(out)
                 '''
             if len(err): self.show_status(err)
-            
+
         self.process.readyReadStandardOutput.connect(show_progress)
-        self.process.readyReadStandardError.connect(show_progress) 
-        
+        self.process.readyReadStandardError.connect(show_progress)
+        def error(sth):
+            self.kill()
+        self.process.errorOccurred.connect(error)
+
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.update_timer)
-        
+
         if auto_start:
             self.startButton.clicked.emit(True)
 
@@ -201,21 +207,21 @@ class ExecOTPDialog(ProgressDialog):
         self.log_edit.insertHtml('<b> Vorgang abgebrochen </b> <br>')
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
         self.success = False
-        
-    def run(self):       
+
+    def run(self):
         self.killed = False
         self.ticks = 0
-        self.progress_bar.setStyleSheet(DEFAULT_STYLE)        
+        self.progress_bar.setStyleSheet(DEFAULT_STYLE)
         self.progress_bar.setValue(0)
         self.show_status('<br>Starte Script: <i>' + self.command + '</i><br>')
         self.process.start(self.command)
         self.start_time = datetime.datetime.now()
         self.timer.start(1000)
-        
+
     def update_timer(self):
         delta = datetime.datetime.now() - self.start_time
         h, remainder = divmod(delta.seconds, 3600)
         m, s = divmod(remainder, 60)
         timer_text = '{:02d}:{:02d}:{:02d}'.format(h, m, s)
         self.elapsed_time_label.setText(timer_text)
-        
+
