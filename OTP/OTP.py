@@ -829,24 +829,30 @@ class OTP(object):
 
         wgs84 = QgsCoordinateReferenceSystem(4326)
         non_geom_fields = get_non_geom_indices(origin_layer)
+        selected_only = (self.dlg.selected_only_check.isChecked() and
+                         origin_layer.selectedFeatureCount() > 0)
+        print(selected_only)
         QgsVectorFileWriter.writeAsVectorFormat(
             origin_layer,
             orig_tmp_filename,
             "utf-8",
             wgs84,
             "CSV",
-            onlySelected=(origin_layer.selectedFeatureCount() > 0),
+            onlySelected=selected_only,
             attributes=non_geom_fields,
             layerOptions=["GEOMETRY=AS_YX"])
 
         non_geom_fields = get_non_geom_indices(destination_layer)
+        selected_only = (self.dlg.selected_only_check.isChecked() and
+                         destination_layer.selectedFeatureCount() > 0)
+        print(selected_only)
         QgsVectorFileWriter.writeAsVectorFormat(
             destination_layer,
             dest_tmp_filename,
             "utf-8",
             wgs84,
             "CSV",
-            onlySelected=(destination_layer.selectedFeatureCount() > 0),
+            onlySelected=selected_only,
             attributes=non_geom_fields,
             layerOptions=["GEOMETRY=AS_YX"])
 
