@@ -158,6 +158,7 @@ setting_struct = OrderedDict([
     }),
     ('system', {
         'otp_jar_file': DEFAULT_OTP_JAR,
+        'reserved': 2,
         'n_threads': 1,
         'jython_jar_file': DEFAULT_JYTHON_PATH,
         'java': JAVA_DEFAULT,

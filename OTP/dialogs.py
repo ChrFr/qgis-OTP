@@ -232,15 +232,16 @@ class ExecOTPDialog(ProgressDialog):
 
 class ExecCreateRouterDialog(ProgressDialog):
     def __init__(self, source_folder, target_folder,
-                 java_executable, otp_jar,
+                 java_executable, otp_jar, memory=2,
                  parent=None):
         super(ExecCreateRouterDialog, self).__init__(parent=parent)
         self.target_folder = target_folder
         self.source_folder = source_folder
         self.command = '''
-        "{javacmd}" -jar "{otp_jar}"
+        "{javacmd}" -Xmx{ram_GB}G -jar "{otp_jar}"
         --build "{folder}"
         '''.format(javacmd=java_executable,
+                   ram_GB=memory,
                    otp_jar=otp_jar,
                    folder=source_folder)
         self.process = QtCore.QProcess(self)
@@ -257,6 +258,7 @@ class ExecCreateRouterDialog(ProgressDialog):
 
         self.process.readyReadStandardOutput.connect(show_progress)
         self.process.readyReadStandardError.connect(show_progress)
+        self.startButton.clicked.emit(True)  #auto start
 
     def run(self):
         self.killed = False
@@ -304,11 +306,12 @@ class ExecCreateRouterDialog(ProgressDialog):
 
 
 class RouterDialog(QtWidgets.QDialog, Ui_RouterDialog):
-    def __init__(self, graph_path, java_executable, otp_jar, parent=None):
+    def __init__(self, graph_path, java_executable, otp_jar, memory=2, parent=None):
         super(RouterDialog, self).__init__(parent=parent)
         self.graph_path = graph_path
         self.java_executable = java_executable
         self.otp_jar = otp_jar
+        self.memory = memory
         self.setupUi(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.close_button.clicked.connect(self.close)
@@ -341,6 +344,6 @@ class RouterDialog(QtWidgets.QDialog, Ui_RouterDialog):
         target_folder = os.path.join(self.graph_path, name)
         diag = ExecCreateRouterDialog(path, target_folder,
                                       self.java_executable, self.otp_jar,
-                                      parent=self)
+                                      memory=self.memory, parent=self)
         diag.exec_()
 

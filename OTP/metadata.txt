@@ -10,7 +10,7 @@
 name=OpenTripPlanner
 qgisMinimumVersion=3.0
 description=OpenTripPlanner Erreichbarkeitsanalyse
-version=1.0
+version=1.01
 author=GGR
 email=franke@ggr-planung.de
 

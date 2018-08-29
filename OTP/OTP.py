@@ -182,34 +182,46 @@ class OTP(object):
             java_file = None
             if platform.startswith('win'):
                 import winreg
-                # ToDo: find 32 Bit installation
+                java_key = None
                 try:
+                    #64 Bit
                     java_key = winreg.OpenKey(
                         winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE),
-                        'SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment'
+                        'SOFTWARE\JavaSoft\Java Runtime Environment'
                     )
-                    ver_key = winreg.OpenKey(java_key, "1.8")
-                    path = os.path.join(
-                        winreg.QueryValueEx(ver_key, 'JavaHome')[0],
-                        'bin', 'java.exe'
-                    )
-                    if os.path.exists(path):
-                        java_file = path
                 except WindowsError:
-                    pass
+                    try:
+                        #32 Bit
+                        java_key = winreg.OpenKey(
+                            winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE),
+                            'SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment'
+                        )
+                    except WindowsError:
+                        pass
+                if java_key:
+                    try:
+                        ver_key = winreg.OpenKey(java_key, "1.8")
+                        path = os.path.join(
+                            winreg.QueryValueEx(ver_key, 'JavaHome')[0],
+                            'bin', 'java.exe'
+                        )
+                        if os.path.exists(path):
+                            java_file = path
+                    except WindowsError:
+                        pass
             if platform.startswith('linux'):
                 # that is just the default path
                 path = '/usr/bin/java'
                 # ToDo: find right version
                 if os.path.exists(path):
                     java_file = path
-            if path:
+            if java_file:
                 self.dlg.java_edit.setText(java_file)
             else:
                 msg_box = QMessageBox(
                     QMessageBox.Warning, "Fehler",
-                    u'Java 1.8 konnte nicht auf dem System gefunden werden.'
-                    'Bitte suchen Sie es manuell.')
+                    u'Die automatische Suche nach Java 1.8 ist fehlgeschlagen. '
+                    'Bitte suchen Sie die ausführbare Datei manuell.')
                 msg_box.exec_()
         self.dlg.search_java_button.clicked.connect(auto_java)
 
@@ -930,15 +942,16 @@ class OTP(object):
             msg_box.exec_()
             return
         java_executable = self.dlg.java_edit.text()
+        memory = self.dlg.memory_edit.value()
         if not os.path.exists(java_executable):
             msg_box = QMessageBox(
                 QMessageBox.Warning, "Fehler",
                 u'Der angegebene Java-Pfad existiert nicht!')
             msg_box.exec_()
             return
-        # ToDo: add parameter-Xmx{ram_GB}G after java, causes errors atm
+        # ToDo: add parameter after java, causes errors atm
         # basic cmd is same for all evaluations
-        cmd = '''"{java_executable}" -jar "{jython_jar}"
+        cmd = '''"{java_executable}" -Xmx{ram_GB}G -jar "{jython_jar}"
         -Dpython.path="{otp_jar}"
         {wd}/otp_batch.py
         --config "{config_xml}"
@@ -946,11 +959,11 @@ class OTP(object):
         --target "{target}" --nlines {nlines}'''
 
         cmd = cmd.format(
-            javacmd=java_executable,
+            java_executable=java_executable,
             jython_jar=jython_jar,
             otp_jar=otp_jar,
             wd=working_dir,
-            #ram_GB=VM_MEMORY_RESERVED,
+            ram_GB=memory,
             config_xml = config_xml,
             origins=orig_tmp_filename,
             destinations=dest_tmp_filename,
@@ -1029,7 +1042,9 @@ class OTP(object):
             msg_box.exec_()
             return
         graph_path = self.dlg.graph_path_edit.text()
+        memory = self.dlg.memory_edit.value()
         diag = RouterDialog(graph_path, java_executable, otp_jar,
+                            memory=memory,
                             parent=self.dlg.parent())
         diag.exec_()
         self.fill_router_combo()
@@ -1132,6 +1147,7 @@ class ConfigurationControl(object):
         # SYSTEM SETTINGS
         sys_settings = config.settings['system']
         n_threads = int(sys_settings['n_threads'])
+        memory = int(sys_settings['reserved'])
         otp_jar = sys_settings['otp_jar_file']
         jython_jar = sys_settings['jython_jar_file']
         java = sys_settings['java']
@@ -1139,6 +1155,7 @@ class ConfigurationControl(object):
         self.dlg.jython_edit.setText(jython_jar)
         self.dlg.java_edit.setText(java)
         self.dlg.cpu_edit.setValue(n_threads)
+        self.dlg.memory_edit.setValue(memory)
         graph_path = config.settings['router_config']['path']
         self.dlg.graph_path_edit.setText(graph_path)
 
@@ -1203,11 +1220,13 @@ class ConfigurationControl(object):
         # SYSTEM SETTINGS
         sys_settings = config.settings['system']
         n_threads = self.dlg.cpu_edit.value()
+        memory = self.dlg.memory_edit.value()
         otp_jar = self.dlg.otp_jar_edit.text()
         jython_jar = self.dlg.jython_edit.text()
         java = self.dlg.java_edit.text()
         graph_path = self.dlg.graph_path_edit.text()
         sys_settings['n_threads'] = n_threads
+        sys_settings['reserved'] = memory
         sys_settings['otp_jar_file'] = otp_jar
         sys_settings['jython_jar_file'] = jython_jar
         sys_settings['java'] = java
