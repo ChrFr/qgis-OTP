@@ -50,10 +50,7 @@ import csv
 
 from datetime import datetime
 
-VERSION = "0.87"
-TITLE = "GGR OpenTripPlanner Plugin v" + VERSION
-
-TITLE += " - Entwicklungsversion"
+TITLE = "GGR OpenTripPlanner Plugin"
 
 # result-modes
 ORIGIN_DESTINATION = 0
