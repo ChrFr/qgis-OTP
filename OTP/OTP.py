@@ -24,8 +24,12 @@
 from builtins import str
 from builtins import range
 from builtins import object
-from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QProcess, QDateTime, QVariant, QLocale, QDate
-from qgis.PyQt.QtWidgets import QAction, QListWidgetItem, QCheckBox, QMessageBox, QLabel, QDoubleSpinBox, QFileDialog, QInputDialog, QLineEdit
+from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion,
+                              QCoreApplication, QProcess, QDateTime,
+                              QVariant, QLocale, QDate)
+from qgis.PyQt.QtWidgets import (QAction, QListWidgetItem, QCheckBox,
+                                 QMessageBox, QLabel, QDoubleSpinBox,
+                                 QFileDialog, QInputDialog, QLineEdit)
 from qgis.PyQt.QtGui import QIcon
 from sys import platform
 
@@ -38,7 +42,7 @@ from .config import (AVAILABLE_TRAVERSE_MODES,
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES,
                     DEFAULT_FILE, CALC_REACHABILITY_MODE,
                     VM_MEMORY_RESERVED, Config)
-from .dialogs import ExecOTPDialog
+from .dialogs import ExecOTPDialog, RouterDialog
 from qgis._core import (QgsVectorLayer, QgsVectorLayerJoinInfo,
                         QgsCoordinateReferenceSystem, QgsField)
 from qgis.core import QgsVectorFileWriter, QgsProject
@@ -125,10 +129,14 @@ class OTP(object):
         # set active tab (aggregation or accumulation depending on arrival checkbox)
         self.dlg.arrival_checkbox.clicked.connect(self.toggle_arrival)
 
-        self.dlg.start_orig_dest_button.clicked.connect(self.start_origin_destination)
-        self.dlg.start_aggregation_button.clicked.connect(self.start_aggregation)
-        self.dlg.start_reachability_button.clicked.connect(self.start_reachability)
-        self.dlg.start_accumulation_button.clicked.connect(self.start_accumulation)
+        self.dlg.start_orig_dest_button.clicked.connect(
+            self.start_origin_destination)
+        self.dlg.start_aggregation_button.clicked.connect(
+            self.start_aggregation)
+        self.dlg.start_reachability_button.clicked.connect(
+            self.start_reachability)
+        self.dlg.start_accumulation_button.clicked.connect(
+            self.start_accumulation)
 
         def browse_jar(edit, text):
             jar_file = browse_file(edit.text(),
@@ -216,16 +224,22 @@ class OTP(object):
 
         # refresh layer ids on selection of different layer
         self.dlg.origins_combo.currentIndexChanged.connect(
-            lambda: self.fill_id_combo(self.dlg.origins_combo, self.dlg.origins_id_combo))
+            lambda: self.fill_id_combo(self.dlg.origins_combo,
+                                       self.dlg.origins_id_combo))
         self.dlg.destinations_combo.currentIndexChanged.connect(
-            lambda: self.fill_id_combo(self.dlg.destinations_combo, self.dlg.destinations_id_combo))
+            lambda: self.fill_id_combo(self.dlg.destinations_combo,
+                                       self.dlg.destinations_id_combo))
         # reset aggregation and accumulation field combo, if layer changed
         self.dlg.destinations_combo.currentIndexChanged.connect(
-            lambda: self.fill_id_combo(self.dlg.destinations_combo, self.dlg.aggregation_field_combo))
-        self.fill_id_combo(self.dlg.destinations_combo, self.dlg.aggregation_field_combo)
+            lambda: self.fill_id_combo(self.dlg.destinations_combo,
+                                       self.dlg.aggregation_field_combo))
+        self.fill_id_combo(self.dlg.destinations_combo,
+                           self.dlg.aggregation_field_combo)
         self.dlg.destinations_combo.currentIndexChanged.connect(
-            lambda: self.fill_id_combo(self.dlg.destinations_combo, self.dlg.accumulation_field_combo))
-        self.fill_id_combo(self.dlg.destinations_combo, self.dlg.accumulation_field_combo)
+            lambda: self.fill_id_combo(self.dlg.destinations_combo,
+                                       self.dlg.accumulation_field_combo))
+        self.fill_id_combo(self.dlg.destinations_combo,
+                           self.dlg.accumulation_field_combo)
 
         # checkboxes for selecting the traverse modes
         for mode in AVAILABLE_TRAVERSE_MODES:
@@ -234,23 +248,31 @@ class OTP(object):
             checkbox.setTristate(False)
             self.dlg.mode_list_view.setItemWidget(item, checkbox)
 
+        self.dlg.create_router_button.clicked.connect(self.create_router)
+
         # combobox with modes
 
         self.dlg.aggregation_mode_combo.addItems(list(AGGREGATION_MODES.keys()))
         agg_mode_combo = self.dlg.aggregation_mode_combo
         agg_layout = self.dlg.aggregation_value_edit
         agg_help_button = self.dlg.agg_help_button
-        self.set_mode_params(AGGREGATION_MODES, agg_mode_combo, agg_layout, agg_help_button)
+        self.set_mode_params(AGGREGATION_MODES, agg_mode_combo, agg_layout,
+                             agg_help_button)
         agg_mode_combo.currentIndexChanged.connect(
-            lambda: self.set_mode_params(AGGREGATION_MODES, agg_mode_combo, agg_layout, agg_help_button))
+            lambda: self.set_mode_params(AGGREGATION_MODES, agg_mode_combo,
+                                         agg_layout, agg_help_button))
 
-        self.dlg.accumulation_mode_combo.addItems(list(ACCUMULATION_MODES.keys()))
+        self.dlg.accumulation_mode_combo.addItems(
+            list(ACCUMULATION_MODES.keys()))
         acc_mode_combo = self.dlg.accumulation_mode_combo
         acc_layout = self.dlg.accumulation_value_edit
         acc_help_button = self.dlg.acc_help_button
-        self.set_mode_params(ACCUMULATION_MODES, acc_mode_combo, acc_layout, acc_help_button)
+        self.set_mode_params(ACCUMULATION_MODES, acc_mode_combo,
+                             acc_layout, acc_help_button)
         acc_mode_combo.currentIndexChanged.connect(
-            lambda: self.set_mode_params(ACCUMULATION_MODES, acc_mode_combo, acc_layout, acc_help_button))
+            lambda: self.set_mode_params(ACCUMULATION_MODES,
+                                         acc_mode_combo, acc_layout,
+                                         acc_help_button))
 
         # router
         self.fill_router_combo()
@@ -265,27 +287,36 @@ class OTP(object):
         self.dlg.date_now_button.clicked.connect(set_now)
 
         # settings
-        self.dlg.config_default_button.clicked.connect(self.config_control.reset_to_default)
-        self.dlg.config_reset_button.clicked.connect(self.config_control.apply)
-        self.dlg.config_read_button.clicked.connect(self.config_control.read)
-        self.dlg.config_save_as_button.clicked.connect(self.config_control.save_as)
+        self.dlg.config_default_button.clicked.connect(
+            self.config_control.reset_to_default)
+        self.dlg.config_reset_button.clicked.connect(
+            self.config_control.apply)
+        self.dlg.config_read_button.clicked.connect(
+            self.config_control.read)
+        self.dlg.config_save_as_button.clicked.connect(
+            self.config_control.save_as)
 
         def save():
             self.config_control.update()
             self.config_control.save()
         self.dlg.config_save_button.clicked.connect(save)
-        # apply settings to UI (the layers are unknown at QGIS startup, so don't expect them to be already selected)
+        # apply settings to UI (the layers are unknown at QGIS startup,
+        # so don't expect them to be already selected)
         self.config_control.apply()
 
-        # call checkbox toggle callbacks (settings loaded, but checkboxes not 'clicked' while loading)
+        # call checkbox toggle callbacks (settings loaded, but
+        # checkboxes not 'clicked' while loading)
         self.toggle_arrival()
 
         ### currently DEACTIVATED functions ###
 
-        # initial wait of 0 is confusing and higher values don't seem to work as supposed to
-        # (only 'clamps' them, but doesn't work as maximum initial wait time) -> deactivated
+        # initial wait of 0 is confusing and higher values don't seem to work
+        # as supposed to
+        # (only 'clamps' them, but doesn't work as maximum initial wait time)
+        # -> deactivated
         self.dlg.clamp_edit.setVisible(False)
-        # additional labels describing initial waiting time (i didn't consider proper naming)
+        # additional labels describing initial waiting time (i didn't consider
+        # proper naming)
         self.dlg.label_21.setVisible(False)
         self.dlg.label_22.setVisible(False)
         # -1 causes initial wait to be subtracted from total travel time,
@@ -472,14 +503,19 @@ class OTP(object):
                 'Verzeichnis mit Routern nicht gefunden '
                 '(siehe Systemeinstellungen)')
             self.dlg.router_combo.setEnabled(False)
+            self.dlg.create_router_button.setEnabled(False)
         else:
             # subdirectories in graph-dir are treated as routers by OTP
             for i, subdir in enumerate(os.listdir(graph_path)):
-                if os.path.isdir(os.path.join(graph_path, subdir)):
-                    self.dlg.router_combo.addItem(subdir)
-                    if prev_router == subdir:
-                        idx = i
+                path = os.path.join(graph_path, subdir)
+                if os.path.isdir(path):
+                    graph_file = os.path.join(path, 'Graph.obj')
+                    if os.path.exists(graph_file):
+                        self.dlg.router_combo.addItem(subdir)
+                        if prev_router == subdir:
+                            idx = i
             self.dlg.router_combo.setEnabled(True)
+            self.dlg.create_router_button.setEnabled(True)
         self.dlg.router_combo.setCurrentIndex(idx)
 
     def fill_layer_combos(self, layers):
@@ -537,7 +573,8 @@ class OTP(object):
         '''
         old_id_field = id_combo.currentText()
         id_combo.clear()
-        if len(self.layer_list) == 0 or (layer_combo.currentIndex() >= len(self.layer_list)):
+        if (len(self.layer_list) == 0 or
+            (layer_combo.currentIndex() >= len(self.layer_list))):
             return
         layer = self.layer_list[layer_combo.currentIndex()]
         fields = layer.fields()
@@ -655,8 +692,9 @@ class OTP(object):
         add_results = self.dlg.orig_dest_add_check.isChecked()
         result_layer_name = None
         if add_results:
-            preset = 'results-{}-{}'.format(self.dlg.router_combo.currentText(),
-                                            self.dlg.origins_combo.currentText())
+            preset = 'results-{}-{}'.format(
+                self.dlg.router_combo.currentText(),
+                self.dlg.origins_combo.currentText())
             result_layer_name, ok = QInputDialog.getText(
                 None, 'Layer benennen',
                 'Name der zu erzeugenden Ergebnistabelle:',
@@ -828,7 +866,6 @@ class OTP(object):
         non_geom_fields = get_non_geom_indices(origin_layer)
         selected_only = (self.dlg.selected_only_check.isChecked() and
                          origin_layer.selectedFeatureCount() > 0)
-        print(selected_only)
         QgsVectorFileWriter.writeAsVectorFormat(
             origin_layer,
             orig_tmp_filename,
@@ -842,7 +879,6 @@ class OTP(object):
         non_geom_fields = get_non_geom_indices(destination_layer)
         selected_only = (self.dlg.selected_only_check.isChecked() and
                          destination_layer.selectedFeatureCount() > 0)
-        print(selected_only)
         QgsVectorFileWriter.writeAsVectorFormat(
             destination_layer,
             dest_tmp_filename,
@@ -853,7 +889,8 @@ class OTP(object):
             attributes=non_geom_fields,
             layerOptions=["GEOMETRY=AS_YX"])
 
-        print('wrote origins and destinations to temporary folder "{}"'.format(tmp_dir))
+        print('wrote origins and destinations to temporary folder "{}"'.format(
+            tmp_dir))
 
         if target_file is not None:
             # copy config to file with similar name as results file
@@ -892,8 +929,8 @@ class OTP(object):
                 u'Der angegebene Jython Interpreter existiert nicht!')
             msg_box.exec_()
             return
-        javacmd=self.dlg.java_edit.text()
-        if not os.path.exists(javacmd):
+        java_executable = self.dlg.java_edit.text()
+        if not os.path.exists(java_executable):
             msg_box = QMessageBox(
                 QMessageBox.Warning, "Fehler",
                 u'Der angegebene Java-Pfad existiert nicht!')
@@ -901,14 +938,15 @@ class OTP(object):
             return
         # ToDo: add parameter-Xmx{ram_GB}G after java, causes errors atm
         # basic cmd is same for all evaluations
-        cmd = '''"{javacmd}" -jar "{jython_jar}" -Dpython.path="{otp_jar}"
+        cmd = '''"{java_executable}" -jar "{jython_jar}"
+        -Dpython.path="{otp_jar}"
         {wd}/otp_batch.py
         --config "{config_xml}"
         --origins "{origins}" --destinations "{destinations}"
         --target "{target}" --nlines {nlines}'''
 
         cmd = cmd.format(
-            javacmd=javacmd,
+            javacmd=java_executable,
             jython_jar=jython_jar,
             otp_jar=otp_jar,
             wd=working_dir,
@@ -931,8 +969,10 @@ class OTP(object):
         batch_active = time_batch['active']
         if batch_active == 'True' or batch_active == True:
             dt_begin = datetime.strptime(times['datetime'], DATETIME_FORMAT)
-            dt_end = datetime.strptime(time_batch['datetime_end'], DATETIME_FORMAT)
-            n_iterations = (dt_end - dt_begin).total_seconds() / (int(time_batch['time_step']) * 60) + 1
+            dt_end = datetime.strptime(time_batch['datetime_end'],
+                                       DATETIME_FORMAT)
+            n_iterations = ((dt_end - dt_begin).total_seconds() /
+                            (int(time_batch['time_step']) * 60) + 1)
         else:
             n_iterations = 1
 
@@ -944,7 +984,8 @@ class OTP(object):
                              points_per_tick=PRINT_EVERY_N_LINES)
         diag.exec_()
 
-        # not successful or no need to add layers to QGIS -> just remove temporary files
+        # not successful or no need to add layers to QGIS ->
+        # just remove temporary files
         if not diag.success or (not add_results and not join_results):
             shutil.rmtree(tmp_dir)
             return
@@ -952,10 +993,12 @@ class OTP(object):
         ### add/join layers in QGIS after OTP is done ###
 
         if result_layer_name is None:
-            result_layer_name = 'results-{}-{}'.format(self.dlg.router_combo.currentText(),
-                                                   self.dlg.origins_combo.currentText())
+            result_layer_name = 'results-{}-{}'.format(
+                self.dlg.router_combo.currentText(),
+                self.dlg.origins_combo.currentText())
             result_layer_name += '-' + now_string
-        # WARNING: csv layer is only link to file, if temporary is removed you won't see anything later
+        # WARNING: csv layer is only link to file,
+        # if temporary is removed you won't see anything later
         #result_layer = self.iface.addVectorLayer(target_file,
                                                  #result_layer_name,
                                                  #'delimitedtext')
@@ -969,6 +1012,28 @@ class OTP(object):
             join.joinFieldName = 'origin id'
             join.targetFieldName = config.settings['origin']['id_field']
             origin_layer.addJoin(join)
+
+    def create_router(self):
+        java_executable = self.dlg.java_edit.text()
+        otp_jar=self.dlg.otp_jar_edit.text()
+        if not os.path.exists(otp_jar):
+            msg_box = QMessageBox(
+                QMessageBox.Warning, "Fehler",
+                u'Die angegebene OTP Datei existiert nicht!')
+            msg_box.exec_()
+            return
+        if not os.path.exists(java_executable):
+            msg_box = QMessageBox(
+                QMessageBox.Warning, "Fehler",
+                u'Der angegebene Java-Pfad existiert nicht!')
+            msg_box.exec_()
+            return
+        graph_path = self.dlg.graph_path_edit.text()
+        diag = RouterDialog(graph_path, java_executable, otp_jar,
+                            parent=self.dlg.parent())
+        diag.exec_()
+        self.fill_router_combo()
+
 
 class ConfigurationControl(object):
 

@@ -47,13 +47,13 @@ PY_FILES = \
 	OTP.py OTP_dialog.py \
 	config.py dialogs.py
 
-UI_FILES = OTP_dialog_base.ui 
+UI_FILES = OTP_dialog_base.ui
 
 EXTRAS = metadata.txt icon.png
 
-COMPILED_UI_FILES = ui_progress.py
+COMPILED_UI_FILES = ui_progress.py ui_router.py
 
-COMPILED_RESOURCE_FILES = resources.py 
+COMPILED_RESOURCE_FILES = resources.py
 
 PEP8EXCLUDE=pydev,resources.py,conf.py,third_party,ui
 
@@ -79,7 +79,7 @@ compile: $(COMPILED_RESOURCE_FILES) $(COMPILED_UI_FILES)
 
 %.qm : %.ts
 	$(LRELEASE) $<
-	
+
 ui_%.py: %.ui
 	pyuic4 -o $@ $<
 
