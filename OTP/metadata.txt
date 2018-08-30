@@ -9,12 +9,12 @@
 [general]
 name=OpenTripPlanner
 qgisMinimumVersion=3.0
-description=OpenTripPlanner Erreichbarkeitsanalyse
+description=Routen- und Erreichbarkeitsberechnungen mit dem OpenTripPlanner
 version=1.01
 author=GGR
 email=franke@ggr-planung.de
 
-about=Skript zur Berechnung von Erreichbarkeiten mit OpenTripPlanner
+about=Dieses Plugin bindet die Plattform OpenTripPlanner (http://www.opentripplanner.org) für multimodale Routensuche in QuantumGIS ein. Über die Oberfläche können die Routenparameter eingestellt werden und verschiedene Batch-Analysen über die angepasste Scripting-API gestartet werden. Der angepasste OpenTripPlanner und Jython werden mit diesem Plugin ausgeliefert. Zusätzlich muss das Java Development Kit 8 installiert werden.
 
 tracker=github.com
 repository=github.com
