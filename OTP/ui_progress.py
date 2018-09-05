@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'progress.ui'
 #
-# Created by: PyQt5 UI code generator 5.10.1
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,10 +11,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_ProgressDialog(object):
     def setupUi(self, ProgressDialog):
         ProgressDialog.setObjectName("ProgressDialog")
-        ProgressDialog.setWindowModality(QtCore.Qt.ApplicationModal)
+        ProgressDialog.setWindowModality(QtCore.Qt.WindowModal)
         ProgressDialog.resize(635, 347)
         ProgressDialog.setMinimumSize(QtCore.QSize(410, 210))
         ProgressDialog.setMaximumSize(QtCore.QSize(10000, 10000))
+        ProgressDialog.setModal(True)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(ProgressDialog)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.log_edit = QtWidgets.QTextEdit(ProgressDialog)
@@ -60,14 +61,4 @@ class Ui_ProgressDialog(object):
         self.elapsed_time_label.setText(_translate("ProgressDialog", "00:00:00"))
         self.startButton.setText(_translate("ProgressDialog", "Start"))
         self.cancelButton.setText(_translate("ProgressDialog", "Abbrechen"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    ProgressDialog = QtWidgets.QDialog()
-    ui = Ui_ProgressDialog()
-    ui.setupUi(ProgressDialog)
-    ProgressDialog.show()
-    sys.exit(app.exec_())
 

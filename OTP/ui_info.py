@@ -11,12 +11,14 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_InfoDialog(object):
     def setupUi(self, InfoDialog):
         InfoDialog.setObjectName("InfoDialog")
+        InfoDialog.setWindowModality(QtCore.Qt.WindowModal)
         InfoDialog.resize(469, 184)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(InfoDialog.sizePolicy().hasHeightForWidth())
         InfoDialog.setSizePolicy(sizePolicy)
+        InfoDialog.setModal(True)
         self.verticalLayout = QtWidgets.QVBoxLayout(InfoDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
@@ -81,5 +83,3 @@ class Ui_InfoDialog(object):
         self.label.setText(_translate("InfoDialog", "entwickelt von "))
         self.label_38.setText(_translate("InfoDialog", "<html><head/><body><p><a href=\"http://www.ggr-planung.de\"><span style=\" text-decoration: underline; color:#0000ff;\">GGR Stadtentwicklung und Mobilität Planung Beratung Forschung GbR</span></a></p></body></html>"))
         self.close_button.setText(_translate("InfoDialog", "OK"))
-
-#import resources

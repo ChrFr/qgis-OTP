@@ -123,20 +123,20 @@ ACCUMULATION_MODES = {
 }
 
 AVAILABLE_TRAVERSE_MODES = [
-    'AIRPLANE',
+    'WALK',
+    'TRANSIT',
     'BICYCLE',
-    'BUS',
-    #'CABLE_CAR', deactivated: Bug in OtpsRoutingRequest with underscores
     'CAR',
+    'BUS',
+    'RAIL',
+    'SUBWAY',
+    'TRAM',
+    'AIRPLANE',
+    #'CABLE_CAR', deactivated: Bug in OtpsRoutingRequest with underscores
     'FERRY',
     'FUNICULAR',
     'GONDOLA',
     #'LEG_SWITCH', deactivated: it's only used internally in OTP
-    'RAIL',
-    'SUBWAY',
-    'TRAM',
-    'TRANSIT',
-    'WALK'
 ]
 
 DEFAULT_FILE = os.path.join(expanduser('~'), 'otp_config.xml')

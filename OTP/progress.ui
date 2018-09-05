@@ -3,7 +3,7 @@
  <class>ProgressDialog</class>
  <widget class="QDialog" name="ProgressDialog">
   <property name="windowModality">
-   <enum>Qt::ApplicationModal</enum>
+   <enum>Qt::WindowModal</enum>
   </property>
   <property name="geometry">
    <rect>
@@ -27,6 +27,9 @@
   </property>
   <property name="windowTitle">
    <string>Fortschritt</string>
+  </property>
+  <property name="modal">
+   <bool>true</bool>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>

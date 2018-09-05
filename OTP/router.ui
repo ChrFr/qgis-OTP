@@ -3,7 +3,7 @@
  <class>RouterDialog</class>
  <widget class="QDialog" name="RouterDialog">
   <property name="windowModality">
-   <enum>Qt::ApplicationModal</enum>
+   <enum>Qt::WindowModal</enum>
   </property>
   <property name="geometry">
    <rect>
@@ -29,7 +29,7 @@
    <string>Router erstellen</string>
   </property>
   <property name="modal">
-   <bool>false</bool>
+   <bool>true</bool>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>

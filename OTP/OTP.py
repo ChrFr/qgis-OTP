@@ -987,7 +987,7 @@ class OTP(object):
             n_iterations = 1
 
         diag = ExecOTPDialog(cmd,
-                             parent=self.dlg.parent(),
+                             parent=self.dlg,
                              auto_start=True,
                              n_points=n_points,
                              n_iterations=n_iterations,
@@ -1042,14 +1042,13 @@ class OTP(object):
         memory = self.dlg.memory_edit.value()
         diag = RouterDialog(graph_path, java_executable, otp_jar,
                             memory=memory,
-                            parent=self.dlg.parent())
+                            parent=self.dlg)
         diag.exec_()
         self.fill_router_combo()
 
     def info(self):
-        diag = InfoDialog(parent=self.dlg.parent())
+        diag = InfoDialog(parent=self.dlg)
         diag.exec_()
-
 
 
 class ConfigurationControl(object):

@@ -11,11 +11,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_RouterDialog(object):
     def setupUi(self, RouterDialog):
         RouterDialog.setObjectName("RouterDialog")
-        RouterDialog.setWindowModality(QtCore.Qt.ApplicationModal)
+        RouterDialog.setWindowModality(QtCore.Qt.WindowModal)
         RouterDialog.resize(517, 331)
         RouterDialog.setMinimumSize(QtCore.QSize(410, 210))
         RouterDialog.setMaximumSize(QtCore.QSize(10000, 10000))
-        RouterDialog.setModal(False)
+        RouterDialog.setModal(True)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(RouterDialog)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
