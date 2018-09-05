@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# jython does not support lxml (contains c-bindings)
+# grab lxml if you can
+# advantages: faster than standard lib and pretty print to file
 try:
+    # jython does not support lxml (contains c-bindings)
+    # QGIS seems to be missing lxml anyway
     from lxml import etree
-    import OTP
 except:
+    # standard lib as fallback
     from xml.etree import ElementTree as etree
 import os, sys, copy
 from collections import OrderedDict
@@ -180,7 +183,7 @@ setting_struct = OrderedDict([
             'TRANSIT',
             'WALK'
         ],
-        'max_walk_distance': INFINITE,
+        'max_walk_distance': 5000,
         'bike_speed': 5,
         'walk_speed': 1.33,
         'clamp_initial_wait_min': -1,

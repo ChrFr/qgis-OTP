@@ -20,93 +20,26 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>OTP Erreichbarkeit</string>
+   <string>GGR OpenTripPlanner Plugin</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="4" column="0" colspan="3">
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QGroupBox" name="groupBox">
-       <property name="title">
-        <string>Einstellungen</string>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
-        <item>
-         <widget class="QPushButton" name="config_read_button">
-          <property name="toolTip">
-           <string>externe Konfigurationsdatei laden</string>
-          </property>
-          <property name="text">
-           <string>Laden</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="config_save_button">
-          <property name="text">
-           <string>Speichern</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="config_save_as_button">
-          <property name="toolTip">
-           <string>aktuelle Konfiguration extern speichern</string>
-          </property>
-          <property name="text">
-           <string>Speichern unter</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="config_reset_button">
-          <property name="toolTip">
-           <string>auf zuletzt gespeicherte Einstellungen zurücksetzen</string>
-          </property>
-          <property name="text">
-           <string>Zurücksetzen</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="config_default_button">
-          <property name="toolTip">
-           <string>Einstellungen auf Defaults zurücksetzen</string>
-          </property>
-          <property name="text">
-           <string>Defaults</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="QPushButton" name="close_button">
-       <property name="toolTip">
-        <string>Einstellungen speichern und Oberfläche schließen</string>
-       </property>
-       <property name="text">
-        <string>Einstellungen speichern und schließen</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
+   <item row="1" column="1">
+    <spacer name="horizontalSpacer_4">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
    </item>
-   <item row="1" column="2">
+   <item row="1" column="0" rowspan="3">
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
       <spacer name="verticalSpacer_27">
@@ -131,6 +64,9 @@
        </property>
        <property name="toolTip">
         <string/>
+       </property>
+       <property name="tabShape">
+        <enum>QTabWidget::Rounded</enum>
        </property>
        <property name="currentIndex">
         <number>0</number>
@@ -164,74 +100,6 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
            <property name="text">
             <string>nur die n besten Ergebnisse</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="0">
-          <spacer name="verticalSpacer_4">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item row="12" column="1" colspan="2">
-          <widget class="QPushButton" name="start_orig_dest_button">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>23</height>
-            </size>
-           </property>
-           <property name="toolTip">
-            <string>Berechnungen starten</string>
-           </property>
-           <property name="text">
-            <string>Berechnen</string>
-           </property>
-          </widget>
-         </item>
-         <item row="5" column="0">
-          <widget class="QCheckBox" name="details_check">
-           <property name="toolTip">
-            <string>zeigt Routendetails in den Ergebnissen an (inkl. Start-, Endzeiten etc.) -&gt; benötigt mehr Rechenzeit</string>
-           </property>
-           <property name="text">
-            <string>Details ausgeben</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="11" column="0">
-          <spacer name="verticalSpacer_8">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Fixed</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>5</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item row="6" column="0">
-          <widget class="QCheckBox" name="dest_data_check">
-           <property name="toolTip">
-            <string>zeigt alle Spalten des Ziellayers mit zugeordneten Daten in den Ergebnissen an</string>
-           </property>
-           <property name="text">
-            <string>Ausgangsdaten der Ziele ausgeben</string>
            </property>
           </widget>
          </item>
@@ -272,6 +140,42 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </item>
           </layout>
          </item>
+         <item row="4" column="0">
+          <spacer name="verticalSpacer_4">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="5" column="0">
+          <widget class="QCheckBox" name="details_check">
+           <property name="toolTip">
+            <string>zeigt Routendetails in den Ergebnissen an (inkl. Start-, Endzeiten etc.) -&gt; benötigt mehr Rechenzeit</string>
+           </property>
+           <property name="text">
+            <string>Details ausgeben</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QCheckBox" name="dest_data_check">
+           <property name="toolTip">
+            <string>zeigt alle Spalten des Ziellayers mit zugeordneten Daten in den Ergebnissen an</string>
+           </property>
+           <property name="text">
+            <string>Ausgangsdaten der Ziele ausgeben</string>
+           </property>
+          </widget>
+         </item>
          <item row="0" column="0" colspan="3">
           <widget class="QLabel" name="label_26">
            <property name="font">
@@ -283,19 +187,22 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
             </font>
            </property>
            <property name="text">
-            <string>Kürzeste Wege zwischen Quell- und Zielpunkten</string>
+            <string>Kürzeste Wege zwischen Start- und Zielpunkten</string>
            </property>
           </widget>
          </item>
-         <item row="12" column="0">
-          <spacer name="horizontalSpacer_3">
+         <item row="11" column="0">
+          <spacer name="verticalSpacer_8">
            <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
-             <width>40</width>
-             <height>20</height>
+             <width>20</width>
+             <height>5</height>
             </size>
            </property>
           </spacer>
@@ -326,6 +233,25 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
           </spacer>
          </item>
+         <item row="12" column="0">
+          <widget class="QPushButton" name="start_orig_dest_button">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>23</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Berechnungen starten</string>
+           </property>
+           <property name="text">
+            <string>Berechnung starten</string>
+           </property>
+           <property name="checkable">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
        <widget class="QWidget" name="aggregation_tab">
@@ -336,47 +262,6 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
          <string>Routing mit anschließender Aggregation  der erreichbaren Ziele (nur Abfahrt)</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_3">
-         <item row="12" column="0">
-          <spacer name="horizontalSpacer_6">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item row="9" column="0" colspan="3">
-          <widget class="QCheckBox" name="aggregation_join_check">
-           <property name="toolTip">
-            <string>Ergebnisse werden an den gewählten Layer mit den Quellpunkten gejoint (über die ids)
-ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verknüpfung zu einer temporären Datei!</string>
-           </property>
-           <property name="text">
-            <string>Ergebnisse an Quelllayer joinen</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0" colspan="4">
-          <widget class="QLabel" name="label_11">
-           <property name="text">
-            <string>Art der Aggregation</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="0">
-          <widget class="QLabel" name="label_12">
-           <property name="text">
-            <string>zu aggregierendes Feld</string>
-           </property>
-          </widget>
-         </item>
          <item row="5" column="0" colspan="2">
           <widget class="QComboBox" name="aggregation_field_combo">
            <property name="toolTip">
@@ -416,6 +301,20 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
           </spacer>
          </item>
+         <item row="9" column="0" colspan="3">
+          <widget class="QCheckBox" name="aggregation_join_check">
+           <property name="toolTip">
+            <string>Ergebnisse werden an den gewählten Layer mit den Quellpunkten gejoint (über die ids)
+ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verknüpfung zu einer temporären Datei!</string>
+           </property>
+           <property name="text">
+            <string>Ergebnisse an Quelllayer joinen</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
          <item row="10" column="0" colspan="2">
           <widget class="QCheckBox" name="aggregation_csv_check">
            <property name="toolTip">
@@ -426,24 +325,45 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
           </widget>
          </item>
-         <item row="7" column="0">
-          <layout class="QFormLayout" name="aggregation_value_edit"/>
+         <item row="2" column="0" colspan="4">
+          <widget class="QLabel" name="label_11">
+           <property name="text">
+            <string>Art der Aggregation</string>
+           </property>
+          </widget>
          </item>
-         <item row="12" column="3" colspan="2">
-          <widget class="QPushButton" name="start_aggregation_button">
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_12">
+           <property name="text">
+            <string>zu aggregierendes Feld</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0" colspan="4">
+          <widget class="QComboBox" name="aggregation_mode_combo">
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>23</height>
+             <height>20</height>
             </size>
            </property>
-           <property name="toolTip">
-            <string>Berechnungen mit anschließender Aggregation starten</string>
-           </property>
-           <property name="text">
-            <string>Berechnen</string>
-           </property>
           </widget>
+         </item>
+         <item row="7" column="0">
+          <layout class="QFormLayout" name="aggregation_value_edit"/>
+         </item>
+         <item row="8" column="0">
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
          </item>
          <item row="1" column="0">
           <spacer name="verticalSpacer_19">
@@ -461,19 +381,6 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
           </spacer>
          </item>
-         <item row="8" column="0">
-          <spacer name="verticalSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
          <item row="0" column="0" colspan="5">
           <widget class="QLabel" name="label_28">
            <property name="font">
@@ -485,17 +392,7 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
             </font>
            </property>
            <property name="text">
-            <string>Kürzeste Wege mit Aggregation aller erreichbaren Ziele</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0" colspan="4">
-          <widget class="QComboBox" name="aggregation_mode_combo">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>20</height>
-            </size>
+            <string>Kürzeste Wege mit Aggregation aller erreichbaren Zielpunkte</string>
            </property>
           </widget>
          </item>
@@ -512,6 +409,22 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
           </widget>
          </item>
+         <item row="12" column="0" colspan="5">
+          <widget class="QPushButton" name="start_aggregation_button">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>23</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Berechnungen mit anschließender Aggregation starten</string>
+           </property>
+           <property name="text">
+            <string>Berechnung starten</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
        <widget class="QWidget" name="accumulation_tab">
@@ -522,18 +435,31 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
          <string>Routing mit anschließender Akkumulation der erreichbaren Quellen (nur Ankunft)</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_6">
-         <item row="13" column="0">
-          <spacer name="horizontalSpacer_7">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
+         <item row="13" column="0" colspan="5">
+          <widget class="QPushButton" name="start_accumulation_button">
+           <property name="minimumSize">
             <size>
-             <width>40</width>
-             <height>20</height>
+             <width>0</width>
+             <height>23</height>
             </size>
            </property>
-          </spacer>
+           <property name="toolTip">
+            <string>Berechnungen mit anschließender Akkumulation starten</string>
+           </property>
+           <property name="text">
+            <string>Berechnung starten</string>
+           </property>
+          </widget>
+         </item>
+         <item row="11" column="0" colspan="2">
+          <widget class="QCheckBox" name="accumulation_csv_check">
+           <property name="toolTip">
+            <string>Ergebnisse werden am gewählten Ort gespeichert (inkl. xml mit den genutzten Einstellungen im selben Ordner!)</string>
+           </property>
+           <property name="text">
+            <string>Ergebnisse als CSV speichern</string>
+           </property>
+          </widget>
          </item>
          <item row="10" column="0" colspan="3">
           <widget class="QCheckBox" name="accumulation_join_check">
@@ -549,31 +475,34 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
           </widget>
          </item>
-         <item row="2" column="0" colspan="4">
-          <widget class="QLabel" name="label_14">
-           <property name="text">
-            <string>Art der Akkumulation</string>
-           </property>
-          </widget>
+         <item row="8" column="0">
+          <layout class="QFormLayout" name="accumulation_value_edit"/>
          </item>
-         <item row="13" column="3" colspan="2">
-          <widget class="QPushButton" name="start_accumulation_button">
+         <item row="3" column="0" colspan="4">
+          <widget class="QComboBox" name="accumulation_mode_combo">
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>23</height>
+             <height>20</height>
             </size>
-           </property>
-           <property name="toolTip">
-            <string>Berechnungen mit anschließender Akkumulation starten</string>
-           </property>
-           <property name="text">
-            <string>Berechnen</string>
            </property>
           </widget>
          </item>
-         <item row="8" column="0">
-          <layout class="QFormLayout" name="accumulation_value_edit"/>
+         <item row="1" column="0">
+          <spacer name="verticalSpacer_18">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>10</height>
+            </size>
+           </property>
+          </spacer>
          </item>
          <item row="12" column="0">
           <spacer name="verticalSpacer_11">
@@ -591,26 +520,6 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
           </spacer>
          </item>
-         <item row="11" column="0" colspan="2">
-          <widget class="QCheckBox" name="accumulation_csv_check">
-           <property name="toolTip">
-            <string>Ergebnisse werden am gewählten Ort gespeichert (inkl. xml mit den genutzten Einstellungen im selben Ordner!)</string>
-           </property>
-           <property name="text">
-            <string>Ergebnisse als CSV speichern</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0" colspan="4">
-          <widget class="QComboBox" name="accumulation_mode_combo">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>20</height>
-            </size>
-           </property>
-          </widget>
-         </item>
          <item row="9" column="0">
           <spacer name="verticalSpacer_10">
            <property name="orientation">
@@ -624,17 +533,25 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
           </spacer>
          </item>
-         <item row="5" column="0">
-          <widget class="QComboBox" name="accumulation_field_combo">
-           <property name="toolTip">
-            <string>Feld der Quellen, das akkumuliert werden soll</string>
+         <item row="0" column="0" colspan="5">
+          <widget class="QLabel" name="label_29">
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <italic>true</italic>
+             <bold>false</bold>
+             <underline>false</underline>
+            </font>
+           </property>
+           <property name="text">
+            <string>Kürzeste Wege mit Akkumulation aller erreichbaren Startpunkte</string>
            </property>
           </widget>
          </item>
-         <item row="4" column="0">
-          <widget class="QLabel" name="label_13">
-           <property name="text">
-            <string>zu akkumulierendes Feld</string>
+         <item row="5" column="0" colspan="2">
+          <widget class="QComboBox" name="accumulation_field_combo">
+           <property name="toolTip">
+            <string>Feld der Quellen, das akkumuliert werden soll</string>
            </property>
           </widget>
          </item>
@@ -654,36 +571,19 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
           </spacer>
          </item>
-         <item row="0" column="0" colspan="5">
-          <widget class="QLabel" name="label_29">
-           <property name="font">
-            <font>
-             <weight>50</weight>
-             <italic>true</italic>
-             <bold>false</bold>
-             <underline>false</underline>
-            </font>
-           </property>
+         <item row="2" column="0" colspan="4">
+          <widget class="QLabel" name="label_14">
            <property name="text">
-            <string>Kürzeste Wege mit Akkumulation aller erreichbaren Quellen</string>
+            <string>Art der Akkumulation</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
-          <spacer name="verticalSpacer_18">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_13">
+           <property name="text">
+            <string>zu akkumulierendes Feld</string>
            </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Fixed</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>10</height>
-            </size>
-           </property>
-          </spacer>
+          </widget>
          </item>
          <item row="3" column="4">
           <widget class="QPushButton" name="acc_help_button">
@@ -711,22 +611,6 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
          <string>Berechnung wieviele Ziele je Quelle erreichbar sind</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_9">
-         <item row="5" column="1" colspan="2">
-          <widget class="QPushButton" name="start_reachability_button">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>23</height>
-            </size>
-           </property>
-           <property name="toolTip">
-            <string>Berechnungen starten</string>
-           </property>
-           <property name="text">
-            <string>Berechnen</string>
-           </property>
-          </widget>
-         </item>
          <item row="0" column="0" colspan="3">
           <widget class="QLabel" name="label_30">
            <property name="font">
@@ -737,7 +621,7 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
             </font>
            </property>
            <property name="text">
-            <string>Anzahl der erreichbaren Ziele je Quelle</string>
+            <string>Anzahl der erreichbaren Ziele je Startpunkt</string>
            </property>
           </widget>
          </item>
@@ -784,19 +668,6 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
           </widget>
          </item>
-         <item row="5" column="0">
-          <spacer name="horizontalSpacer_8">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
          <item row="3" column="0" colspan="2">
           <widget class="QCheckBox" name="reachability_csv_check">
            <property name="toolTip">
@@ -807,42 +678,29 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
            </property>
           </widget>
          </item>
+         <item row="5" column="0" colspan="3">
+          <widget class="QPushButton" name="start_reachability_button">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>23</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Berechnungen starten</string>
+           </property>
+           <property name="text">
+            <string>Berechnung starten</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </widget>
      </item>
-     <item>
-      <spacer name="verticalSpacer_7">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
     </layout>
    </item>
-   <item row="1" column="1">
-    <spacer name="horizontalSpacer_4">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Fixed</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="1" column="0">
+   <item row="1" column="2">
     <widget class="QTabWidget" name="tabWidget_2">
      <property name="enabled">
       <bool>true</bool>
@@ -858,24 +716,34 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
      </property>
      <widget class="QWidget" name="tab_3">
       <attribute name="title">
-       <string>Geodaten</string>
+       <string>Start/Ziel</string>
       </attribute>
       <attribute name="toolTip">
        <string>Geodaten für das Routing</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="16" column="1">
-        <spacer name="verticalSpacer_3">
+       <item row="14" column="1">
+        <spacer name="horizontalSpacer_13">
          <property name="orientation">
-          <enum>Qt::Vertical</enum>
+          <enum>Qt::Horizontal</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>20</width>
-           <height>40</height>
+           <width>40</width>
+           <height>20</height>
           </size>
          </property>
         </spacer>
+       </item>
+       <item row="13" column="1" colspan="2">
+        <widget class="QComboBox" name="router_combo">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
+         </property>
+        </widget>
        </item>
        <item row="6" column="1" colspan="2">
         <widget class="QComboBox" name="destinations_combo">
@@ -903,24 +771,7 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
        <item row="1" column="1" colspan="2">
         <widget class="QLabel" name="label">
          <property name="text">
-          <string>Layer mit Quellpunkten</string>
-         </property>
-        </widget>
-       </item>
-       <item row="9" column="1" colspan="2">
-        <widget class="QCheckBox" name="selected_only_check">
-         <property name="text">
-          <string>nur selektierte Quell-/Zielpunkte (jeweils alle, wenn nichts selektiert)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="13" column="1" colspan="2">
-        <widget class="QComboBox" name="router_combo">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>20</height>
-          </size>
+          <string>Layer mit Startpunkten</string>
          </property>
         </widget>
        </item>
@@ -943,13 +794,6 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>Layer mit Zielpunkten</string>
-         </property>
-        </widget>
-       </item>
        <item row="3" column="1">
         <widget class="QLabel" name="label_9">
          <property name="text">
@@ -959,42 +803,6 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
-       </item>
-       <item row="12" column="1">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>verwendeter OTP Router</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="1">
-        <spacer name="verticalSpacer_5">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>5</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="10" column="1">
-        <spacer name="verticalSpacer_6">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
        </item>
        <item row="2" column="1" colspan="2">
         <widget class="QComboBox" name="origins_combo">
@@ -1006,6 +814,20 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
          </property>
          <property name="toolTip">
           <string>Vectorlayer mit den Koordinaten der Quellen</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>Layer mit Zielpunkten</string>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="1">
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>verwendeter OTP Router</string>
          </property>
         </widget>
        </item>
@@ -1028,6 +850,19 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
          </property>
         </widget>
        </item>
+       <item row="16" column="1">
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
        <item row="0" column="1">
         <spacer name="verticalSpacer_15">
          <property name="orientation">
@@ -1041,25 +876,28 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
          </property>
         </spacer>
        </item>
-       <item row="14" column="2">
-        <widget class="QPushButton" name="create_router_button">
-         <property name="text">
-          <string>Router erstellen</string>
-         </property>
-        </widget>
-       </item>
-       <item row="14" column="1">
-        <spacer name="horizontalSpacer_13">
+       <item row="4" column="1">
+        <spacer name="verticalSpacer_5">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>40</width>
-           <height>20</height>
+           <width>20</width>
+           <height>5</height>
           </size>
          </property>
         </spacer>
+       </item>
+       <item row="9" column="1" colspan="2">
+        <widget class="QCheckBox" name="selected_only_check">
+         <property name="text">
+          <string>nur selektierte Quell-/Zielpunkte (jeweils alle, wenn nichts selektiert)</string>
+         </property>
+        </widget>
        </item>
        <item row="8" column="1">
         <spacer name="verticalSpacer_33">
@@ -1073,6 +911,26 @@ ACHTUNG: wenn die Ergebnisse nicht separat gespeichert werden, besteht nur Verkn
           <size>
            <width>20</width>
            <height>5</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="14" column="2">
+        <widget class="QPushButton" name="create_router_button">
+         <property name="text">
+          <string>Router erstellen</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="1">
+        <spacer name="verticalSpacer_6">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
           </size>
          </property>
         </spacer>
@@ -2028,6 +1886,62 @@ ACHTUNG: wird ignori</string>
       </layout>
      </widget>
     </widget>
+   </item>
+   <item row="4" column="2">
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QGroupBox" name="groupBox">
+       <property name="title">
+        <string>Einstellungen</string>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QPushButton" name="config_read_button">
+          <property name="toolTip">
+           <string>externe Konfigurationsdatei laden</string>
+          </property>
+          <property name="text">
+           <string>Laden</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="config_save_as_button">
+          <property name="toolTip">
+           <string>aktuelle Konfiguration extern speichern</string>
+          </property>
+          <property name="text">
+           <string>Speichern unter</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="config_reset_button">
+          <property name="toolTip">
+           <string>auf zuletzt gespeicherte Einstellungen zurücksetzen</string>
+          </property>
+          <property name="text">
+           <string>Zurücksetzen</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>

@@ -36,7 +36,7 @@ from sys import platform
 # Initialize Qt resources from file resources.py
 from . import resources
 # Import the code for the dialog
-from .OTP_dialog import OTPDialog
+from .OTP_dialog import OTPMainWindow
 import os
 from .config import (AVAILABLE_TRAVERSE_MODES,
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES,
@@ -103,7 +103,7 @@ class OTP(object):
                 QCoreApplication.installTranslator(self.translator)
 
         # Create the dialog (after translation) and keep reference
-        self.dlg = OTPDialog()
+        self.dlg = OTPMainWindow(on_close=self.save)
         self.dlg.setWindowTitle(TITLE)
 
         # store last used directory for saving files (init with home dir)
@@ -111,14 +111,21 @@ class OTP(object):
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&OTP')
-        self.toolbar = self.iface.addToolBar(u'OTP')
-        self.toolbar.setObjectName(u'OTP')
+        self.menu = self.tr(u'&OpenTripPlanner')
+        self.toolbar = self.iface.addToolBar(u'OpenTripPlanner')
+        self.toolbar.setObjectName(u'OpenTripPlanner')
 
         config.read(do_create=True)
         self.config_control = ConfigurationControl(self.dlg)
 
         self.setup_UI()
+
+    def save(self):
+        '''
+        save config
+        '''
+        self.config_control.update()
+        self.config_control.save()
 
     def setup_UI(self):
         '''
@@ -225,14 +232,11 @@ class OTP(object):
                 msg_box.exec_()
         self.dlg.search_java_button.clicked.connect(auto_java)
 
-        self.dlg.close_button.clicked.connect(self.close)
-
         # available layers are stored in here
         self.layer_list = []
         self.layers = None
 
-        layers = [layer for layer in QgsProject.instance().mapLayers().values()]
-        self.fill_layer_combos(layers)
+        self.fill_layer_combos()
 
         # refresh layer ids on selection of different layer
         self.dlg.origins_combo.currentIndexChanged.connect(
@@ -286,9 +290,6 @@ class OTP(object):
                                          acc_mode_combo, acc_layout,
                                          acc_help_button))
 
-        # router
-        self.fill_router_combo()
-
         # calendar
         self.dlg.calendar_edit.clicked.connect(self.set_date)
 
@@ -298,23 +299,24 @@ class OTP(object):
             self.set_date(time = now.time())
         self.dlg.date_now_button.clicked.connect(set_now)
 
-        # settings
-        self.dlg.config_default_button.clicked.connect(
-            self.config_control.reset_to_default)
-        self.dlg.config_reset_button.clicked.connect(
-            self.config_control.apply)
-        self.dlg.config_read_button.clicked.connect(
-            self.config_control.read)
-        self.dlg.config_save_as_button.clicked.connect(
-            self.config_control.save_as)
+        self.dlg.refresh_layers_button.clicked.connect(
+            lambda: self.fill_layer_combos())
 
-        def save():
-            self.config_control.update()
-            self.config_control.save()
-        self.dlg.config_save_button.clicked.connect(save)
+        # connect menu actions
+        self.dlg.reset_config_action.triggered.connect(
+            self.config_control.reset_to_default)
+        self.dlg.load_config_action.triggered.connect(
+            self.config_control.read)
+        self.dlg.save_config_action.triggered.connect(
+            self.config_control.save_as)
+        self.dlg.close_action.triggered.connect(self.dlg.close)
+
         # apply settings to UI (the layers are unknown at QGIS startup,
         # so don't expect them to be already selected)
         self.config_control.apply()
+
+        # router
+        self.fill_router_combo()
 
         # call checkbox toggle callbacks (settings loaded, but
         # checkboxes not 'clicked' while loading)
@@ -354,7 +356,7 @@ class OTP(object):
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate('OTP', message)
+        return QCoreApplication.translate('OpenTripPlanner', message)
 
 
     def add_action(
@@ -436,7 +438,7 @@ class OTP(object):
         icon_path = ':/plugins/OTP/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'OTP Erreichbarkeiten'),
+            text=self.tr(u'OpenTripPlanner'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -445,19 +447,11 @@ class OTP(object):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&OTP'),
+                self.tr(u'&OpenTripPlanner'),
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
         del self.toolbar
-
-    def close(self):
-        '''
-        save config and close UI
-        '''
-        self.config_control.update()
-        self.config_control.save()
-        self.dlg.close()
 
     def set_date(self, time=None):
         date = self.dlg.calendar_edit.selectedDate()
@@ -506,7 +500,7 @@ class OTP(object):
 
     def fill_router_combo(self):
         # try to keep old router selected
-        prev_router = self.dlg.router_combo.currentText()
+        saved_router = config.settings['router_config']['router']
         self.dlg.router_combo.clear()
         idx = 0
         graph_path = self.dlg.graph_path_edit.text()
@@ -524,18 +518,20 @@ class OTP(object):
                     graph_file = os.path.join(path, 'Graph.obj')
                     if os.path.exists(graph_file):
                         self.dlg.router_combo.addItem(subdir)
-                        if prev_router == subdir:
+                        if saved_router == subdir:
                             idx = i
             self.dlg.router_combo.setEnabled(True)
             self.dlg.create_router_button.setEnabled(True)
         self.dlg.router_combo.setCurrentIndex(idx)
 
-    def fill_layer_combos(self, layers):
+    def fill_layer_combos(self, layers=None):
         '''
         fill the combo boxes for selection of origin/destination layers with all
         available vector-layers.
         keep selections of previously selected layers, if possible
         '''
+        if not layers:
+            layers = [layer for layer in QgsProject.instance().mapLayers().values()]
         old_origin_layer = None
         old_destination_layer = None
         if len(self.layer_list) > 0:
@@ -657,7 +653,7 @@ class OTP(object):
         # reload layer combos, if layers changed on rerun
         layers = [layer for layer in QgsProject.instance().mapLayers().values()]
         if layers != self.layers:
-            self.fill_layer_combos(layers)
+            self.fill_layer_combos()
 
         # reload routers on every run (they might be changed outside)
         self.fill_router_combo()
@@ -1032,7 +1028,7 @@ class OTP(object):
         if not os.path.exists(otp_jar):
             msg_box = QMessageBox(
                 QMessageBox.Warning, "Fehler",
-                u'Die angegebene OTP Datei existiert nicht!')
+                u'Die angegebene OTP JAR Datei existiert nicht!')
             msg_box.exec_()
             return
         if not os.path.exists(java_executable):
@@ -1093,9 +1089,17 @@ class ConfigurationControl(object):
             self.dlg.destinations_combo.setCurrentIndex(0)
 
         # ROUTER
+        graph_path = config.settings['router_config']['path']
+        self.dlg.graph_path_edit.setText(graph_path)
+
         router_config = config.settings['router_config']
+        router = router_config['router']
+
         # if router is not found (returns -1) take first one (0)
-        idx = max(self.dlg.router_combo.findText(router_config['router']), 0)
+        idx = max(self.dlg.router_combo.findText(router), 0)
+
+        items = [self.dlg.router_combo.itemText(i) for i in range(self.dlg.router_combo.count())]
+
         self.dlg.router_combo.setCurrentIndex(idx)
 
         self.dlg.max_time_edit.setValue(int(router_config['max_time_min']))
@@ -1156,8 +1160,6 @@ class ConfigurationControl(object):
         self.dlg.java_edit.setText(java)
         self.dlg.cpu_edit.setValue(n_threads)
         self.dlg.memory_edit.setValue(memory)
-        graph_path = config.settings['router_config']['path']
-        self.dlg.graph_path_edit.setText(graph_path)
 
     def update(self):
         '''
@@ -1239,12 +1241,7 @@ class ConfigurationControl(object):
         '''
         save config in selectable file
         '''
-        filename, __ = str(
-            QFileDialog.getSaveFileName(
-                self.dlg, u'Konfigurationsdatei wählen',
-                directory=DEFAULT_FILE,
-                filter=XML_FILTER)
-            )
+        filename = browse_file('', 'Einstellungen speichern unter', XML_FILTER)
         if filename:
             self.update()
             config.write(filename)
@@ -1253,11 +1250,8 @@ class ConfigurationControl(object):
         '''
         read config from selectable file
         '''
-        filename, __ = str(
-            QFileDialog.getOpenFileName(
-                self.dlg, u'Konfigurationsdatei wählen',
-                filter=XML_FILTER)
-            )
+        filename = browse_file('', 'Einstellungen aus Datei laden',
+                               XML_FILTER, save=False)
         if filename:
             config.read(filename)
             self.apply()
