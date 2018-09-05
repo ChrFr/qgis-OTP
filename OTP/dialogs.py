@@ -2,9 +2,11 @@
 from builtins import str
 from .ui_progress import Ui_ProgressDialog
 from .ui_router import Ui_RouterDialog
+from .ui_info import Ui_InfoDialog
 from qgis.PyQt import QtCore, QtGui, QtWidgets
 import copy, os, re, sys, datetime
 from shutil import move
+import re
 
 # WARNING: doesn't work in QGIS, because it doesn't support the QString module anymore (autocast to str)
 try:
@@ -55,13 +57,41 @@ QProgressBar::chunk {
 }
 """
 
+def parse_version(meta_file):
+    regex = 'version=([0-9]+\.[0-9]+)'
+    with open(meta_file, 'r') as f:
+        lines = f.readlines()
+    for line in lines:# Regex applied to each line
+        match = re.search(regex, line)
+        if match:
+            return match.group(1)
+    return 'not found'
+
+
+class InfoDialog(QtWidgets.QDialog, Ui_InfoDialog):
+    """
+    Info Dialog
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self.parent = parent
+        self.setupUi(self)
+        self.close_button.clicked.connect(self.close)
+        wd = os.path.dirname(os.path.realpath(__file__))
+        meta_file = os.path.join(wd, 'metadata.txt')
+        if os.path.exists(meta_file):
+            version = parse_version(meta_file)
+        else:
+            version = '-'
+        self.version_label.setText('Version ' + version)
+
 
 class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
     """
     Dialog showing progress in textfield and bar after starting a certain task with run()
     """
     def __init__(self, parent=None, auto_close=False):
-        super(ProgressDialog, self).__init__(parent=parent)
+        super().__init__(parent=parent)
         self.parent = parent
         self.setupUi(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -124,7 +154,7 @@ class ExecOTPDialog(ProgressDialog):
     points_per_tick: how many points are calculated before showing progress
     """
     def __init__(self, command, parent=None, auto_close=False, auto_start=False, n_iterations=1, n_points=0, points_per_tick=50):
-        super(ExecOTPDialog, self).__init__(parent=parent, auto_close=auto_close)
+        super().__init__(parent=parent, auto_close=auto_close)
 
         # QProcess object for external app
         self.process = QtCore.QProcess(self)
@@ -193,11 +223,11 @@ class ExecOTPDialog(ProgressDialog):
 
     def running(self):
         self.cancelButton.clicked.connect(self.kill)
-        super(ExecOTPDialog, self).running()
+        super().running()
 
     def stopped(self):
         self.cancelButton.clicked.disconnect(self.kill)
-        super(ExecOTPDialog, self).stopped()
+        super().stopped()
 
     def finished(self):
         self.startButton.setText('Neustart')
@@ -234,7 +264,7 @@ class ExecCreateRouterDialog(ProgressDialog):
     def __init__(self, source_folder, target_folder,
                  java_executable, otp_jar, memory=2,
                  parent=None):
-        super(ExecCreateRouterDialog, self).__init__(parent=parent)
+        super().__init__(parent=parent)
         self.target_folder = target_folder
         self.source_folder = source_folder
         self.command = '''
@@ -268,11 +298,11 @@ class ExecCreateRouterDialog(ProgressDialog):
 
     def running(self):
         self.cancelButton.clicked.connect(self.kill)
-        super(ExecCreateRouterDialog, self).running()
+        super().running()
 
     def stopped(self):
         self.cancelButton.clicked.disconnect(self.kill)
-        super(ExecCreateRouterDialog, self).stopped()
+        super().stopped()
 
     def finished(self):
         self.startButton.setText('Neustart')
@@ -307,7 +337,7 @@ class ExecCreateRouterDialog(ProgressDialog):
 
 class RouterDialog(QtWidgets.QDialog, Ui_RouterDialog):
     def __init__(self, graph_path, java_executable, otp_jar, memory=2, parent=None):
-        super(RouterDialog, self).__init__(parent=parent)
+        super().__init__(parent=parent)
         self.graph_path = graph_path
         self.java_executable = java_executable
         self.otp_jar = otp_jar

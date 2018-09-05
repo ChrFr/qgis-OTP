@@ -42,7 +42,7 @@ from .config import (AVAILABLE_TRAVERSE_MODES,
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES,
                     DEFAULT_FILE, CALC_REACHABILITY_MODE,
                     VM_MEMORY_RESERVED, Config)
-from .dialogs import ExecOTPDialog, RouterDialog
+from .dialogs import ExecOTPDialog, RouterDialog, InfoDialog
 from qgis._core import (QgsVectorLayer, QgsVectorLayerJoinInfo,
                         QgsCoordinateReferenceSystem, QgsField)
 from qgis.core import QgsVectorFileWriter, QgsProject
@@ -310,6 +310,7 @@ class OTP(object):
         self.dlg.save_config_action.triggered.connect(
             self.config_control.save_as)
         self.dlg.close_action.triggered.connect(self.dlg.close)
+        self.dlg.info_action.triggered.connect(self.info)
 
         # apply settings to UI (the layers are unknown at QGIS startup,
         # so don't expect them to be already selected)
@@ -1044,6 +1045,11 @@ class OTP(object):
                             parent=self.dlg.parent())
         diag.exec_()
         self.fill_router_combo()
+
+    def info(self):
+        diag = InfoDialog(parent=self.dlg.parent())
+        diag.exec_()
+
 
 
 class ConfigurationControl(object):

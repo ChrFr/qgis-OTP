@@ -32,7 +32,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 class OTPMainWindow(QtWidgets.QMainWindow, FORM_CLASS):
     def __init__(self, on_close=None, parent=None):
         """Constructor."""
-        super(OTPMainWindow, self).__init__(parent)
+        super().__init__(parent)
         # Set up the user interface from Designer.
         # After setupUI you can access any designer object by doing
         # self.<objectname>, and you can use autoconnect slots - see
