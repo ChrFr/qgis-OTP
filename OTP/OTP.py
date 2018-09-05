@@ -833,8 +833,8 @@ class OTP(object):
              add_results=False, join_results=False, result_layer_name=None):
         now_string = datetime.now().strftime(DATETIME_FORMAT)
 
-        # update settings
-        self.config_control.update()
+        # update settings and save them
+        self.save()
 
         # LAYERS
         if origin_layer is None:

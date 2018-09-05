@@ -10,7 +10,7 @@
 name=OpenTripPlanner
 qgisMinimumVersion=3.0
 description=Routen- und Erreichbarkeitsberechnungen mit dem OpenTripPlanner
-version=1.01
+version=1.02
 author=GGR
 email=franke@ggr-planung.de
 

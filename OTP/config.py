@@ -1,14 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# grab lxml if you can
-# advantages: faster than standard lib and pretty print to file
-try:
-    # jython does not support lxml (contains c-bindings)
-    # QGIS seems to be missing lxml anyway
-    from lxml import etree
-except:
-    # standard lib as fallback
-    from xml.etree import ElementTree as etree
+from xml.etree import ElementTree as etree
+from xml.dom import minidom
 import os, sys, copy
 from collections import OrderedDict
 from os.path import expanduser
@@ -266,7 +259,8 @@ class Config():
             run_set['META'] = meta
         xml_tree = etree.Element('CONFIG')
         dict_to_xml(xml_tree, run_set)
-        etree.ElementTree(xml_tree).write(str(filename))
+        with open(filename, 'w') as f:
+            f.write(prettify(xml_tree))
 
 def dict_to_xml(element, dictionary):
     '''
@@ -298,3 +292,10 @@ def xml_to_dict(tree):
         if len(value) == 1:
             value = value[0]
     return value
+
+def prettify(element):
+    """
+    Return a pretty-printed XML string for element
+    """
+    parsed = minidom.parseString(etree.tostring(element, 'utf-8'))
+    return parsed.toprettyxml(indent="  ")
