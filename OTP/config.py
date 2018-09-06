@@ -8,6 +8,7 @@ from os.path import expanduser
 
 path, f = os.path.split(os.path.realpath(__file__))
 
+MANUAL_URL = 'https://gis.ggr-planung.de/repos/qgis/OpenTripPlanner-Plugin-Anleitung.pdf'
 DEFAULT_OTP_JAR = os.path.join(path, 'otp-ggr-stable.jar')
 DEFAULT_JYTHON_PATH = os.path.join(path, 'jython-standalone-2.7.0.jar')
 DEFAULT_GRAPH_PATH = os.path.join(expanduser('~'), 'otp_graphs')

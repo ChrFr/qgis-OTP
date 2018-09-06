@@ -41,7 +41,7 @@ import os
 from .config import (AVAILABLE_TRAVERSE_MODES,
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES,
                     DEFAULT_FILE, CALC_REACHABILITY_MODE,
-                    VM_MEMORY_RESERVED, Config)
+                    VM_MEMORY_RESERVED, Config, MANUAL_URL)
 from .dialogs import ExecOTPDialog, RouterDialog, InfoDialog
 from qgis._core import (QgsVectorLayer, QgsVectorLayerJoinInfo,
                         QgsCoordinateReferenceSystem, QgsField)
@@ -51,6 +51,7 @@ import tempfile
 import shutil
 import getpass
 import csv
+import webbrowser
 
 from datetime import datetime
 
@@ -311,6 +312,7 @@ class OTP(object):
             self.config_control.save_as)
         self.dlg.close_action.triggered.connect(self.dlg.close)
         self.dlg.info_action.triggered.connect(self.info)
+        self.dlg.manual_action.triggered.connect(self.open_manual)
 
         # apply settings to UI (the layers are unknown at QGIS startup,
         # so don't expect them to be already selected)
@@ -1050,6 +1052,8 @@ class OTP(object):
         diag = InfoDialog(parent=self.dlg)
         diag.exec_()
 
+    def open_manual(self):
+        webbrowser.open_new(MANUAL_URL)
 
 class ConfigurationControl(object):
 

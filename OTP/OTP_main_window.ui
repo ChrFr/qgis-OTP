@@ -2005,6 +2005,8 @@ ACHTUNG: wird ignori</string>
     <property name="title">
      <string>Hilfe</string>
     </property>
+    <addaction name="manual_action"/>
+    <addaction name="separator"/>
     <addaction name="info_action"/>
    </widget>
    <addaction name="menuDatei"/>
@@ -2044,6 +2046,11 @@ ACHTUNG: wird ignori</string>
   <action name="actiona_2">
    <property name="text">
     <string>a</string>
+   </property>
+  </action>
+  <action name="manual_action">
+   <property name="text">
+    <string>Anleitung</string>
    </property>
   </action>
  </widget>
