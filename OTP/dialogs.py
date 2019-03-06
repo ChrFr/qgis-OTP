@@ -1,12 +1,23 @@
 # -*- coding: utf-8 -*-
 from builtins import str
-from .ui_progress import Ui_ProgressDialog
-from .ui_router import Ui_RouterDialog
-from .ui_info import Ui_InfoDialog
-from qgis.PyQt import QtCore, QtGui, QtWidgets
+import os
+from PyQt5 import uic
+from PyQt5 import QtCore, QtGui, QtWidgets
 import copy, os, re, sys, datetime
 from shutil import move
 import re
+
+# Initialize Qt resources from file resources.py
+from . import resources
+
+MAIN_FORM_CLASS, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), 'ui', 'OTP_main_window.ui'))
+INFO_FORM_CLASS, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), 'ui', 'info.ui'))
+ROUTER_FORM_CLASS, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), 'ui', 'router.ui'))
+PROGRESS_FORM_CLASS, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), 'ui', 'progress.ui'))
 
 # WARNING: doesn't work in QGIS, because it doesn't support the QString module anymore (autocast to str)
 try:
@@ -68,7 +79,25 @@ def parse_version(meta_file):
     return 'not found'
 
 
-class InfoDialog(QtWidgets.QDialog, Ui_InfoDialog):
+class OTPMainWindow(QtWidgets.QMainWindow, MAIN_FORM_CLASS):
+    def __init__(self, on_close=None, parent=None):
+        """Constructor."""
+        super().__init__(parent)
+        # Set up the user interface from Designer.
+        # After setupUI you can access any designer object by doing
+        # self.<objectname>, and you can use autoconnect slots - see
+        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
+        # #widgets-and-dialogs-with-auto-connect
+        self.setupUi(self)
+        self.on_close = on_close
+
+    def closeEvent(self, evnt):
+        if self.on_close:
+            self.on_close()
+        super().closeEvent(evnt)
+
+
+class InfoDialog(QtWidgets.QDialog, INFO_FORM_CLASS):
     """
     Info Dialog
     """
@@ -86,7 +115,7 @@ class InfoDialog(QtWidgets.QDialog, Ui_InfoDialog):
         self.version_label.setText('Version ' + version)
 
 
-class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
+class ProgressDialog(QtWidgets.QDialog, PROGRESS_FORM_CLASS):
     """
     Dialog showing progress in textfield and bar after starting a certain task with run()
     """
@@ -335,7 +364,7 @@ class ExecCreateRouterDialog(ProgressDialog):
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
 
 
-class RouterDialog(QtWidgets.QDialog, Ui_RouterDialog):
+class RouterDialog(QtWidgets.QDialog, ROUTER_FORM_CLASS):
     def __init__(self, graph_path, java_executable, otp_jar, memory=2, parent=None):
         super().__init__(parent=parent)
         self.graph_path = graph_path

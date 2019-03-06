@@ -220,7 +220,12 @@ class Config():
         # create file with default settings if it does not exist
         if not os.path.isfile(filename) and do_create:
             self.write(filename)
-        tree = etree.parse(filename)
+        try:
+            tree = etree.parse(filename)
+        # file is corrupted (malformed) -> recreate
+        except etree.ParseError:
+            self.write(filename)
+            tree = etree.parse(filename)
         f_set = xml_to_dict(tree.getroot())
         # update subkeys to match file settings
         for key, value in f_set.items():

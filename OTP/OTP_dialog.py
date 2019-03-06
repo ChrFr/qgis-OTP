@@ -25,8 +25,8 @@ import os
 
 from qgis.PyQt import QtGui, QtWidgets, uic
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'OTP_main_window.ui'))
+MAIN_FORM_CLASS, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), 'ui', 'OTP_main_window.ui'))
 
 
 class OTPMainWindow(QtWidgets.QMainWindow, FORM_CLASS):

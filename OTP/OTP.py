@@ -24,20 +24,16 @@
 from builtins import str
 from builtins import range
 from builtins import object
-from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion,
+import os
+from PyQt5.QtCore import (QSettings, QTranslator, qVersion,
                               QCoreApplication, QProcess, QDateTime,
                               QVariant, QLocale, QDate)
-from qgis.PyQt.QtWidgets import (QAction, QListWidgetItem, QCheckBox,
+from PyQt5.QtWidgets import (QAction, QListWidgetItem, QCheckBox,
                                  QMessageBox, QLabel, QDoubleSpinBox,
                                  QFileDialog, QInputDialog, QLineEdit)
-from qgis.PyQt.QtGui import QIcon
+from PyQt5.QtGui import QIcon
 from sys import platform
 
-# Initialize Qt resources from file resources.py
-from . import resources
-# Import the code for the dialog
-from .OTP_dialog import OTPMainWindow
-import os
 from .config import (AVAILABLE_TRAVERSE_MODES,
                     DATETIME_FORMAT, AGGREGATION_MODES, ACCUMULATION_MODES,
                     DEFAULT_FILE, CALC_REACHABILITY_MODE,
@@ -46,6 +42,7 @@ from .dialogs import ExecOTPDialog, RouterDialog, InfoDialog
 from qgis._core import (QgsVectorLayer, QgsVectorLayerJoinInfo,
                         QgsCoordinateReferenceSystem, QgsField)
 from qgis.core import QgsVectorFileWriter, QgsProject
+from .dialogs import OTPMainWindow
 import locale
 import tempfile
 import shutil
@@ -55,7 +52,7 @@ import webbrowser
 
 from datetime import datetime
 
-TITLE = "GGR OpenTripPlanner Plugin"
+TITLE = "OpenTripPlanner Plugin"
 
 # result-modes
 ORIGIN_DESTINATION = 0
@@ -72,6 +69,7 @@ JAR_FILTER = u'Java Archive (*.jar)'
 ALL_FILE_FILTER = u'Java Executable (java.*)'
 
 config = Config()
+
 
 class OTP(object):
     """QGIS Plugin Implementation."""
