@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/SHKPlugin" >
-        <file>icon.png</file>
-    </qresource>
-</RCC>
