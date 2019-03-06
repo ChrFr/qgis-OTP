@@ -507,8 +507,7 @@ class OTP(object):
         graph_path = self.dlg.graph_path_edit.text()
         if not os.path.exists(graph_path):
             self.dlg.router_combo.addItem(
-                'Verzeichnis mit Routern nicht gefunden '
-                '(siehe Systemeinstellungen)')
+                'Verzeichnis mit Routern nicht gefunden')
             self.dlg.router_combo.setEnabled(False)
             self.dlg.create_router_button.setEnabled(False)
         else:

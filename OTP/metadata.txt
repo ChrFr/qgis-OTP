@@ -30,7 +30,7 @@ tags=routing, OpenTripPlanner, OTP
 
 homepage=
 category=Plugins
-icon=icon.png
+icon=ui/icon.png
 # experimental flag
 experimental=False
 
