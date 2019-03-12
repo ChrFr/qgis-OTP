@@ -10,16 +10,13 @@ to be used with Jython (Java Bindings!)
 
 from java.text import SimpleDateFormat
 from java.util import TimeZone
-from org.opentripplanner.scripting.api import OtpsEntryPoint, OtpsCsvOutput
-from org.opentripplanner.routing.core import TraverseMode
-from org.opentripplanner.scripting.api import OtpsResultSet, OtpsAggregate, OtpsAccumulate
-from config import (LONGITUDE_COLUMN, LATITUDE_COLUMN,
-                    ID_COLUMN, DATETIME_FORMAT, AGGREGATION_MODES,
-                    ACCUMULATION_MODES, OUTPUT_DATE_FORMAT)
+from org.opentripplanner.scripting.api import OtpsEntryPoint
+from org.opentripplanner.scripting.api import OtpsAggregate, OtpsAccumulate
+from config import (LONGITUDE_COLUMN, LATITUDE_COLUMN, DATETIME_FORMAT,
+                    AGGREGATION_MODES, ACCUMULATION_MODES, OUTPUT_DATE_FORMAT)
 from datetime import datetime
 import csv
 import os
-import sys
 
 
 class CSVWriter(object):
@@ -78,7 +75,7 @@ class CSVWriter(object):
         elif self.mode in AGGREGATION_MODES.keys():
             header += [self.field + '-aggregated']
             do_aggregate = True
-        elif mode in ACCUMULATION_MODES.keys():
+        elif self.mode in ACCUMULATION_MODES.keys():
             header += [self.field + '-accumulated']
             do_accumulate = True
 
@@ -244,7 +241,7 @@ class OTPEvaluation(object):
 
         self.request.setArriveBy(arrive_by)
         self.arrive_by = arrive_by
-        self.request.setWheelChairAccessible(wheel_chair_accessible)
+        self.request.setWheelchairAccessible(wheel_chair_accessible)
         if n_threads is not None:
             self.request.setThreads(n_threads)
         if max_walk is not None:

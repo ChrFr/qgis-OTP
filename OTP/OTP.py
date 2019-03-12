@@ -1017,9 +1017,11 @@ class OTP(object):
 
         if join_results:
             join = QgsVectorLayerJoinInfo()
-            join.joinLayerId = result_layer.id()
-            join.joinFieldName = 'origin id'
-            join.targetFieldName = config.settings['origin']['id_field']
+            join.setJoinLayerId(result_layer.id())
+            join.setJoinFieldName('origin id')
+            join.setTargetFieldName(config.settings['origin']['id_field'])
+            join.setUsingMemoryCache(True)
+            join.setJoinLayer(result_layer)
             origin_layer.addJoin(join)
 
     def create_router(self):
