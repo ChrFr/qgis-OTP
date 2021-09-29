@@ -2,7 +2,7 @@
 
 from xml.etree import ElementTree as etree
 from xml.dom import minidom
-import os, sys, copy
+import os, copy
 from collections import OrderedDict
 from os.path import expanduser
 
@@ -286,9 +286,9 @@ def xml_to_dict(tree):
     '''
     convert a xml tree to a dictionary
     '''
-    if len(tree.getchildren()) > 0:
+    if len(tree):
         value = {}
-        for child in tree.getchildren():
+        for child in tree:
             value[child.tag] = xml_to_dict(child)
     else:
         value = tree.text
