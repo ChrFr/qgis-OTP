@@ -99,7 +99,7 @@ class CSVWriter(object):
         if not append:
             fmode = 'wb'
         else:
-            fmode = 'a'
+            fmode = 'ab'
             if os.path.exists(self.target_csv):
                 write_header = False
 

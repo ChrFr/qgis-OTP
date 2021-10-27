@@ -1,2 +1,7 @@
-*.wpr
-*.wpu
+*.pyc
+*.class
+/config.xml
+/otp_config.xml
+*.*~
+/.project
+/.pydevproject

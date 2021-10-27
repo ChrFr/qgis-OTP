@@ -43,6 +43,7 @@ from qgis._core import (QgsVectorLayer, QgsVectorLayerJoinInfo,
                         QgsCoordinateReferenceSystem, QgsField)
 from qgis.core import QgsVectorFileWriter, QgsProject
 from .dialogs import OTPMainWindow
+
 import locale
 import tempfile
 import shutil
@@ -51,6 +52,8 @@ import csv
 import webbrowser
 
 from datetime import datetime
+import time
+
 
 TITLE = "OpenTripPlanner Plugin"
 
@@ -798,7 +801,7 @@ class OTP(object):
         agg_acc['mode'] = CALC_REACHABILITY_MODE
         # field already exists -> try to take unique name
         if temp_dest_layer.dataProvider().fieldNameIndex(reach_field_name) > -1:
-            reach_field_name += '_' + now_string
+            reach_field_name += f'_{round(time.time())}'
         reach_field = QgsField(reach_field_name, QVariant.Int)
         temp_dest_layer.addExpressionField('1', reach_field)
         agg_acc['processed_field'] = reach_field_name
